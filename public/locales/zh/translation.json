@@ -1,0 +1,55 @@
+{
+  "app": {
+    "name": "Basepoint"
+  },
+  "nav": {
+    "pipeline": "管道",
+    "dashboard": "工作台",
+    "companies": "客户",
+    "contacts": "联系人",
+    "inquiries": "询盘",
+    "quotations": "报价",
+    "orders": "订单",
+    "shipments": "发货",
+    "payments": "收款",
+    "activities": "活动",
+    "tasks": "任务",
+    "sales": "销售",
+    "fulfillment": "履约",
+    "workspace": "工作区"
+  },
+  "userMenu": {
+    "profile": "个人信息",
+    "language": "语言",
+    "appearance": "外观",
+    "about": "关于 CRM",
+    "signOut": "退出登录",
+    "english": "English",
+    "chinese": "中文（简体）"
+  },
+  "profile": {
+    "title": "个人信息",
+    "subtitle": "管理你的个人信息和偏好设置。",
+    "fullName": "姓名",
+    "jobTitle": "职位",
+    "company": "公司",
+    "email": "邮箱",
+    "saved": "个人信息已保存",
+    "saveChanges": "保存",
+    "saved_btn": "已保存",
+    "reset": "重置"
+  },
+  "common": {
+    "edit": "编辑",
+    "delete": "删除",
+    "save": "保存",
+    "cancel": "取消",
+    "back": "返回",
+    "search": "搜索",
+    "new": "新建",
+    "duplicate": "复制",
+    "email": "邮件",
+    "noResults": "没有结果",
+    "loading": "加载中..."
+  }
+}

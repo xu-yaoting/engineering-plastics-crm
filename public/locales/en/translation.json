@@ -1,0 +1,55 @@
+{
+  "app": {
+    "name": "Basepoint"
+  },
+  "nav": {
+    "pipeline": "Pipeline",
+    "dashboard": "Dashboard",
+    "companies": "Companies",
+    "contacts": "Contacts",
+    "inquiries": "Inquiries",
+    "quotations": "Quotations",
+    "orders": "Orders",
+    "shipments": "Shipments",
+    "payments": "Payments",
+    "activities": "Activities",
+    "tasks": "Tasks",
+    "sales": "Sales",
+    "fulfillment": "Fulfillment",
+    "workspace": "Workspace"
+  },
+  "userMenu": {
+    "profile": "Profile",
+    "language": "Language",
+    "appearance": "Appearance",
+    "about": "About CRM",
+    "signOut": "Sign out",
+    "english": "English",
+    "chinese": "中文（简体）"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your personal information and preferences.",
+    "fullName": "Full Name",
+    "jobTitle": "Job Title",
+    "company": "Company",
+    "email": "Email",
+    "saved": "Profile saved",
+    "saveChanges": "Save Changes",
+    "saved_btn": "Saved",
+    "reset": "Reset"
+  },
+  "common": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "search": "Search",
+    "new": "New",
+    "duplicate": "Duplicate",
+    "email": "Email",
+    "noResults": "No results",
+    "loading": "Loading..."
+  }
+}
