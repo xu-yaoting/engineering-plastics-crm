@@ -17,7 +17,7 @@ export default function CompanyEditPanel({
     name: '', company_type: 'end_user', industry: '', registration_number: '',
     website: '', phone: '', email: '', address_line_1: '', address_line_2: '',
     city: '', state_province: '', country: 'US', postal_code: '',
-    status: 'active', classification: 'C', notes: '',
+    status: 'active', classification: 'C', notes: '', customer_code: '',
   });
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
@@ -41,6 +41,7 @@ export default function CompanyEditPanel({
       status: company.status || 'active',
       classification: company.classification || 'C',
       notes: company.notes || '',
+      customer_code: company.customer_code || '',
     });
   }, [company]);
 
@@ -90,9 +91,16 @@ export default function CompanyEditPanel({
           </div>
         </div>
 
-        <div>
-          <label className="label">{t('page.companies.registrationNumber')}</label>
-          <input className="input" value={form.registration_number} onChange={e => set('registration_number', e.target.value)} />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">{t('page.companies.registrationNumber')}</label>
+            <input className="input" value={form.registration_number} onChange={e => set('registration_number', e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Customer Code</label>
+            <input className="input font-mono uppercase" value={form.customer_code} onChange={e => set('customer_code', e.target.value.toUpperCase())} placeholder="SMP" maxLength={10} />
+            <span className="text-2xs text-gray-400">Used for order numbering: {`{PREFIX}-{CODE}-{YYMM}-{SEQ}`}</span>
+          </div>
         </div>
 
         <div>

@@ -15,11 +15,15 @@ export default function Companies() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', company_type: 'end_user', industry: '', country: 'US', city: '', notes: '' });
+  const [form, setForm] = useState({ name: '', company_type: 'end_user', industry: '', country: 'US', city: '', notes: '', customer_code: '' });
   const [editTarget, setEditTarget] = useState<any>(null);
   const [editForm, setEditForm] = useState({ name: '', company_type: 'end_user', industry: '', country: 'US', city: '', status: 'active', classification: 'C' });
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<any>(null);
   const navigate = useNavigate();
 
   const load = () => companies.list().then(setList).finally(() => setLoading(false));
@@ -31,11 +35,15 @@ export default function Companies() {
   );
 
   const create = async () => {
-    await companies.create(form);
-    toast.success('Company created');
-    setShowForm(false);
-    setForm({ name: '', company_type: 'end_user', industry: '', country: 'US', city: '', notes: '' });
-    load();
+    try {
+      await companies.create(form);
+      toast.success('Company created');
+      setShowForm(false);
+      setForm({ name: '', company_type: 'end_user', industry: '', country: 'US', city: '', notes: '', customer_code: '' });
+      load();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to create');
+    }
   };
 
   const openEdit = (c: any) => {
@@ -115,6 +123,11 @@ export default function Companies() {
               <input className="input" value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder="City" />
             </div>
           </div>
+          <div>
+            <label className="label">Customer Code</label>
+            <input className="input font-mono uppercase" value={form.customer_code} onChange={e => setForm({...form, customer_code: e.target.value.toUpperCase()})} placeholder="SMP" maxLength={10} />
+            <span className="text-2xs text-gray-400">Used for order numbers: PREFIX-{'{CODE}'}-YYMM-SEQ</span>
+          </div>
           <div className="flex gap-2 pt-4 border-t border-gray-100">
             <button onClick={create} className="btn-primary flex-1">{t('common.create')}</button>
             <button onClick={() => setShowForm(false) } className="btn-secondary">{t('common.cancel')}</button>
@@ -179,6 +192,94 @@ export default function Companies() {
         </div>
       )}
 
+      {/* Import Modal */}
+      {showImport && (
+        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) setShowImport(false); }}>
+          <div className="bg-white rounded-xl shadow-lg p-6 w-[520px] max-h-[80vh] overflow-y-auto">
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">Import Companies</h3>
+            <p className="text-xs text-gray-500 mb-4">Upload a <strong>.csv</strong> or <strong>.xlsx</strong> file. Duplicate company names are skipped.</p>
+
+            {/* Template */}
+            <div className="bg-gray-50 rounded-lg p-3 mb-4 text-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium text-gray-700">Template format:</span>
+                <button
+                  onClick={() => {
+                    const csv = 'Name,Type,Industry,Country,City,Phone,Email,Website,Status,Classification,CustomerCode,RegistrationNo,Address1,Address2,State,PostalCode\nAcme Aerospace,end_user,Aerospace,US,Los Angeles,+1-555-0100,sales@acme.com,https://acme.com,active,A,SMP,,,,,,\n';
+                    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = 'companies_template.csv'; a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="text-blue-600 hover:underline font-medium"
+                >Download Template</button>
+              </div>
+              <div className="font-mono text-2xs text-gray-500 leading-relaxed">
+                Name*,Type,Industry,Country,City,Phone,Email,Website,Status,Classification<br />
+                <span className="text-gray-300">CustomerCode,RegistrationNo,Address1,Address2,State,PostalCode</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="label">File</label>
+                <div className="flex items-center gap-3">
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 border-0">
+                    Choose File
+                    <input type="file" accept=".csv,.xlsx" onChange={e => { setImportFile(e.target.files?.[0] || null); setImportResult(null); }} className="sr-only" />
+                  </label>
+                  <span className="text-xs text-gray-500">{importFile ? importFile.name : 'No file selected'}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  if (!importFile) return;
+                  setImporting(true);
+                  try {
+                    const fd = new FormData();
+                    fd.append('file', importFile);
+                    const res = await fetch('/api/companies/import', { method: 'POST', body: fd });
+                    const data = await res.json();
+                    setImportResult(data);
+                    if (res.ok) { load(); toast.success(`Imported ${data.created} companies`); }
+                    else { toast.error(data.error || 'Import failed'); }
+                  } catch { toast.error('Import failed'); }
+                  finally { setImporting(false); }
+                }}
+                disabled={!importFile || importing}
+                className="btn-primary"
+              >
+                {importing ? 'Importing...' : 'Upload & Import'}
+              </button>
+
+              {/* Result */}
+              {importResult && (
+                <div className={`rounded-lg p-3 text-sm ${importResult.created > 0 ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+                  <div className="font-semibold text-gray-900 mb-1">
+                    {importResult.created > 0 ? `✅ ${importResult.created} companies imported` : 'No new companies'}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    Total rows: {importResult.total} | Created: {importResult.created} | Skipped: {importResult.skipped}
+                  </div>
+                  {importResult.results?.slice(0, 10).map((r: any, i: number) => (
+                    <div key={i} className="text-2xs text-gray-500 mt-1">{r.name} — {r.action}</div>
+                  ))}
+                  {importResult.errors?.length > 0 && (
+                    <div className="mt-2 text-xs text-red-600">{importResult.errors.length} errors (check format)</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end mt-4">
+              <button onClick={() => { setShowImport(false); setImportResult(null); setImportFile(null); }} className="btn-secondary btn-sm">{t('common.close')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">{t('page.title.companies')}</h1>
@@ -186,6 +287,7 @@ export default function Companies() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowForm(true)} className="btn-primary btn-sm"><Icon name="plus" size={16} className="mr-1.5" />{t('page.companies.new')}</button>
+          <button onClick={() => setShowImport(true)} className="btn-secondary btn-sm"><Icon name="upload" size={14} className="mr-1" />Import</button>
           <button onClick={() => exportFullCsv('/api/companies', 'companies')} className="btn-secondary btn-sm"><Icon name="download" size={14} className="mr-1" />CSV</button>
         </div>
       </div>
@@ -202,6 +304,7 @@ export default function Companies() {
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="table-header">{t("page.companies.name")}</th>
+                <th className="table-header hidden sm:table-cell">Code</th>
                 <th className="table-header hidden sm:table-cell">{t("page.companies.type")}</th>
                 <th className="table-header hidden md:table-cell">{t("page.companies.industry")}</th>
                 <th className="table-header hidden md:table-cell">{t("page.companies.location")}</th>
@@ -221,11 +324,12 @@ export default function Companies() {
                       <span className="font-medium text-gray-900">{c.name}</span>
                     </div>
                   </td>
-                  <td className="table-cell hidden sm:table-cell text-2xs text-gray-500">{c.company_type?.replace('_', ' ')}</td>
-                  <td className="table-cell hidden md:table-cell text-xs text-gray-500">{c.industry || '—'}</td>
-                  <td className="table-cell hidden md:table-cell text-xs text-gray-500">{c.city ? `${c.city}, ${c.country}` : c.country}</td>
+                  <td className="table-cell hidden sm:table-cell text-gray-500">{c.customer_code || '—'}</td>
+                  <td className="table-cell hidden sm:table-cell text-gray-500">{c.company_type?.replace('_', ' ')}</td>
+                  <td className="table-cell hidden md:table-cell text-gray-500">{c.industry || '—'}</td>
+                  <td className="table-cell hidden md:table-cell text-gray-500">{c.city ? `${c.city}, ${c.country}` : c.country}</td>
                   <td className="table-cell"><StatusBadge status={c.status} /></td>
-                  <td className="table-cell text-2xs">{c.classification || 'C'}-Class</td>
+                  <td className="table-cell">{c.classification || 'C'}-Class</td>
                   <td className="table-cell" onClick={e => e.stopPropagation()}>
                     <div className="relative">
                       <button onClick={() => setOpenMenu(openMenu === c.id ? null : c.id)} className="btn-ghost btn-sm text-xs px-1">⋮</button>

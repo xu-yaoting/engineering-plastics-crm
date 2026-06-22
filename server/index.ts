@@ -12,6 +12,7 @@ import shipmentsRouter from './routes/shipments';
 import paymentsRouter from './routes/payments';
 import pipelineRouter from './routes/pipeline';
 import sampleRequestsRouter from './routes/sample-requests';
+import inventoryRouter from './routes/inventory';
 
 const app = express();
 const PORT = 3001;
@@ -53,6 +54,7 @@ app.use('/api/shipments', shipmentsRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/pipeline', pipelineRouter);
 app.use('/api/sample-requests', sampleRequestsRouter);
+app.use('/api/inventory', inventoryRouter);
 
 app.listen(PORT, () => {
   console.log(`CRM Server running on http://localhost:${PORT}`);

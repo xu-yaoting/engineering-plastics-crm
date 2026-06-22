@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { v4 as uuidv4 } from 'uuid';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, '..', 'crm.db');
@@ -356,6 +357,144 @@ db.exec(`
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- ── Inventory Module ──
+
+  -- ── Materials ──
+
+  CREATE TABLE IF NOT EXISTS materials (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    density_kg_m3 INTEGER NOT NULL,
+    category TEXT,
+    system_material INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    deleted_at TEXT
+  );
+
+  -- ── Products ──
+
+  CREATE TABLE IF NOT EXISTS products (
+    id TEXT PRIMARY KEY,
+    sku TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    category TEXT,
+    product_type TEXT NOT NULL DEFAULT 'part'
+      CHECK(product_type IN ('sheet','rod','tube','part')),
+    stock_tracking_mode TEXT NOT NULL DEFAULT 'piece'
+      CHECK(stock_tracking_mode IN ('piece','length','weight')),
+    length_mm REAL,
+    width_mm REAL,
+    thickness_mm REAL,
+    diameter_mm REAL,
+    outer_diameter_mm REAL,
+    inner_diameter_mm REAL,
+    unit_weight_kg REAL NOT NULL DEFAULT 0,
+    material_id TEXT REFERENCES materials(id),
+    unit TEXT NOT NULL DEFAULT 'pc',
+    safety_stock_qty REAL NOT NULL DEFAULT 0,
+    safety_stock_weight_kg REAL NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    deleted_at TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS warehouses (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    location TEXT,
+    is_default INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    deleted_at TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS inventory_transactions (
+    id TEXT PRIMARY KEY,
+    transaction_number TEXT NOT NULL UNIQUE,
+    transaction_type TEXT NOT NULL CHECK(transaction_type IN ('stock_in','stock_out','adjustment')),
+    product_id TEXT NOT NULL REFERENCES products(id),
+    warehouse_id TEXT REFERENCES warehouses(id),
+    quantity REAL NOT NULL,
+    unit TEXT NOT NULL DEFAULT 'pc',
+    total_weight_kg REAL,
+    reference_type TEXT,
+    reference_id TEXT,
+    notes TEXT,
+    operator TEXT,
+    transaction_date TEXT NOT NULL DEFAULT (date('now')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
+
+// ── Seed: Materials ──
+const materialSeed: [string, number, string, number][] = [
+  ['PEEK', 1320, 'engineering_plastic', 1],
+  ['PEEK GF30', 1430, 'engineering_plastic', 1],
+  ['PEEK CF30', 1400, 'engineering_plastic', 1],
+  ['PEI', 1270, 'engineering_plastic', 1],
+  ['PPS', 1350, 'engineering_plastic', 1],
+  ['PPSU', 1290, 'engineering_plastic', 1],
+  ['POM', 1410, 'engineering_plastic', 1],
+  ['PA6', 1130, 'engineering_plastic', 1],
+  ['MC Nylon', 1160, 'engineering_plastic', 1],
+  ['UHMWPE', 930, 'engineering_plastic', 1],
+  ['HDPE', 950, 'engineering_plastic', 1],
+  ['PVDF', 1780, 'engineering_plastic', 1],
+  ['PTFE', 2200, 'engineering_plastic', 1],
+  ['PET', 1370, 'engineering_plastic', 1],
+  ['PAI', 1420, 'engineering_plastic', 1],
+];
+const matIns = db.prepare(`INSERT OR IGNORE INTO materials (id, name, density_kg_m3, category, system_material, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+const matNow = new Date().toISOString();
+for (const m of materialSeed) {
+  matIns.run(uuidv4(), m[0], m[1], m[2], m[3], matNow, matNow);
+}
+
+// ── Schema Migrations (additive only, safe to re-run) ──
+
+function migrate(sql: string) {
+  try { db.exec(sql); } catch { /* column/index already exists */ }
+}
+
+// 1. Companies.customer_code
+migrate("ALTER TABLE companies ADD COLUMN customer_code TEXT");
+migrate("CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_customer_code ON companies(customer_code) WHERE customer_code IS NOT NULL");
+
+// 2. Payment records.payment_number
+migrate("ALTER TABLE payment_records ADD COLUMN payment_number TEXT");
+migrate("CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_records_number ON payment_records(payment_number)");
+
+// 3. Products — new fields (for databases created before schema update)
+migrate("ALTER TABLE products ADD COLUMN product_type TEXT DEFAULT 'part'");
+migrate("ALTER TABLE products ADD COLUMN stock_tracking_mode TEXT DEFAULT 'piece'");
+migrate("ALTER TABLE products ADD COLUMN length_mm REAL");
+migrate("ALTER TABLE products ADD COLUMN width_mm REAL");
+migrate("ALTER TABLE products ADD COLUMN thickness_mm REAL");
+migrate("ALTER TABLE products ADD COLUMN diameter_mm REAL");
+migrate("ALTER TABLE products ADD COLUMN outer_diameter_mm REAL");
+migrate("ALTER TABLE products ADD COLUMN inner_diameter_mm REAL");
+migrate("ALTER TABLE products ADD COLUMN unit_weight_kg REAL DEFAULT 0");
+migrate("ALTER TABLE products ADD COLUMN material_id TEXT REFERENCES materials(id)");
+migrate("ALTER TABLE products ADD COLUMN safety_stock_qty REAL DEFAULT 0");
+migrate("ALTER TABLE products ADD COLUMN safety_stock_weight_kg REAL DEFAULT 0");
+
+// 4. Inventory transactions — weight field
+migrate("ALTER TABLE inventory_transactions ADD COLUMN total_weight_kg REAL");
+
+// 5. System config (COMPANY_PREFIX etc.)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS system_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    description TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+db.prepare(`INSERT OR IGNORE INTO system_config (key, value, description, updated_at)
+  VALUES ('company_prefix', 'JEK', 'Company prefix for order numbers (JEK-SMP-2606-01)', datetime('now'))
+`).run();
 
 export default db;

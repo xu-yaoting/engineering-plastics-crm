@@ -17,6 +17,7 @@ import OrderDetail from './pages/OrderDetail';
 import Shipments from './pages/Shipments';
 import ShipmentDetail from './pages/ShipmentDetail';
 import Payments from './pages/Payments';
+import InventoryPage from './pages/InventoryPage';
 import Activities from './pages/Activities';
 import Tasks from './pages/Tasks';
 import Pipeline from './pages/Pipeline';
@@ -49,6 +50,7 @@ export default function App() {
               <Route path="/shipments" element={<Shipments />} />
               <Route path="/shipments/:id" element={<ShipmentDetail />} />
               <Route path="/payments" element={<Payments />} />
+              <Route path="/inventory" element={<InventoryPage />} />
               <Route path="/activities" element={<Activities />} />
               <Route path="/tasks" element={<Tasks />} />
             <Route path="/settings/profile" element={<SettingsProfile />} />

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db';
 import { validate } from '../validate';
+import { nextInquiryNumber } from '../numbers';
 
 const router = Router();
 
@@ -45,8 +46,7 @@ router.post('/', (req: Request, res: Response) => {
 
   const id = uuidv4();
   const now = new Date().toISOString();
-  const count = (db.prepare("SELECT COUNT(*) as c FROM inquiries").get() as any).c + 1;
-  const inquiry_number = `INQ-${now.slice(2,4)}-${String(count).padStart(4, '0')}`;
+  const inquiry_number = nextInquiryNumber();
 
   db.prepare(`
     INSERT INTO inquiries (id, inquiry_number, company_id, contact_id, source,

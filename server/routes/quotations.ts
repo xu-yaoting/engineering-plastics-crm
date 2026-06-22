@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db';
 import { validate } from '../validate';
+import { nextQuotationNumber } from '../numbers';
 import { generateQuotationPDF } from '../pdf-quotation';
 
 const router = Router();
@@ -52,8 +53,7 @@ router.post('/', (req: Request, res: Response) => {
 
   const id = uuidv4();
   const now = new Date().toISOString();
-  const count = (db.prepare("SELECT COUNT(*) as c FROM quotations").get() as any).c + 1;
-  const quotation_number = `QT-${now.slice(2,4)}-${String(count).padStart(4, '0')}`;
+  const quotation_number = nextQuotationNumber();
 
   const quotation_date = req.body.quotation_date || new Date().toISOString().slice(0, 10);
   const valid_until = req.body.valid_until || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);

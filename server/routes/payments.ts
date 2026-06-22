@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db';
 import { validate } from '../validate';
+import { nextPaymentNumber } from '../numbers';
 
 const router = Router();
 
@@ -81,13 +82,15 @@ router.post('/:id/pay', (req: Request, res: Response) => {
   const paymentId = uuidv4();
   const { amount, payment_method, reference_number } = req.body;
 
-  const invoice = db.prepare("SELECT * FROM invoices WHERE id = ?").get(req.params.id) as any;
+  const invoice = db.prepare("SELECT i.*, o.order_number FROM invoices i LEFT JOIN orders o ON i.order_id = o.id WHERE i.id = ?").get(req.params.id) as any;
   if (!invoice) return res.status(404).json({ error: 'Not found' });
 
+  const payment_number = invoice.order_number ? nextPaymentNumber(invoice.order_number) : null;
+
   db.prepare(`
-    INSERT INTO payment_records (id, invoice_id, payment_date, amount, payment_method, reference_number, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(paymentId, req.params.id, now.slice(0, 10), amount, payment_method, reference_number, now);
+    INSERT INTO payment_records (id, invoice_id, payment_date, amount, payment_method, reference_number, payment_number, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(paymentId, req.params.id, now.slice(0, 10), amount, payment_method, reference_number, payment_number, now);
 
   const newPaid = (invoice.amount_paid || 0) + amount;
   const newDue = Math.max(0, (invoice.amount_due || invoice.total) - amount);

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db';
 import { validate } from '../validate';
+import { nextShipmentNumber } from '../numbers';
 
 const router = Router();
 
@@ -41,13 +42,12 @@ router.post('/', (req: Request, res: Response) => {
   if (err) return res.status(400).json({ success: false, message: err });
 
   // Verify FK: order must exist
-  const ord = db.prepare("SELECT id FROM orders WHERE id = ? AND deleted_at IS NULL").get(req.body.order_id);
+  const ord = db.prepare("SELECT id, order_number FROM orders WHERE id = ? AND deleted_at IS NULL").get(req.body.order_id) as any;
   if (!ord) return res.status(400).json({ success: false, message: 'Selected order does not exist' });
 
   const id = uuidv4();
   const now = new Date().toISOString();
-  const count = (db.prepare("SELECT COUNT(*) as c FROM shipments").get() as any).c + 1;
-  const shipment_number = `SHP-${now.slice(2,4)}-${String(count).padStart(4, '0')}`;
+  const shipment_number = nextShipmentNumber(ord.order_number);
 
   const {
     order_id, shipping_type, carrier, tracking_number, shipping_address, notes, status,

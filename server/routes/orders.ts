@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db';
 import { validate } from '../validate';
+import { nextOrderNumber } from '../numbers';
 
 const router = Router();
 
@@ -39,16 +40,16 @@ router.post('/', (req: Request, res: Response) => {
   const err = validate(req.body, ['company_id', 'quotation_id']);
   if (err) return res.status(400).json({ success: false, message: err });
 
-  // Verify FK references
-  const co = db.prepare("SELECT id FROM companies WHERE id = ? AND deleted_at IS NULL").get(req.body.company_id);
+  // Verify FK references + customer_code
+  const co = db.prepare("SELECT id, customer_code FROM companies WHERE id = ? AND deleted_at IS NULL").get(req.body.company_id) as any;
   if (!co) return res.status(400).json({ success: false, message: 'Selected company does not exist' });
+  if (!co.customer_code) return res.status(400).json({ success: false, message: 'Company must have a customer_code before creating an order' });
   const qt = db.prepare("SELECT id FROM quotations WHERE id = ? AND deleted_at IS NULL").get(req.body.quotation_id);
   if (!qt) return res.status(400).json({ success: false, message: 'Selected quotation does not exist' });
 
   const id = uuidv4();
   const now = new Date().toISOString();
-  const count = (db.prepare("SELECT COUNT(*) as c FROM orders").get() as any).c + 1;
-  const order_number = `SO-${now.slice(2,4)}-${String(count).padStart(4, '0')}`;
+  const order_number = nextOrderNumber(co.customer_code);
 
   const { incoterm, payment_term, tax_type, domestic_vat_rate, export_tax_rebate_rate, shipping_handling, discount_percent, discount_amount, tax_amount, line_items } = req.body;
 
