@@ -1,10 +1,35 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import db from '../db';
-import { validate } from '../validate';
-import { nextInquiryNumber } from '../numbers';
+import db from '../db.js';
+import { validate } from '../validate.js';
+import { nextInquiryNumber } from '../numbers.js';
 
 const router = Router();
+
+const INQUIRY_UPDATE_FIELDS = [
+  'company_id',
+  'contact_id',
+  'project_id',
+  'assigned_to',
+  'source',
+  'application_description',
+  'target_material_requested',
+  'recommended_product_id',
+  'operating_temp_min_c',
+  'operating_temp_max_c',
+  'chemical_exposure',
+  'mechanical_load',
+  'regulatory_requirements',
+  'quantity_estimate',
+  'urgency',
+  'estimated_budget',
+  'currency',
+  'status',
+  'lost_reason',
+  'converted_to_quotation_id',
+  'technical_notes',
+  'custom_fields',
+] as const;
 
 router.get('/', (req: Request, res: Response) => {
   const { status, company_id } = req.query;
@@ -64,10 +89,14 @@ router.post('/', (req: Request, res: Response) => {
 
 router.put('/:id', (req: Request, res: Response) => {
   const now = new Date().toISOString();
-  const fields = Object.entries(req.body).filter(([k]) => k !== 'id' && k !== 'created_at' && k !== 'inquiry_number')
-    .map(([k, v]) => `${k} = ?`).join(', ');
-  const values = Object.entries(req.body).filter(([k]) => k !== 'id' && k !== 'created_at' && k !== 'inquiry_number')
-    .map(([_, v]) => v);
+  const updateFields = INQUIRY_UPDATE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(req.body, field)
+  );
+  if (updateFields.length === 0) {
+    return res.status(400).json({ success: false, message: 'No valid fields to update' });
+  }
+  const fields = updateFields.map((field) => `${field} = ?`).join(', ');
+  const values = updateFields.map((field) => req.body[field]);
   const result = db.prepare(`UPDATE inquiries SET ${fields}, updated_at = ? WHERE id = ?`).run(...values, now, req.params.id);
   if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });
   res.json(db.prepare("SELECT * FROM inquiries WHERE id = ?").get(req.params.id));

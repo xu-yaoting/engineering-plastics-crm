@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import db from '../db';
-import { validate } from '../validate';
-import { nextPaymentNumber } from '../numbers';
+import db from '../db.js';
+import { validate } from '../validate.js';
+import { nextPaymentNumber } from '../numbers.js';
 
 const router = Router();
 
@@ -55,6 +55,11 @@ router.post('/', (req: Request, res: Response) => {
   const err = validate(req.body, ['order_id', 'total']);
   if (err) return res.status(400).json({ success: false, message: err });
 
+  const invoiceTotal = Number(req.body.total);
+  if (!Number.isFinite(invoiceTotal) || invoiceTotal <= 0) {
+    return res.status(400).json({ success: false, message: 'Invoice total must be greater than 0' });
+  }
+
   // Verify FK: order must exist
   const ord = db.prepare("SELECT id FROM orders WHERE id = ? AND deleted_at IS NULL").get(req.body.order_id);
   if (!ord) return res.status(400).json({ success: false, message: 'Selected order does not exist' });
@@ -64,7 +69,7 @@ router.post('/', (req: Request, res: Response) => {
   const count = (db.prepare("SELECT COUNT(*) as c FROM invoices").get() as any).c + 1;
   const invoice_number = `INV-${now.slice(2,4)}-${String(count).padStart(4, '0')}`;
 
-  const { order_id, total, due_date, invoice_type, notes } = req.body;
+  const { order_id, due_date, invoice_type, notes } = req.body;
 
   db.prepare(`
     INSERT INTO invoices (id, invoice_number, order_id, company_id, invoice_date,
@@ -72,7 +77,7 @@ router.post('/', (req: Request, res: Response) => {
     VALUES (?, ?, ?, (SELECT company_id FROM orders WHERE id = ?), ?, ?, ?, ?, 'issued', ?, ?, ?)
   `).run(id, invoice_number, order_id, order_id, now.slice(0, 10),
     due_date || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-    total, total, notes || '', now, now);
+    invoiceTotal, invoiceTotal, notes || '', now, now);
 
   res.status(201).json(db.prepare("SELECT * FROM invoices WHERE id = ?").get(id));
 });
@@ -81,19 +86,29 @@ router.post('/:id/pay', (req: Request, res: Response) => {
   const now = new Date().toISOString();
   const paymentId = uuidv4();
   const { amount, payment_method, reference_number } = req.body;
+  const paymentAmount = Number(amount);
 
-  const invoice = db.prepare("SELECT i.*, o.order_number FROM invoices i LEFT JOIN orders o ON i.order_id = o.id WHERE i.id = ?").get(req.params.id) as any;
+  if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+    return res.status(400).json({ error: 'Payment amount must be greater than 0' });
+  }
+
+  const invoice = db.prepare("SELECT i.*, o.order_number FROM invoices i LEFT JOIN orders o ON i.order_id = o.id WHERE i.id = ? AND i.deleted_at IS NULL").get(req.params.id) as any;
   if (!invoice) return res.status(404).json({ error: 'Not found' });
+
+  const remainingDue = Number(invoice.amount_due ?? invoice.total ?? 0);
+  if (paymentAmount > remainingDue) {
+    return res.status(400).json({ error: 'Payment exceeds remaining balance', remainingDue, paymentAmount });
+  }
 
   const payment_number = invoice.order_number ? nextPaymentNumber(invoice.order_number) : null;
 
   db.prepare(`
     INSERT INTO payment_records (id, invoice_id, payment_date, amount, payment_method, reference_number, payment_number, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(paymentId, req.params.id, now.slice(0, 10), amount, payment_method, reference_number, payment_number, now);
+  `).run(paymentId, req.params.id, now.slice(0, 10), paymentAmount, payment_method, reference_number, payment_number, now);
 
-  const newPaid = (invoice.amount_paid || 0) + amount;
-  const newDue = Math.max(0, (invoice.amount_due || invoice.total) - amount);
+  const newPaid = Number(invoice.amount_paid ?? 0) + paymentAmount;
+  const newDue = Math.max(0, remainingDue - paymentAmount);
   const newStatus = newDue <= 0 ? 'paid' : 'partial_paid';
 
   db.prepare("UPDATE invoices SET amount_paid = ?, amount_due = ?, status = ?, fully_paid_at = ?, updated_at = ? WHERE id = ?")

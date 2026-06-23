@@ -1,10 +1,61 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import db from '../db';
-import { validate } from '../validate';
-import { nextOrderNumber } from '../numbers';
+import db from '../db.js';
+import { validate } from '../validate.js';
+import { nextOrderNumber } from '../numbers.js';
 
 const router = Router();
+
+const ORDER_UPDATE_FIELDS = [
+  'customer_po_number',
+  'company_id',
+  'contact_id',
+  'quotation_id',
+  'inquiry_id',
+  'project_id',
+  'previous_order_id',
+  'assigned_to',
+  'order_date',
+  'requested_delivery_date',
+  'confirmed_delivery_date',
+  'incoterm',
+  'currency',
+  'exchange_rate',
+  'payment_term',
+  'payment_status',
+  'subtotal',
+  'discount_percent',
+  'discount_amount',
+  'tax_type',
+  'domestic_vat_rate',
+  'export_tax_rebate_rate',
+  'tax_amount',
+  'shipping_handling',
+  'total',
+  'status',
+  'shipping_address',
+  'shipping_instructions',
+  'internal_notes',
+  'custom_fields',
+] as const;
+
+const ORDER_LINE_ITEM_UPDATE_FIELDS = [
+  'line_number',
+  'product_id',
+  'product_grade_snapshot',
+  'form',
+  'description',
+  'unit_of_measure',
+  'quantity_ordered',
+  'quantity_shipped',
+  'quantity_delivered',
+  'unit_price',
+  'discount_percent',
+  'line_total',
+  'batch_lot_number',
+  'status',
+  'notes',
+] as const;
 
 router.get('/', (req: Request, res: Response) => {
   const q = req.query.q as string | undefined;
@@ -109,15 +160,17 @@ router.put('/:id', (req: Request, res: Response) => {
   }
 
   // Update order table fields (exclude line_items and non-editable fields)
-  const { line_items, ...dataFields } = req.body;
-  const fields = Object.entries(dataFields)
-    .filter(([k]) => k !== 'id' && k !== 'created_at' && k !== 'order_number')
-    .map(([k, v]) => `${k} = ?`).join(', ');
-  const values = Object.entries(dataFields)
-    .filter(([k]) => k !== 'id' && k !== 'created_at' && k !== 'order_number')
-    .map(([_, v]) => v);
-  const result = db.prepare(`UPDATE orders SET ${fields}, updated_at = ? WHERE id = ?`).run(...values, now, req.params.id);
-  if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });
+  const updateFields = ORDER_UPDATE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(req.body, field)
+  );
+  if (updateFields.length > 0) {
+    const fields = updateFields.map((field) => `${field} = ?`).join(', ');
+    const values = updateFields.map((field) => req.body[field]);
+    const result = db.prepare(`UPDATE orders SET ${fields}, updated_at = ? WHERE id = ?`).run(...values, now, req.params.id);
+    if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });
+  } else if (!req.body.line_items) {
+    return res.status(400).json({ success: false, message: 'No valid fields to update' });
+  }
   res.json(db.prepare("SELECT * FROM orders WHERE id = ?").get(req.params.id));
 });
 
@@ -128,16 +181,16 @@ router.delete('/:id', (req: Request, res: Response) => {
 
 // Individual order line item updates (e.g. quantity_shipped)
 router.put('/line-items/:id', (req: Request, res: Response) => {
-  const fields = Object.entries(req.body)
-    .filter(([k]) => k !== 'id' && k !== 'created_at')
-    .map(([k, v]) => `${k} = ?`).join(', ');
-  const values = Object.entries(req.body)
-    .filter(([k]) => k !== 'id' && k !== 'created_at')
-    .map(([_, v]) => v);
-  if (fields) {
-    const result = db.prepare(`UPDATE order_line_items SET ${fields} WHERE id = ?`).run(...values, req.params.id);
-    if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });
+  const updateFields = ORDER_LINE_ITEM_UPDATE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(req.body, field)
+  );
+  if (updateFields.length === 0) {
+    return res.status(400).json({ success: false, message: 'No valid fields to update' });
   }
+  const fields = updateFields.map((field) => `${field} = ?`).join(', ');
+  const values = updateFields.map((field) => req.body[field]);
+  const result = db.prepare(`UPDATE order_line_items SET ${fields} WHERE id = ?`).run(...values, req.params.id);
+  if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });
   res.json(db.prepare("SELECT * FROM order_line_items WHERE id = ?").get(req.params.id));
 });
 

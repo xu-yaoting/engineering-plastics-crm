@@ -1,4 +1,4 @@
-import db from './db';
+import db from './db.js';
 
 /** Read COMPANY_PREFIX from system_config */
 export function getCompanyPrefix(): string {

@@ -1,4 +1,4 @@
-import db from './db';
+import db from './db.js';
 
 export interface ProductDims {
   product_type: 'sheet' | 'rod' | 'tube' | 'part';

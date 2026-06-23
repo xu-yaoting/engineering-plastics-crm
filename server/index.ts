@@ -1,21 +1,22 @@
 import express from 'express';
 import cors from 'cors';
-import { authMiddleware, getApiKey } from './auth';
-import companiesRouter from './routes/companies';
-import contactsRouter from './routes/contacts';
-import activitiesRouter from './routes/activities';
-import tasksRouter from './routes/tasks';
-import inquiriesRouter from './routes/inquiries';
-import quotationsRouter from './routes/quotations';
-import ordersRouter from './routes/orders';
-import shipmentsRouter from './routes/shipments';
-import paymentsRouter from './routes/payments';
-import pipelineRouter from './routes/pipeline';
-import sampleRequestsRouter from './routes/sample-requests';
-import inventoryRouter from './routes/inventory';
+import { authMiddleware, isAuthEnabled } from './auth.js';
+import companiesRouter from './routes/companies.js';
+import contactsRouter from './routes/contacts.js';
+import activitiesRouter from './routes/activities.js';
+import tasksRouter from './routes/tasks.js';
+import inquiriesRouter from './routes/inquiries.js';
+import quotationsRouter from './routes/quotations.js';
+import ordersRouter from './routes/orders.js';
+import shipmentsRouter from './routes/shipments.js';
+import paymentsRouter from './routes/payments.js';
+import pipelineRouter from './routes/pipeline.js';
+import sampleRequestsRouter from './routes/sample-requests.js';
+import inventoryRouter from './routes/inventory.js';
 
 const app = express();
-const PORT = 3001;
+const PORT = Number(process.env.PORT || 3001);
+const HOST = process.env.HOST || '127.0.0.1';
 
 app.use(cors({
   origin: [
@@ -29,9 +30,8 @@ app.use(express.json());
 
 // ── Public endpoints (no auth required) ──
 
-// Config: frontend fetches the API key here on startup
 app.get('/api/config', (_req, res) => {
-  res.json({ apiKey: getApiKey() });
+  res.json({ authEnabled: isAuthEnabled() });
 });
 
 // Health check
@@ -56,6 +56,6 @@ app.use('/api/pipeline', pipelineRouter);
 app.use('/api/sample-requests', sampleRequestsRouter);
 app.use('/api/inventory', inventoryRouter);
 
-app.listen(PORT, () => {
-  console.log(`CRM Server running on http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`CRM Server running on http://${HOST}:${PORT}`);
 });

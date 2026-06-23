@@ -2,12 +2,39 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import multer from 'multer';
 import XLSX from 'xlsx';
-import db from '../db';
-import { validate } from '../validate';
+import db from '../db.js';
+import { validate } from '../validate.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 const router = Router();
+
+const COMPANY_UPDATE_FIELDS = [
+  'name',
+  'company_type',
+  'industry',
+  'registration_number',
+  'website',
+  'phone',
+  'email',
+  'address_line_1',
+  'address_line_2',
+  'city',
+  'state_province',
+  'country',
+  'postal_code',
+  'region',
+  'credit_term',
+  'credit_limit',
+  'status',
+  'classification',
+  'lead_source',
+  'first_contact_date',
+  'last_activity_at',
+  'tags',
+  'notes',
+  'customer_code',
+] as const;
 
 router.get('/', (req: Request, res: Response) => {
   const q = req.query.q as string | undefined;
@@ -82,13 +109,16 @@ router.put('/:id', (req: Request, res: Response) => {
     req.body.customer_code = clean || null;
   }
 
+  const updateFields = COMPANY_UPDATE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(req.body, field)
+  );
+  if (updateFields.length === 0) {
+    return res.status(400).json({ success: false, message: 'No valid fields to update' });
+  }
+
   const now = new Date().toISOString();
-  const fields = Object.entries(req.body)
-    .filter(([k]) => k !== 'id' && k !== 'created_at')
-    .map(([k, v]) => `${k} = ?`).join(', ');
-  const values = Object.entries(req.body)
-    .filter(([k]) => k !== 'id' && k !== 'created_at')
-    .map(([_, v]) => v);
+  const fields = updateFields.map((field) => `${field} = ?`).join(', ');
+  const values = updateFields.map((field) => req.body[field]);
 
   const result = db.prepare(`UPDATE companies SET ${fields}, updated_at = ? WHERE id = ? AND deleted_at IS NULL`)
     .run(...values, now, req.params.id);

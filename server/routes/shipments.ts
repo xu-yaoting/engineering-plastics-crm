@@ -1,10 +1,31 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import db from '../db';
-import { validate } from '../validate';
-import { nextShipmentNumber } from '../numbers';
+import db from '../db.js';
+import { validate } from '../validate.js';
+import { nextShipmentNumber } from '../numbers.js';
 
 const router = Router();
+
+const SHIPMENT_UPDATE_FIELDS = [
+  'order_id',
+  'shipping_type',
+  'carrier',
+  'tracking_number',
+  'shipping_address',
+  'notes',
+  'status',
+  'container_no',
+  'vessel',
+  'voyage',
+  'awb',
+  'airline',
+  'express_provider',
+  'etd',
+  'eta',
+  'shipped_at',
+  'estimated_delivery_date',
+  'actual_delivery_date',
+] as const;
 
 router.get('/', (req: Request, res: Response) => {
   const q = req.query.q as string | undefined;
@@ -78,20 +99,17 @@ router.post('/', (req: Request, res: Response) => {
 router.put('/:id', (req: Request, res: Response) => {
   const now = new Date().toISOString();
 
-  // Exclude non-editable fields
-  const { id: _, created_at: __, shipment_number: ___, ...dataFields } = req.body;
-
-  const fields = Object.entries(dataFields)
-    .filter(([_, v]) => v !== undefined)
-    .map(([k]) => `${k} = ?`).join(', ');
-  const values = Object.entries(dataFields)
-    .filter(([_, v]) => v !== undefined)
-    .map(([_, v]) => v);
-
-  if (fields) {
-    const result = db.prepare(`UPDATE shipments SET ${fields}, updated_at = ? WHERE id = ?`).run(...values, now, req.params.id);
-    if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });
+  const updateFields = SHIPMENT_UPDATE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(req.body, field) && req.body[field] !== undefined
+  );
+  if (updateFields.length === 0) {
+    return res.status(400).json({ success: false, message: 'No valid fields to update' });
   }
+
+  const fields = updateFields.map((field) => `${field} = ?`).join(', ');
+  const values = updateFields.map((field) => req.body[field]);
+  const result = db.prepare(`UPDATE shipments SET ${fields}, updated_at = ? WHERE id = ?`).run(...values, now, req.params.id);
+  if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });
   res.json(db.prepare("SELECT * FROM shipments WHERE id = ?").get(req.params.id));
 });
 

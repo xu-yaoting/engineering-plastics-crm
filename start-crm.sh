@@ -1,9 +1,11 @@
 #!/bin/bash
+set -euo pipefail
+
 cd /Users/myairbook/AIProjects/engineering-plastics-crm
 
 # Kill old instances
-lsof -ti :3001 2>/dev/null | xargs kill -9 2>/dev/null
-lsof -ti :5173 2>/dev/null | xargs kill -9 2>/dev/null
+lsof -ti :3001 2>/dev/null | xargs kill -9 2>/dev/null || true
+lsof -ti :5173 2>/dev/null | xargs kill -9 2>/dev/null || true
 sleep 1
 
 echo ""
@@ -14,20 +16,20 @@ echo "  ╚═══════════════════════
 echo ""
 
 # Start API
-npx tsx server/index.ts &
+npm run dev:server &
 sleep 3
 
 # Start frontend
-npx vite --port 5173 --host &
+npm run dev:client &
 sleep 2
 
 # Check
-API=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/api/health)
-echo "  API: http://localhost:3001 ($([ $API == 200 ] && echo 'OK' || echo 'FAIL'))"
-echo "  App: http://localhost:5173"
+API=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3001/api/health)
+echo "  API: http://127.0.0.1:3001 ($([ "$API" = 200 ] && echo 'OK' || echo 'FAIL'))"
+echo "  App: http://127.0.0.1:5173"
 
-if [ $API == 200 ]; then
-  open http://localhost:5173
+if [ "$API" = 200 ]; then
+  open http://127.0.0.1:5173 2>/dev/null || true
   echo "  ✅ CRM Ready"
 fi
 

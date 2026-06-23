@@ -1,11 +1,51 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import db from '../db';
-import { validate } from '../validate';
-import { nextQuotationNumber } from '../numbers';
-import { generateQuotationPDF } from '../pdf-quotation';
+import db from '../db.js';
+import { validate } from '../validate.js';
+import { nextQuotationNumber } from '../numbers.js';
+import { generateQuotationPDF } from '../pdf-quotation.js';
 
 const router = Router();
+
+const QUOTATION_UPDATE_FIELDS = [
+  'company_id',
+  'contact_id',
+  'inquiry_id',
+  'project_id',
+  'assigned_to',
+  'quotation_date',
+  'valid_until',
+  'incoterm',
+  'currency',
+  'exchange_rate',
+  'payment_term',
+  'delivery_term',
+  'subtotal',
+  'discount_percent',
+  'discount_amount',
+  'tax_type',
+  'domestic_vat_rate',
+  'export_tax_rebate_rate',
+  'tax_amount',
+  'shipping_handling',
+  'total',
+  'margin_estimate_percent',
+  'cost_total_estimate',
+  'status',
+  'version',
+  'parent_version_id',
+  'approval_requested_at',
+  'approval_requested_by',
+  'approved_at',
+  'approved_by',
+  'sent_at',
+  'customer_acknowledged_at',
+  'accepted_at',
+  'rejection_reason',
+  'internal_notes',
+  'terms_and_conditions',
+  'custom_fields',
+] as const;
 
 router.get('/', (req: Request, res: Response) => {
   const { status, company_id } = req.query;
@@ -108,11 +148,8 @@ router.put('/:id', (req: Request, res: Response) => {
   }
 
   // Update quotation table fields (exclude line_items and non-editable fields)
-  const { line_items, ...dataFields } = req.body;
-  const fields = Object.entries(dataFields).filter(([k]) => k !== 'id' && k !== 'created_at' && k !== 'quotation_number')
-    .map(([k, v]) => `${k} = ?`).join(', ');
-  const values = Object.entries(dataFields).filter(([k]) => k !== 'id' && k !== 'created_at' && k !== 'quotation_number')
-    .map(([_, v]) => v);
+  const dataFields = { ...req.body };
+  delete dataFields.line_items;
 
   // Auto-approval: if total > 100k and status is 'draft', escalate to pending_approval
   const total = req.body.total || 0;
@@ -120,17 +157,30 @@ router.put('/:id', (req: Request, res: Response) => {
   if (total > 100000 && current?.status === 'draft') {
     dataFields.status = 'pending_approval';
     dataFields.approval_requested_at = now;
-    // Rebuild fields/values with updated data
-    const updatedEntries = Object.entries(dataFields).filter(([k]) => k !== 'id' && k !== 'created_at' && k !== 'quotation_number');
-    const updFields = updatedEntries.map(([k]) => `${k} = ?`).join(', ');
-    const updValues = updatedEntries.map(([_, v]) => v);
-    db.prepare(`UPDATE quotations SET ${updFields}, updated_at = ? WHERE id = ?`).run(...updValues, now, req.params.id);
-  } else {
+  }
+
+  const updateFields = QUOTATION_UPDATE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(dataFields, field)
+  );
+  if (updateFields.length > 0) {
+    const fields = updateFields.map((field) => `${field} = ?`).join(', ');
+    const values = updateFields.map((field) => dataFields[field]);
     const result = db.prepare(`UPDATE quotations SET ${fields}, updated_at = ? WHERE id = ?`).run(...values, now, req.params.id);
     if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });
+  } else if (!req.body.line_items) {
+    return res.status(400).json({ success: false, message: 'No valid fields to update' });
+  } else {
+    const existing = db.prepare("SELECT id FROM quotations WHERE id = ? AND deleted_at IS NULL").get(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Record not found' });
   }
 
   res.json(db.prepare("SELECT * FROM quotations WHERE id = ?").get(req.params.id));
+});
+
+router.delete('/:id', (req: Request, res: Response) => {
+  db.prepare("UPDATE quotations SET deleted_at = ?, updated_at = ? WHERE id = ?")
+    .run(new Date().toISOString(), new Date().toISOString(), req.params.id);
+  res.status(204).send();
 });
 
 // Approve or reject a quotation that is pending_approval

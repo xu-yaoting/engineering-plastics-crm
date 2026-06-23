@@ -2,12 +2,37 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import multer from 'multer';
 import XLSX from 'xlsx';
-import db from '../db';
-import { validate } from '../validate';
-import { updateProductWeight, getMaterialDensity } from '../weight';
+import db from '../db.js';
+import { validate } from '../validate.js';
+import { updateProductWeight, getMaterialDensity } from '../weight.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 const router = Router();
+
+const MATERIAL_UPDATE_FIELDS = [
+  'name',
+  'density_kg_m3',
+  'category',
+] as const;
+
+const PRODUCT_UPDATE_FIELDS = [
+  'sku',
+  'name',
+  'category',
+  'product_type',
+  'stock_tracking_mode',
+  'length_mm',
+  'width_mm',
+  'thickness_mm',
+  'diameter_mm',
+  'outer_diameter_mm',
+  'inner_diameter_mm',
+  'unit_weight_kg',
+  'material_id',
+  'unit',
+  'safety_stock_qty',
+  'safety_stock_weight_kg',
+] as const;
 
 // ─── Helper: compute total_weight_kg for a transaction ───
 function txnWeight(product_id: string, qty: number): number {
@@ -42,11 +67,26 @@ router.put('/materials/:id', (req: Request, res: Response) => {
     for (const p of prods) updateProductWeight(p.id);
     return res.json(db.prepare("SELECT * FROM materials WHERE id = ?").get(req.params.id));
   }
-  const fields = Object.entries(req.body).filter(([k]) => k !== 'id' && k !== 'created_at')
-    .map(([k, v]) => `${k} = ?`).join(', ');
-  const values = Object.entries(req.body).filter(([k]) => k !== 'id' && k !== 'created_at').map(([_, v]) => v);
+  const updateFields = MATERIAL_UPDATE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(req.body, field)
+  );
+  if (updateFields.length === 0) return res.status(400).json({ error: 'No valid fields to update' });
+  const fields = updateFields.map((field) => `${field} = ?`).join(', ');
+  const values = updateFields.map((field) => req.body[field]);
   db.prepare(`UPDATE materials SET ${fields}, updated_at = ? WHERE id = ?`).run(...values, now, req.params.id);
   res.json(db.prepare("SELECT * FROM materials WHERE id = ?").get(req.params.id));
+});
+
+router.delete('/materials/:id', (req: Request, res: Response) => {
+  const now = new Date().toISOString();
+  const mat = db.prepare("SELECT id, system_material FROM materials WHERE id = ? AND deleted_at IS NULL").get(req.params.id) as any;
+  if (!mat) return res.status(404).json({ error: 'Not found' });
+  if (mat.system_material) return res.status(400).json({ error: 'System material cannot be deleted' });
+
+  const result = db.prepare("UPDATE materials SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL")
+    .run(now, now, req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
+  res.status(204).send();
 });
 
 // ─── Products ───
@@ -82,9 +122,12 @@ router.post('/products', (req: Request, res: Response) => {
 
 router.put('/products/:id', (req: Request, res: Response) => {
   const now = new Date().toISOString();
-  const fields = Object.entries(req.body).filter(([k]) => k !== 'id' && k !== 'created_at')
-    .map(([k, v]) => `${k} = ?`).join(', ');
-  const values = Object.entries(req.body).filter(([k]) => k !== 'id' && k !== 'created_at').map(([_, v]) => v);
+  const updateFields = PRODUCT_UPDATE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(req.body, field)
+  );
+  if (updateFields.length === 0) return res.status(400).json({ error: 'No valid fields to update' });
+  const fields = updateFields.map((field) => `${field} = ?`).join(', ');
+  const values = updateFields.map((field) => req.body[field]);
   const result = db.prepare(`UPDATE products SET ${fields}, updated_at = ? WHERE id = ? AND deleted_at IS NULL`)
     .run(...values, now, req.params.id);
   if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
@@ -92,6 +135,14 @@ router.put('/products/:id', (req: Request, res: Response) => {
   const dimFields = ['product_type', 'length_mm', 'width_mm', 'thickness_mm', 'diameter_mm', 'outer_diameter_mm', 'inner_diameter_mm', 'material_id', 'unit_weight_kg'];
   if (dimFields.some(f => f in req.body)) updateProductWeight(req.params.id);
   res.json(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id));
+});
+
+router.delete('/products/:id', (req: Request, res: Response) => {
+  const now = new Date().toISOString();
+  const result = db.prepare("UPDATE products SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL")
+    .run(now, now, req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
+  res.status(204).send();
 });
 
 // ─── Warehouses ───

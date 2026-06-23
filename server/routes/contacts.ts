@@ -1,9 +1,30 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import db from '../db';
-import { validate } from '../validate';
+import db from '../db.js';
+import { validate } from '../validate.js';
 
 const router = Router();
+
+const CONTACT_UPDATE_FIELDS = [
+  'company_id',
+  'salutation',
+  'first_name',
+  'last_name',
+  'job_title',
+  'department',
+  'role_in_process',
+  'email',
+  'phone_direct',
+  'phone_mobile',
+  'is_primary_contact',
+  'is_decision_maker',
+  'communication_language',
+  'preferred_contact_method',
+  'timezone',
+  'notes',
+  'last_contacted_at',
+  'is_active',
+] as const;
 
 router.get('/', (req: Request, res: Response) => {
   const { company_id } = req.query;
@@ -78,10 +99,14 @@ router.put('/:id', (req: Request, res: Response) => {
     const contact = db.prepare("SELECT company_id FROM contacts WHERE id = ?").get(req.params.id) as any;
     if (contact) db.prepare("UPDATE contacts SET is_primary_contact = 0 WHERE company_id = ?").run(contact.company_id);
   }
-  const fields = Object.entries(req.body).filter(([k]) => k !== 'id' && k !== 'created_at')
-    .map(([k, v]) => `${k} = ?`).join(', ');
-  const values = Object.entries(req.body).filter(([k]) => k !== 'id' && k !== 'created_at')
-    .map(([_, v]) => v);
+  const updateFields = CONTACT_UPDATE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(req.body, field)
+  );
+  if (updateFields.length === 0) {
+    return res.status(400).json({ success: false, message: 'No valid fields to update' });
+  }
+  const fields = updateFields.map((field) => `${field} = ?`).join(', ');
+  const values = updateFields.map((field) => req.body[field]);
   const result = db.prepare(`UPDATE contacts SET ${fields}, updated_at = ? WHERE id = ? AND deleted_at IS NULL`)
     .run(...values, now, req.params.id);
   if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });

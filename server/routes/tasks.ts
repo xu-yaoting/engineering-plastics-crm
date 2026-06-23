@@ -1,8 +1,25 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import db from '../db';
+import db from '../db.js';
 
 const router = Router();
+
+const TASK_UPDATE_FIELDS = [
+  'subject',
+  'description',
+  'task_type',
+  'priority',
+  'status',
+  'due_date',
+  'due_time',
+  'is_recurring',
+  'recurring_rule',
+  'entity_type',
+  'entity_id',
+  'reminder_at',
+  'reminder_sent',
+  'tags',
+] as const;
 
 router.get('/', (req: Request, res: Response) => {
   const { status, entity_type, entity_id } = req.query;
@@ -56,15 +73,23 @@ router.put('/:id', (req: Request, res: Response) => {
     values.push(now);
   }
 
-  Object.entries(req.body).filter(([k]) => k !== 'id' && k !== 'created_at').forEach(([k, v]) => {
-    updates.push(`${k} = ?`);
-    values.push(v);
+  const updateFields = TASK_UPDATE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(req.body, field)
+  );
+  if (updateFields.length === 0) {
+    return res.status(400).json({ success: false, message: 'No valid fields to update' });
+  }
+
+  updateFields.forEach((field) => {
+    updates.push(`${field} = ?`);
+    values.push(req.body[field]);
   });
 
   updates.push("updated_at = ?");
   values.push(now, req.params.id);
 
-  db.prepare(`UPDATE tasks SET ${updates.join(', ')} WHERE id = ? AND deleted_at IS NULL`).run(...values);
+  const result = db.prepare(`UPDATE tasks SET ${updates.join(', ')} WHERE id = ? AND deleted_at IS NULL`).run(...values);
+  if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });
   res.json(db.prepare("SELECT * FROM tasks WHERE id = ?").get(req.params.id));
 });
 
