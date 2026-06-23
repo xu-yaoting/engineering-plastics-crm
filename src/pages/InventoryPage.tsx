@@ -40,7 +40,7 @@ export default function InventoryPage() {
         ))}
       </div>
 
-      {tab === 'dashboard' && <DashboardTab />}
+      {tab === 'dashboard' && <DashboardTab onTabChange={setTab} />}
       {tab === 'products' && <ProductsTab />}
       {tab === 'ledger' && <LedgerTab />}
       {tab === 'stock-in' && <StockInTab />}
@@ -53,7 +53,7 @@ export default function InventoryPage() {
 
 // ─── Dashboard ───
 
-function DashboardTab() {
+function DashboardTab({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
   const [stock, setStock] = useState<any[]>([]);
   const [lowStock, setLowStock] = useState<any[]>([]);
   const [allTxns, setAllTxns] = useState<any[]>([]);
@@ -180,8 +180,17 @@ function DashboardTab() {
 
       {/* Current Inventory — Qty + Weight */}
       <div className="card">
-        <div className="px-4 py-3 border-b border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Inventory</h3>
+        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Inventory</h3>
+            <p className="text-2xs text-gray-400 mt-1">
+              Use Stock In, Stock Out, or Adjustment to change quantities. Edit product specs from Products.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => onTabChange('products')} className="btn-secondary btn-sm">Edit Products</button>
+            <button onClick={() => onTabChange('adjustment')} className="btn-secondary btn-sm">Adjust Stock</button>
+          </div>
         </div>
         <table className="w-full">
           <thead>
@@ -194,6 +203,7 @@ function DashboardTab() {
               <th className="table-header text-right">Weight</th>
               <th className="table-header text-right">Unit Wt</th>
               <th className="table-header text-right">Min Qty</th>
+              <th className="table-header text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -218,11 +228,17 @@ function DashboardTab() {
                   <td className="table-cell text-right font-mono text-xs text-gray-500">
                     {p.safety_stock_qty || '—'}
                   </td>
+                  <td className="table-cell text-right">
+                    <div className="inline-flex items-center gap-2">
+                      <button onClick={() => onTabChange('products')} className="text-xs text-blue-600 hover:underline">Edit</button>
+                      <button onClick={() => onTabChange('adjustment')} className="text-xs text-yellow-600 hover:underline">Adjust</button>
+                    </div>
+                  </td>
                 </tr>
               );
             })}
             {stock.length === 0 && (
-              <tr><td colSpan={8} className="text-center py-8 text-xs text-gray-400">No products in inventory</td></tr>
+              <tr><td colSpan={9} className="text-center py-8 text-xs text-gray-400">No products in inventory</td></tr>
             )}
           </tbody>
         </table>
@@ -347,10 +363,12 @@ function ProductsTab() {
     try {
       let productId: string | null = null;
       if (editId) {
-        await fetch(`/api/inventory/products/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const res = await fetch(`/api/inventory/products/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error('Failed to update product');
         productId = editId;
       } else {
         const res = await fetch('/api/inventory/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error('Failed to create product');
         const created = await res.json();
         productId = created.id;
         // Create initial stock-in if quantity provided
@@ -367,6 +385,26 @@ function ProductsTab() {
         unit_weight_kg: '', material_id: '', unit: 'pc', safety_stock_qty: 0, safety_stock_weight_kg: 0, initial_qty: 0 });
       load();
     } catch { toast.error('Failed to save'); }
+  };
+
+  const deleteProduct = async (id: string, name: string) => {
+    if (!window.confirm(`Delete product "${name}"? Existing stock ledger records will be kept.`)) return;
+    try {
+      const res = await fetch(`/api/inventory/products/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        toast.error(data?.error || 'Failed to delete');
+        return;
+      }
+      toast.success('Product deleted');
+      if (editId === id) {
+        setShowForm(false);
+        setEditId(null);
+      }
+      load();
+    } catch {
+      toast.error('Failed to delete');
+    }
   };
 
   const edit = (p: any) => {
@@ -529,7 +567,12 @@ function ProductsTab() {
                 <td className="table-cell text-right font-mono text-xs text-gray-500">
                   {p.safety_stock_qty || '—'}/{p.safety_stock_weight_kg ? p.safety_stock_weight_kg + 'kg' : '—'}
                 </td>
-                <td className="table-cell text-right"><button onClick={() => edit(p)} className="text-xs text-blue-600 hover:underline">Edit</button></td>
+                <td className="table-cell text-right">
+                  <div className="inline-flex items-center gap-3">
+                    <button onClick={() => edit(p)} className="text-xs text-blue-600 hover:underline">Edit</button>
+                    <button onClick={() => deleteProduct(p.id, p.name)} className="text-xs text-red-600 hover:underline">Delete</button>
+                  </div>
+                </td>
               </tr>
             ))}
             {products.length === 0 && !loading && (

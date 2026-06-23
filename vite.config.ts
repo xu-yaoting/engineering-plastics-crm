@@ -8,5 +8,17 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:3001'
     }
-  }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom', 'react-hot-toast'],
+          'vendor-i18n': ['i18next', 'react-i18next'],
+          'vendor-icons': ['lucide-react'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 300,
+  },
 });

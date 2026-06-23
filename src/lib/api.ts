@@ -1,21 +1,7 @@
 const BASE = '/api';
 
-let apiKeyPromise: Promise<string> | null = null;
-
-async function getApiKey(): Promise<string> {
-  if (!apiKeyPromise) {
-    apiKeyPromise = fetch(`${BASE}/config`)
-      .then(r => r.json())
-      .then(data => data.apiKey as string)
-      .catch(() => '');
-  }
-  return apiKeyPromise;
-}
-
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const key = await getApiKey();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (key) headers['x-api-key'] = key;
 
   const res = await fetch(`${BASE}${path}`, {
     headers,
@@ -23,11 +9,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (res.status === 204) return undefined as T;
   if (res.status === 401) {
-    // Key may have changed — reset promise so next call re-fetches
-    apiKeyPromise = null;
-    throw new Error('Unauthorized — please refresh the page');
+    throw new Error('Unauthorized');
   }
-  if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || data?.message || `API error: ${res.status} ${res.statusText}`);
+  }
   return res.json();
 }
 

@@ -4,6 +4,7 @@ import { formatCurrency, currencySymbol } from '../lib/currency';
 import Icon from '../components/shared/Icon';
 import { useTranslation } from 'react-i18next';
 import { exportFullCsv } from '../lib/exportCsv';
+import { toast } from '../lib/toast';
 
 export default function Payments() {
   const { t } = useTranslation();
@@ -23,6 +24,14 @@ export default function Payments() {
   const load = () => {
     fetch('/api/payments').then(r => r.json()).then(setList).finally(() => setLoading(false));
     fetch('/api/orders').then(r => r.json()).then(setOrders);
+  };
+
+  const readError = async (res: Response, fallback: string) => {
+    const data = await res.json().catch(() => null);
+    if (data?.error === 'Payment exceeds remaining balance') {
+      return `Payment exceeds remaining balance. Remaining due: ${formatCurrency(data.remainingDue || 0, 'USD')}`;
+    }
+    return data?.error || data?.message || fallback;
   };
 
   useEffect(() => { load(); }, []);
@@ -49,11 +58,15 @@ export default function Payments() {
 
   const createInvoice = async () => {
     if (!form.order_id || !form.total) return;
-    await fetch('/api/payments', {
+    const res = await fetch('/api/payments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     });
+    if (!res.ok) {
+      toast.error(await readError(res, 'Failed to create invoice'));
+      return;
+    }
     setShowForm(false);
     setForm({ order_id: '', total: 0, due_date: '', notes: '' });
     load();
@@ -61,11 +74,15 @@ export default function Payments() {
 
   const recordPayment = async () => {
     if (!payForm) return;
-    await fetch(`/api/payments/${payForm.invoiceId}/pay`, {
+    const res = await fetch(`/api/payments/${payForm.invoiceId}/pay`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount: payForm.amount, payment_method: payForm.method, reference_number: payForm.ref }),
     });
+    if (!res.ok) {
+      toast.error(await readError(res, 'Failed to record payment'));
+      return;
+    }
     setPayForm(null);
     load();
   };
