@@ -203,7 +203,7 @@
 - [x] Fix inventory product duplicate SKU saves by returning a clear 400 error instead of a SQLite 500.
 - [x] Extend the write smoke test to submit the same boolean contact payload shape used by the page.
 - [x] Add a local-first release checklist for personal daily use and later internal company use.
-- [ ] Freeze current feature work before creating a stable local release.
+- [x] Freeze current feature work before creating a stable local release.
 - [x] Review the uncommitted changes and split them into clear local release commits.
 - [x] Add local database backup and restore instructions.
 - [x] Run a final local formal release verification pass.
@@ -272,7 +272,11 @@
    - local release checklist
    - backup and restore workflow
    - final local verification pass
-15. Internal company preparation:
+15. Local formal release:
+   - release note v1.0.0
+   - daily workflow checklist
+   - git tag v1.0.0
+16. Internal company preparation (Stage 2):
    - access model
    - authentication
    - user roles and audit trail

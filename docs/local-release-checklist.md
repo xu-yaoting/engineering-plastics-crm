@@ -16,13 +16,13 @@ Prepare the CRM for reliable personal daily use first, then move to a controlled
 
 ### Must Finish Before Daily Use
 
-- [ ] Freeze the current feature set and avoid new large features during stabilization.
+- [x] Freeze the current feature set and avoid new large features during stabilization.
 - [x] Review all current uncommitted changes and split them into clear commits.
 - [x] Run the full verification set:
   - `npm run test`
   - `npm run smoke:api`
   - `npm run build`
-- [ ] Create a manual end-to-end checklist for daily workflows:
+- [x] Create a manual end-to-end checklist for daily workflows:
   - companies
   - contacts
   - inquiries
@@ -39,7 +39,7 @@ Prepare the CRM for reliable personal daily use first, then move to a controlled
 - [x] Add a short restore note so backups are actually usable.
 - [x] Confirm the desktop app or shortcut starts the current project path only.
 - [x] Keep `.api-key`, `.env*`, `crm.db`, and backup files out of git.
-- [ ] Create a local version tag or release note after stabilization.
+- [x] Create a local version tag or release note after stabilization.
 
 ### Local Acceptance Criteria
 
