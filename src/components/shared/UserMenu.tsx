@@ -5,14 +5,24 @@ import Icon from './Icon';
 import { useTheme } from '../../lib/theme';
 import AboutModal from './AboutModal';
 
-const USER = {
-  firstName: 'Yaoting',
-  lastName: 'Xu',
-  role: 'Sales Engineer',
+const STORAGE_KEY = 'crm-profile';
+
+const defaultProfile = {
+  fullName: 'Yaoting Xu',
+  jobTitle: 'Sales Engineer',
 };
 
-function getInitials(first: string, last: string) {
-  return (first.charAt(0) + last.charAt(0)).toUpperCase();
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  return parts.map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?';
+}
+
+function loadProfile() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return defaultProfile;
 }
 
 export default function UserMenu({ collapsed }: { collapsed: boolean }) {
@@ -20,6 +30,7 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [showLang, setShowLang] = useState(false);
+  const [profile, setProfile] = useState(loadProfile);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,7 +44,22 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const initials = getInitials(USER.firstName, USER.lastName);
+  // Re-read profile from localStorage when the menu opens
+  useEffect(() => {
+    if (open) setProfile(loadProfile());
+  }, [open]);
+
+  useEffect(() => {
+    const refreshProfile = () => setProfile(loadProfile());
+    window.addEventListener('crm-profile-updated', refreshProfile);
+    window.addEventListener('storage', refreshProfile);
+    return () => {
+      window.removeEventListener('crm-profile-updated', refreshProfile);
+      window.removeEventListener('storage', refreshProfile);
+    };
+  }, []);
+
+  const initials = getInitials(profile.fullName);
 
   const currentLang = i18n.language;
   const { theme, setTheme } = useTheme();
@@ -66,9 +92,9 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
         {!collapsed && (
           <div className="flex-1 text-left min-w-0">
             <div className="text-sm font-medium text-gray-900 truncate leading-tight">
-              {USER.firstName} {USER.lastName}
+              {profile.fullName}
             </div>
-            <div className="text-2xs text-gray-500 truncate leading-tight mt-0.5">{USER.role}</div>
+            <div className="text-2xs text-gray-500 truncate leading-tight mt-0.5">{profile.jobTitle}</div>
           </div>
         )}
       </button>
@@ -84,9 +110,9 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
               </span>
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-gray-900 truncate">
-                  {USER.firstName} {USER.lastName}
+                  {profile.fullName}
                 </div>
-                <div className="text-xs text-gray-500 truncate">{USER.role}</div>
+                <div className="text-xs text-gray-500 truncate">{profile.jobTitle}</div>
               </div>
             </div>
           </div>

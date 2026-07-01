@@ -1,4 +1,5 @@
 import { useState, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useBreakpoint } from '../../lib/useMediaQuery';
 
 /**
@@ -12,7 +13,7 @@ export default function ResponsiveWorkspace({
   leftPanel,
   centerPanel,
   rightPanel,
-  rightPanelLabel = 'Details',
+  rightPanelLabel,
   rightPanelIcon = '',
 }: {
   leftPanel: ReactNode;
@@ -21,9 +22,11 @@ export default function ResponsiveWorkspace({
   rightPanelLabel?: string;
   rightPanelIcon?: string;
 }) {
+  const { t } = useTranslation();
   const { isWide, isMedium, isNarrow } = useBreakpoint();
   const [rightOpen, setRightOpen] = useState(false);
   const [activeAccordion, setActiveAccordion] = useState<string | null>('center');
+  const resolvedRightPanelLabel = rightPanelLabel || t('workspace.details');
 
   if (isWide) {
     // ── 3-column layout ──
@@ -59,7 +62,7 @@ export default function ResponsiveWorkspace({
         <button
           onClick={() => setRightOpen(true)}
           className="fixed right-4 bottom-4 z-20 w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
-          title={rightPanelLabel}
+          title={resolvedRightPanelLabel}
         >
           {rightPanelIcon}
         </button>
@@ -73,7 +76,7 @@ export default function ResponsiveWorkspace({
             />
             <aside className="fixed right-0 top-0 h-full w-[380px] bg-white shadow-[-4px_0_12px_rgba(0,0,0,0.1)] z-40 flex flex-col animate-[slideIn_200ms_ease-out]">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{rightPanelLabel}</h3>
+                <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{resolvedRightPanelLabel}</h3>
                 <button
                   onClick={() => setRightOpen(false)}
                   className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-400"
@@ -94,9 +97,9 @@ export default function ResponsiveWorkspace({
   // ── Narrow: Accordion sections ──
   if (isNarrow) {
     const sections = [
-      { key: 'left', label: 'Customer Profile', content: leftPanel },
-      { key: 'center', label: 'Opportunities & Activity', content: centerPanel },
-      { key: 'right', label: 'Tasks', content: rightPanel },
+      { key: 'left', label: t('workspace.customerProfile'), content: leftPanel },
+      { key: 'center', label: t('workspace.opportunitiesActivity'), content: centerPanel },
+      { key: 'right', label: resolvedRightPanelLabel || t('workspace.tasks'), content: rightPanel },
     ];
 
     return (

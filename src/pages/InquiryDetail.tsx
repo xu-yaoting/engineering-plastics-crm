@@ -10,11 +10,11 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
 const statusOptions = [
-  { value: 'open', label: 'Open', color: 'badge-blue' },
-  { value: 'under_review', label: 'Under Review', color: 'badge-yellow' },
-  { value: 'quoted', label: 'Quoted', color: 'badge-green' },
-  { value: 'closed_won', label: 'Closed Won', color: 'badge-green' },
-  { value: 'closed_lost', label: 'Closed Lost', color: 'badge-red' },
+  { value: 'open', labelKey: 'status.open', color: 'badge-blue' },
+  { value: 'under_review', labelKey: 'status.underReview', color: 'badge-yellow' },
+  { value: 'quoted', labelKey: 'status.quoted', color: 'badge-green' },
+  { value: 'closed_won', labelKey: 'status.won', color: 'badge-green' },
+  { value: 'closed_lost', labelKey: 'status.lost', color: 'badge-red' },
 ];
 
 export default function InquiryDetail() {
@@ -52,12 +52,12 @@ export default function InquiryDetail() {
       await activities.create({
         entity_type: 'inquiry', entity_id: id,
         activity_type: 'status_change',
-        subject: `Status changed to ${newStatus.replace(/_/g, ' ')}`,
+        subject: t('page.inquiryDetail.statusChanged', { status: t(statusOptions.find(opt => opt.value === newStatus)?.labelKey || 'status.open') }),
       });
       setShowStatusMenu(false);
       load();
     } catch (e) {
-      toast.error('Failed to change status');
+      toast.error(t('page.inquiryDetail.statusChangeFailed'));
     }
   };
 
@@ -78,13 +78,13 @@ export default function InquiryDetail() {
       await activities.create({
         entity_type: 'inquiry', entity_id: id,
         activity_type: 'status_change',
-        subject: `Quotation ${qt.quotation_number} created from this inquiry`,
+        subject: t('page.inquiryDetail.quotationActivity', { number: qt.quotation_number }),
       });
 
-      toast.success('Quotation created');
+      toast.success(t('page.inquiryDetail.quotationCreated'));
       navigate(`/quotations/${qt.id}`);
     } catch (e) {
-      toast.error('Failed to create quotation');
+      toast.error(t('page.inquiryDetail.quotationCreateFailed'));
     } finally {
       setCreatingQuote(false);
     }
@@ -115,10 +115,10 @@ export default function InquiryDetail() {
         urgency: inquiry.urgency,
         currency: inquiry.currency,
       });
-      toast.success('Inquiry duplicated');
+      toast.success(t('page.inquiryDetail.inquiryDuplicated'));
       navigate(`/inquiries/${dup.id}`);
     } catch (e) {
-      toast.error('Failed to duplicate');
+      toast.error(t('page.inquiryDetail.duplicateFailed'));
     }
   };
 
@@ -126,10 +126,10 @@ export default function InquiryDetail() {
     if (!id) return;
     try {
       await fetch(`/api/inquiries/${id}`, { method: 'DELETE' });
-      toast.success('Inquiry deleted');
+      toast.success(t('page.inquiryDetail.inquiryDeleted'));
       navigate('/inquiries');
     } catch (e) {
-      toast.error('Failed to delete inquiry');
+      toast.error(t('page.inquiryDetail.deleteFailed'));
     }
   };
 
@@ -146,6 +146,24 @@ export default function InquiryDetail() {
     if (u === 'immediate') return 'text-red-600 bg-red-50';
     if (u === 'within_2_weeks') return 'text-yellow-600 bg-yellow-50';
     return 'text-gray-500 bg-gray-100';
+  };
+
+  const urgencyLabel = (urgency?: string): string => {
+    const key = urgency === 'immediate' ? 'immediate'
+      : urgency === 'within_2_weeks' ? 'within2Weeks'
+        : urgency === 'within_1_month' ? 'within1Month'
+          : urgency === 'no_rush' ? 'noRush'
+            : 'within1Month';
+    return String(t(`page.inquiryNew.${key}`, urgency || ''));
+  };
+
+  const sourceLabel = (source?: string): string => {
+    const key = source === 'phone_wechat' ? 'phoneWechat'
+      : source === 'social_media' ? 'socialMedia'
+        : source === 'alibaba_platform' ? 'alibabaPlatform'
+          : source === 'trade_show' ? 'tradeShow'
+            : source || 'email';
+    return String(t(`page.inquiryNew.${key}`, source || ''));
   };
 
   const canQuote = inquiry.status === 'open' || inquiry.status === 'under_review';
@@ -176,7 +194,7 @@ export default function InquiryDetail() {
                         inquiry.status === opt.value ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'
                       }`}
                     >
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -196,7 +214,7 @@ export default function InquiryDetail() {
             }} className="btn-primary btn-sm"><Icon name="square-pen" size={14} className="mr-1.5" />{t('common.edit')}</button>
             {canQuote && (
               <button onClick={createQuotation} disabled={creatingQuote} className="btn-secondary btn-sm">
-                {creatingQuote ? 'Creating...' : <><Icon name="plus" size={14} className="mr-1.5" />{t('page.inquiryDetail.createQuotation')}</>}
+                {creatingQuote ? t('page.inquiryNew.creating') : <><Icon name="plus" size={14} className="mr-1.5" />{t('page.inquiryDetail.createQuotation')}</>}
               </button>
             )}
             {/* Actions */}
@@ -205,18 +223,18 @@ export default function InquiryDetail() {
               {showActionsMenu && (
                 <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-md z-10 py-1">
                   <button onClick={() => { setShowActionsMenu(false); duplicate(); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
-                    <Icon name="copy" size={13} />Duplicate
+                    <Icon name="copy" size={13} />{t('common.duplicate')}
                   </button>
                   {!confirmDelete ? (
                     <button onClick={() => setConfirmDelete(true)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">
-                      <Icon name="delete" size={13} />Delete
+                      <Icon name="delete" size={13} />{t('common.delete')}
                     </button>
                   ) : (
                     <div className="px-3 py-2">
-                      <p className="text-2xs text-red-600 mb-1.5">Confirm?</p>
+                      <p className="text-2xs text-red-600 mb-1.5">{t('common.confirmDelete')}</p>
                       <div className="flex gap-1">
-                        <button onClick={remove} className="text-xs bg-red-600 text-white px-2 py-1 rounded">Yes</button>
-                        <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500 px-2 py-1">No</button>
+                        <button onClick={remove} className="text-xs bg-red-600 text-white px-2 py-1 rounded">{t('common.yes')}</button>
+                        <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500 px-2 py-1">{t('common.no')}</button>
                       </div>
                     </div>
                   )}
@@ -227,8 +245,8 @@ export default function InquiryDetail() {
         </div>
         <div className="text-xs text-gray-500">
           <Link to={`/companies/${inquiry.company_id}`} className="text-blue-600 hover:underline">{inquiry.company_name}</Link>
-          {inquiry.contact_name && ` · Contact: ${inquiry.contact_name}`}
-          {` · Created: ${inquiry.created_at?.slice(0, 10)} · Source: ${inquiry.source}`}
+          {inquiry.contact_name && ` · ${t('page.inquiryDetail.contact')}: ${inquiry.contact_name}`}
+          {` · ${t('page.inquiryDetail.created')}: ${inquiry.created_at?.slice(0, 10)} · ${t('page.inquiryDetail.source')}: ${sourceLabel(inquiry.source)}`}
         </div>
       </div>
 
@@ -239,37 +257,37 @@ export default function InquiryDetail() {
             <div className="lg:col-span-2 space-y-5">
               {/* Application Description */}
               <div className="card p-4">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.inquiryDetail.applicationDescription')}</h3>
-                <p className="text-sm text-gray-700 leading-relaxed">{inquiry.application_description || 'No description provided.'}</p>
+                <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.inquiryDetail.applicationDescription')}</h3>
+                <p className="text-sm text-gray-700 leading-relaxed">{inquiry.application_description || t('page.inquiryDetail.noDescription')}</p>
               </div>
 
               {/* Technical Details */}
               <div className="card p-4">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.inquiryDetail.technicalDetails')}</h3>
+                <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.inquiryDetail.technicalDetails')}</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-2xs text-gray-400 block">{t('page.inquiryDetail.targetMaterial')}</span>
                     <span className="font-medium text-gray-900">{inquiry.target_material_requested || '—'}</span>
                   </div>
                   <div>
-                    <span className="text-2xs text-gray-400 block">Quantity</span>
+                    <span className="text-2xs text-gray-400 block">{t('page.inquiryDetail.quantity')}</span>
                     <span className="text-gray-700">{inquiry.quantity_estimate || '—'}</span>
                   </div>
                   {inquiry.chemical_exposure && (
                     <div className="col-span-2">
-                      <span className="text-2xs text-gray-400 block">Chemical Exposure</span>
+                      <span className="text-2xs text-gray-400 block">{t('page.inquiryDetail.chemicalExposure')}</span>
                       <span className="text-gray-700">{inquiry.chemical_exposure}</span>
                     </div>
                   )}
                   {inquiry.mechanical_load && (
                     <div className="col-span-2">
-                      <span className="text-2xs text-gray-400 block">Mechanical Load</span>
+                      <span className="text-2xs text-gray-400 block">{t('page.inquiryDetail.mechanicalLoad')}</span>
                       <span className="text-gray-700">{inquiry.mechanical_load}</span>
                     </div>
                   )}
                   {inquiry.regulatory_requirements && (
                     <div className="col-span-2">
-                      <span className="text-2xs text-gray-400 block">Regulatory Requirements</span>
+                      <span className="text-2xs text-gray-400 block">{t('page.inquiryDetail.regulatoryRequirements')}</span>
                       <span className="text-gray-700">
                         {typeof inquiry.regulatory_requirements === 'string'
                           ? inquiry.regulatory_requirements
@@ -282,7 +300,7 @@ export default function InquiryDetail() {
 
               {/* Activity Timeline */}
               <div className="card p-4">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Activity</h3>
+                <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-4">{t('page.inquiryDetail.activity')}</h3>
                 <ActivityTimeline
                   entityType="inquiry"
                   entityId={id!}
@@ -295,34 +313,34 @@ export default function InquiryDetail() {
             {/* Right Sidebar */}
             <div className="space-y-4">
               <div className="card p-4">
-                <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Details</h3>
+                <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.inquiryDetail.details')}</h3>
                 <div className="space-y-3 text-sm">
                   <div>
-                    <span className="text-2xs text-gray-400 block">Status</span>
+                    <span className="text-2xs text-gray-400 block">{t('page.inquiryDetail.status')}</span>
                     <div className="mt-1"><StatusBadge status={inquiry.status} /></div>
                   </div>
                   <div>
-                    <span className="text-2xs text-gray-400 block">Urgency</span>
-                    <span className={`inline-flex px-1.5 py-0.5 rounded text-2xs font-medium mt-1 ${urgencyColor(inquiry.urgency)}`}>
-                      {inquiry.urgency?.replace(/_/g, ' ') || '—'}
+                    <span className="text-2xs text-gray-400 block">{t('page.inquiryDetail.urgency')}</span>
+                    <span className={`inline-flex px-1.5 py-0.5 rounded text-2xs font-450 mt-1 ${urgencyColor(inquiry.urgency)}`}>
+                      {urgencyLabel(inquiry.urgency)}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-2xs text-gray-400 block">Source</span>
-                    <span className="text-gray-700 capitalize">{inquiry.source?.replace(/_/g, ' ') || '—'}</span>
+                    <span className="text-2xs text-gray-400 block">{t('page.inquiryDetail.source')}</span>
+                    <span className="text-gray-700">{sourceLabel(inquiry.source)}</span>
                   </div>
                 </div>
               </div>
 
               <div className="card p-4">
-                <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Customer</h3>
+                <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.inquiryDetail.customer')}</h3>
                 <Link to={`/companies/${inquiry.company_id}`} className="text-sm text-blue-600 hover:underline block mb-2">
                   {inquiry.company_name}
                 </Link>
                 {inquiry.contact_name && (
                   <div className="text-sm text-gray-700">
-                    <span className="text-2xs text-gray-400 block">Contact</span>
+                    <span className="text-2xs text-gray-400 block">{t('page.inquiryDetail.contact')}</span>
                     {inquiry.contact_name}
                     {inquiry.contact_email && <span className="text-xs text-gray-400 ml-1">({inquiry.contact_email})</span>}
                   </div>
@@ -330,7 +348,7 @@ export default function InquiryDetail() {
               </div>
 
               <div className="card p-4">
-                <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Tasks</h3>
+                <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.inquiryDetail.tasks')}</h3>
                 <TaskSection
                   tasks={taskList}
                   entityType="inquiry"
@@ -347,7 +365,7 @@ export default function InquiryDetail() {
       {showEditPanel && (
         <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center">
           <div className="bg-white rounded-xl shadow-lg p-6 w-[540px] max-h-[80vh] overflow-y-auto">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Edit Inquiry</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">{t('page.inquiryDetail.editInquiry')}</h3>
             <div className="space-y-4">
               <div>
                 <label className="label">{t('page.inquiryDetail.applicationDescription')}</label>
@@ -361,38 +379,38 @@ export default function InquiryDetail() {
                     onChange={e => setEditForm({...editForm, target_material_requested: e.target.value})} />
                 </div>
                 <div>
-                  <label className="label">Quantity</label>
+                  <label className="label">{t('page.inquiryDetail.quantity')}</label>
                   <input className="input" value={editForm.quantity_estimate}
                     onChange={e => setEditForm({...editForm, quantity_estimate: e.target.value})} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">Urgency</label>
+                  <label className="label">{t('page.inquiryDetail.urgency')}</label>
                   <select className="input" value={editForm.urgency}
                     onChange={e => setEditForm({...editForm, urgency: e.target.value})}>
-                    <option value="immediate">Immediate</option>
-                    <option value="within_2_weeks">Within 2 Weeks</option>
-                    <option value="within_1_month">Within 1 Month</option>
-                    <option value="no_rush">No Rush</option>
+                    <option value="immediate">{t('page.inquiryNew.immediate')}</option>
+                    <option value="within_2_weeks">{t('page.inquiryNew.within2Weeks')}</option>
+                    <option value="within_1_month">{t('page.inquiryNew.within1Month')}</option>
+                    <option value="no_rush">{t('page.inquiryNew.noRush')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="label">Source</label>
+                  <label className="label">{t('page.inquiryDetail.source')}</label>
                   <select className="input" value={editForm.source}
                     onChange={e => setEditForm({...editForm, source: e.target.value})}>
-                    <option value="email">Email</option>
-                    <option value="phone_wechat">Phone / WeChat</option>
-                    <option value="website">Website</option>
-                    <option value="social_media">Social Media</option>
-                    <option value="alibaba_platform">Alibaba Platform</option>
-                    <option value="trade_show">Trade Show</option>
-                    <option value="referral">Referral</option>
+                    <option value="email">{t('page.inquiryNew.email')}</option>
+                    <option value="phone_wechat">{t('page.inquiryNew.phoneWechat')}</option>
+                    <option value="website">{t('page.inquiryNew.website')}</option>
+                    <option value="social_media">{t('page.inquiryNew.socialMedia')}</option>
+                    <option value="alibaba_platform">{t('page.inquiryNew.alibabaPlatform')}</option>
+                    <option value="trade_show">{t('page.inquiryNew.tradeShow')}</option>
+                    <option value="referral">{t('page.inquiryNew.referral')}</option>
                   </select>
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
-                <button onClick={saveEdit} className="btn-primary flex-1">Save Changes</button>
+                <button onClick={saveEdit} className="btn-primary flex-1">{t('page.companies.saveChanges')}</button>
                 <button onClick={() => setShowEditPanel(false)} className="btn-secondary">{t('common.cancel')}</button>
               </div>
             </div>

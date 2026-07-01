@@ -45,20 +45,20 @@ export default function MeetingNotes({
     try {
       // Build structured description
       const description = [
-        `## Meeting Notes — ${form.purpose}`,
+        `## ${t('page.meetingNotes.descriptionTitle', { purpose: form.purpose })}`,
         '',
-        `**Attendees:** ${form.attendees || '—'}`,
+        `**${t('page.meetingNotes.descriptionAttendees')}:** ${form.attendees || '—'}`,
         '',
-        `**Discussion:**`,
+        `**${t('page.meetingNotes.descriptionDiscussion')}:**`,
         form.discussion,
         '',
-        `**Decisions:**`,
+        `**${t('page.meetingNotes.descriptionDecisions')}:**`,
         form.decisions || '—',
         '',
-        `**Action Items:**`,
+        `**${t('page.meetingNotes.descriptionActionItems')}:**`,
         form.actionItems || '—',
         '',
-        form.nextFollowUp ? `**Next Follow-up:** ${form.nextFollowUp} (${form.nextFollowUpDate || 'TBD'})` : '',
+        form.nextFollowUp ? `**${t('page.meetingNotes.descriptionNextFollowUp')}:** ${form.nextFollowUp} (${form.nextFollowUpDate || t('page.meetingNotes.tbd')})` : '',
       ].filter(Boolean).join('\n');
 
       // Save as activity
@@ -66,7 +66,7 @@ export default function MeetingNotes({
         entity_type: entityType,
         entity_id: entityId,
         activity_type: 'meeting',
-        subject: `Meeting: ${form.purpose}`,
+        subject: t('page.meetingNotes.meetingSubject', { purpose: form.purpose }),
         description,
         direction: 'internal',
         channel: 'in_person',
@@ -75,7 +75,7 @@ export default function MeetingNotes({
       // Create follow-up task if date set
       if (form.nextFollowUp && form.nextFollowUpDate) {
         await tasksApi.create({
-          subject: `Follow-up: ${form.nextFollowUp}`,
+          subject: t('page.meetingNotes.followUpSubject', { subject: form.nextFollowUp }),
           task_type: 'follow_up',
           priority: 'medium',
           status: 'pending',
@@ -89,7 +89,7 @@ export default function MeetingNotes({
       onSaved?.();
       onClose();
     } catch (e) {
-      toast.error('Failed to save meeting notes');
+      toast.error(t('page.meetingNotes.meetingSaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -108,56 +108,56 @@ export default function MeetingNotes({
   // New note form
   if (!showHistory) {
     return (
-      <SidePanel open={open} onClose={onClose} title="Meeting Notes" subtitle={companyName}>
+      <SidePanel open={open} onClose={onClose} title={t('page.meetingNotes.meetingNotes')} subtitle={companyName}>
         <div className="space-y-4">
           {/* Quick toggle to history */}
           <button onClick={loadHistory} className="text-xs text-blue-600 hover:underline mb-2 inline-block">
-            <Icon name="calendar" size={14} className="text-gray-400 mr-1.5" />View past meetings
+            <Icon name="calendar" size={14} className="text-gray-400 mr-1.5" />{t('page.meetingNotes.viewPastMeetings')}
           </button>
 
           <div>
-            <label className="label">Meeting Purpose *</label>
+            <label className="label">{t('page.meetingNotes.meetingPurpose')}</label>
             <input className="input" value={form.purpose} onChange={e => set('purpose', e.target.value)}
-              placeholder="e.g. Quarterly review, Technical discussion" autoFocus />
+              placeholder={t('page.meetingNotes.purposePlaceholder')} autoFocus />
           </div>
 
           <div>
-            <label className="label">Attendees</label>
+            <label className="label">{t('page.meetingNotes.attendees')}</label>
             <input className="input" value={form.attendees} onChange={e => set('attendees', e.target.value)}
-              placeholder="John Chen, Dr. Lisa Park (Acme)" />
+              placeholder={t('page.meetingNotes.attendeesPlaceholder')} />
           </div>
 
           <div>
-            <label className="label">Discussion Points</label>
+            <label className="label">{t('page.meetingNotes.discussionPoints')}</label>
             <textarea className="input min-h-[100px] resize-y" value={form.discussion}
               onChange={e => set('discussion', e.target.value)}
-              placeholder="• PEEK 450G test results — passed mechanical tests&#10;• Customer requested UL94 certification&#10;• Discussed pricing for 500 sheets/year" />
+              placeholder={t('page.meetingNotes.discussionPlaceholder')} />
           </div>
 
           <div>
-            <label className="label">Decisions Made</label>
+            <label className="label">{t('page.meetingNotes.decisionsMade')}</label>
             <textarea className="input min-h-[60px] resize-y" value={form.decisions}
               onChange={e => set('decisions', e.target.value)}
-              placeholder="• Proceed with sample order&#10;• Need to provide COA before shipment" />
+              placeholder={t('page.meetingNotes.decisionsPlaceholder')} />
           </div>
 
           <div>
-            <label className="label">Action Items</label>
+            <label className="label">{t('page.meetingNotes.actionItems')}</label>
             <textarea className="input min-h-[60px] resize-y" value={form.actionItems}
               onChange={e => set('actionItems', e.target.value)}
-              placeholder="• Sarah: Send UL94 cert by Friday&#10;• John: Confirm sample quantity" />
+              placeholder={t('page.meetingNotes.actionItemsPlaceholder')} />
           </div>
 
           <div className="border-t border-gray-100 pt-4">
-            <label className="label">Schedule Follow-up</label>
+            <label className="label">{t('page.meetingNotes.scheduleFollowUp')}</label>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <input className="input" value={form.nextFollowUp}
                   onChange={e => set('nextFollowUp', e.target.value)}
-                  placeholder="e.g. Check test progress" />
+                  placeholder={t('page.meetingNotes.followUpPlaceholder')} />
               </div>
               <div>
-                <label className="text-2xs text-gray-400">Follow-up Date</label>
+                <label className="text-2xs text-gray-400">{t('page.meetingNotes.followUpDate')}</label>
                 <input className="input mt-0.5" type="date" value={form.nextFollowUpDate}
                   onChange={e => set('nextFollowUpDate', e.target.value)} />
               </div>
@@ -166,7 +166,7 @@ export default function MeetingNotes({
 
           <div className="flex gap-2 pt-2">
             <button onClick={save} disabled={saving || !form.purpose} className="btn-primary flex-1">
-              {saving ? 'Saving...' : 'Save Meeting Notes'}
+              {saving ? t('page.meetingNotes.saving') : t('page.meetingNotes.saveMeetingNotes')}
             </button>
             <button onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
           </div>
@@ -177,13 +177,13 @@ export default function MeetingNotes({
 
   // Past meetings view
   return (
-    <SidePanel open={open} onClose={onClose} title="Past Meetings" subtitle={companyName}>
+    <SidePanel open={open} onClose={onClose} title={t('page.meetingNotes.pastMeetings')} subtitle={companyName}>
       <button onClick={() => setShowHistory(false)} className="text-xs text-blue-600 hover:underline mb-4 inline-block">
-        New Meeting Notes
+        {t('page.meetingNotes.newMeetingNotes')}
       </button>
       <div className="space-y-3">
         {viewingNotes.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-6">No past meetings recorded</p>
+          <p className="text-sm text-gray-400 text-center py-6">{t('page.meetingNotes.noPastMeetings')}</p>
         ) : (
           viewingNotes.map((note: any) => (
             <div key={note.id} className="card p-3">

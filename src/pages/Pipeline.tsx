@@ -130,7 +130,7 @@ export default function Pipeline() {
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden p-4">
         {loading ? (
-          <div className="flex items-center justify-center h-full text-sm text-gray-400">Loading pipeline...</div>
+          <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('page.pipeline.loading')}</div>
         ) : (
           <div className="flex gap-3 h-full min-w-[1200px]">
             {grouped.map(col => (

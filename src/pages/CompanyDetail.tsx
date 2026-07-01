@@ -58,6 +58,20 @@ export default function CompanyDetail() {
     if (!date) return null;
     return Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
   };
+  const companyTypeLabel = (type?: string) => {
+    if (type === 'end_user') return t('page.companies.endUser');
+    if (type === 'distributor') return t('page.companies.distributor');
+    if (type === 'oem') return t('page.companies.oem');
+    if (type === 'trading_company') return t('page.companies.trading');
+    return type || t('common.na');
+  };
+  const urgencyLabel = (urgency?: string) => {
+    if (urgency === 'immediate') return t('page.inquiries.immediate');
+    if (urgency === 'within_2_weeks') return t('page.inquiries.within2Weeks');
+    if (urgency === 'within_1_month') return t('page.inquiries.within1Month');
+    if (urgency === 'no_rush') return t('page.inquiries.noRush');
+    return urgency || '—';
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -69,10 +83,10 @@ export default function CompanyDetail() {
             <h1 className="text-2xl font-semibold text-gray-900 truncate">{company.name}</h1>
             <StatusBadge status={company.status} />
             {company.classification && (
-              <span className={`text-2xs font-medium px-1.5 py-0.5 rounded ${
+              <span className={`text-2xs font-450 px-1.5 py-0.5 rounded ${
                 company.classification === 'A' ? 'bg-blue-50 text-blue-600' :
                 company.classification === 'B' ? 'bg-yellow-50 text-yellow-600' : 'bg-gray-100 text-gray-500'
-              }`}>{company.classification}-Class</span>
+              }`}>{t('page.companyDetail.classLabel', { class: company.classification })}</span>
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -81,9 +95,9 @@ export default function CompanyDetail() {
           </div>
         </div>
         <div className="text-xs text-gray-500">
-          {company.company_type?.replace('_', ' ')} · {company.industry || 'N/A'}
+          {companyTypeLabel(company.company_type)} · {company.industry || t('common.na')}
           {company.city ? ` · ${company.city}, ${company.country}` : ` · ${company.country}`}
-          {company.last_activity_at && ` · {t('page.companyDetail.lastActivity', 'Last activity')}: ${daysSince(company.last_activity_at)}d ago`}
+          {company.last_activity_at && ` · ${t('page.companyDetail.lastActivity')}: ${t('page.companyDetail.daysAgo', { count: daysSince(company.last_activity_at) })}`}
         </div>
       </div>
 
@@ -105,16 +119,16 @@ export default function CompanyDetail() {
               />
               {/* {t('page.companyDetail.companyProfile')} */}
               <div>
-                <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.companyDetail.companyProfile')}</h3>
+                <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.companyDetail.companyProfile')}</h3>
                 <div className="space-y-1.5 text-sm">
                   <div><span className="text-2xs text-gray-400 block">{t('page.companyDetail.legalName')}</span><span className="text-gray-700">{company.name}</span></div>
-                  {company.registration_number && <div><span className="text-2xs text-gray-400 block">{t('page.companyDetail.regNumber', 'Reg #')}</span><span className="text-gray-700">{company.registration_number}</span></div>}
+                  {company.registration_number && <div><span className="text-2xs text-gray-400 block">{t('page.companyDetail.regNumber')}</span><span className="text-gray-700">{company.registration_number}</span></div>}
                   {company.website && <div><span className="text-2xs text-gray-400 block">{t('page.companyDetail.website')}</span><span className="text-blue-600 text-xs">{company.website}</span></div>}
                 </div>
               </div>
 
               <div>
-                <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.companyDetail.address')}</h3>
+                <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.companyDetail.address')}</h3>
                 <p className="text-sm text-gray-700">
                   {company.address_line_1 && <>{company.address_line_1}<br /></>}
                   {company.city}{company.state_province ? `, ${company.state_province}` : ''}{company.postal_code ? ` ${company.postal_code}` : ''}<br />
@@ -123,16 +137,16 @@ export default function CompanyDetail() {
               </div>
 
               <div>
-                <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.companyDetail.classification')}</h3>
+                <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.companyDetail.classification')}</h3>
                 <div className="space-y-1">
                   <StatusBadge status={company.status} />
-                  <div className="text-xs text-gray-500 mt-1">{company.company_type?.replace('_', ' ')} · {company.industry || 'N/A'}</div>
+                  <div className="text-xs text-gray-500 mt-1">{companyTypeLabel(company.company_type)} · {company.industry || t('common.na')}</div>
                 </div>
               </div>
 
               {company.credit_limit > 0 && (
                 <div>
-                  <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.companyDetail.credit')}</h3>
+                  <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.companyDetail.credit')}</h3>
                   <div className="space-y-1 text-xs text-gray-600">
                     <div className="flex justify-between"><span className="text-gray-400">{t('page.companyDetail.terms')}:</span><span>{company.credit_term || '—'}</span></div>
                     <div className="flex justify-between"><span className="text-gray-400">{t('page.companyDetail.limit')}:</span><span className="font-mono">{formatCurrency(company.credit_limit, 'USD')}</span></div>
@@ -142,7 +156,7 @@ export default function CompanyDetail() {
 
               {/* {t('page.companyDetail.keyContacts')} */}
               <div>
-                <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">
                   {t('page.companyDetail.keyContacts')} ({contactList.length})
                   <button onClick={() => setContactPanel({ companyId: company.id })} className="text-blue-600 hover:text-blue-700 ml-1 text-xs font-medium">+</button>
                 </h3>
@@ -155,8 +169,8 @@ export default function CompanyDetail() {
                     >
                       <div className="flex items-center gap-1">
                         <span className="text-xs font-medium text-gray-900">{c.first_name} {c.last_name}</span>
-                        <span className={`w-2 h-2 rounded-full inline-block ${c.is_primary_contact ? 'bg-green-500' : 'bg-gray-300'}`} title={c.is_primary_contact ? 'Primary' : ''} />
-                        <span className={`w-2 h-2 rounded-full inline-block ${c.is_decision_maker ? 'bg-red-500' : 'bg-gray-300'}`} title={c.is_decision_maker ? 'Decision Maker' : ''} />
+                        <span className={`w-2 h-2 rounded-full inline-block ${c.is_primary_contact ? 'bg-green-500' : 'bg-gray-300'}`} title={c.is_primary_contact ? t('page.companyDetail.primaryContactLabel') : ''} />
+                        <span className={`w-2 h-2 rounded-full inline-block ${c.is_decision_maker ? 'bg-red-500' : 'bg-gray-300'}`} title={c.is_decision_maker ? t('page.companyDetail.decisionMakerLabel') : ''} />
                       </div>
                       <div className="text-2xs text-gray-500">{c.job_title}</div>
                       <div className="text-2xs text-blue-600 truncate">{c.email}</div>
@@ -164,12 +178,12 @@ export default function CompanyDetail() {
                   ))}
                   {contactList.length === 0 && (
                     <button onClick={() => setContactPanel({ companyId: company.id })} className="text-xs text-blue-600 hover:underline">
-                      {t('page.companyDetail.addFirstContact', 'Add first contact')}
+                      {t('page.companyDetail.addFirstContact')}
                     </button>
                   )}
                   {contactList.length > 4 && (
                     <button onClick={() => setContactPanel({ companyId: company.id })} className="text-xs text-blue-600 hover:underline">
-                      {t('page.companyDetail.viewAllContacts', 'View all')} {contactList.length} {t('page.companyDetail.contacts')} 
+                      {t('page.companyDetail.viewAllContacts', { count: contactList.length })}
                     </button>
                   )}
                 </div>
@@ -178,7 +192,7 @@ export default function CompanyDetail() {
               {/* {t('page.companyDetail.productInterest')} */}
               {productFamilies.length > 0 && (
                 <div>
-                  <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.companyDetail.productInterest')}</h3>
+                  <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.companyDetail.productInterest')}</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {productFamilies.map((fam: string) => (
                       <ProductTag key={fam} family={fam} />
@@ -199,7 +213,7 @@ export default function CompanyDetail() {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-sm font-semibold text-gray-700">
-                      {t('page.companyDetail.pipelineOpportunities', 'Pipeline Opportunities')}{' '}
+                      {t('page.companyDetail.pipelineOpportunities')}{' '}
                       <span className="text-xs font-normal text-gray-400 ml-2">
                         {inquiryList.filter((i: any) => i.status !== 'closed_won' && i.status !== 'closed_lost').length} {t('page.inquiries.number', 'inquiries')} · {quotationList.filter((q: any) => q.status !== 'accepted' && q.status !== 'rejected').length} {t('nav.quotations')}
                       </span>
@@ -220,7 +234,7 @@ export default function CompanyDetail() {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-gray-900">{inq.target_material_requested || 'Inquiry'}</span>
+                                <span className="text-xs font-semibold text-gray-900">{inq.target_material_requested || t('page.inquiries.new')}</span>
                                 <StatusBadge status={inq.status} />
                               </div>
                               <p className="text-xs text-gray-500 mt-1 line-clamp-1">{inq.application_description?.slice(0, 120)}</p>
@@ -228,7 +242,7 @@ export default function CompanyDetail() {
                                 <span>{inq.inquiry_number}</span>
                                 {inq.quantity_estimate && <span>· {inq.quantity_estimate}</span>}
                                 <span className={`${inq.urgency === 'immediate' ? 'text-red-500 font-medium' : ''}`}>
-                                  · {inq.urgency?.replace(/_/g, ' ')}
+                                  · {urgencyLabel(inq.urgency)}
                                 </span>
                               </div>
                             </div>
@@ -265,10 +279,10 @@ export default function CompanyDetail() {
                                       ? 'text-red-500 font-medium'
                                       : ''
                                   }>
-                                    · {t('page.companyDetail.expires', 'Expires')}: {q.valid_until}
+                                    · {t('page.companyDetail.expires')}: {q.valid_until}
                                   </span>
                                 )}
-                                <span>· Rev {q.version || 1}</span>
+                                <span>· {t('page.companyDetail.revision', { version: q.version || 1 })}</span>
                               </div>
                             </div>
                             <div className="text-right flex-shrink-0">
@@ -282,9 +296,9 @@ export default function CompanyDetail() {
                     {inquiryList.filter((i: any) => i.status !== 'closed_won' && i.status !== 'closed_lost').length === 0 &&
                      quotationList.filter((q: any) => q.status !== 'accepted' && q.status !== 'rejected').length === 0 && (
                       <div className="text-center py-8 border border-dashed border-gray-200 rounded-lg">
-                        <p className="text-xs text-gray-400 mb-2">{t('page.companyDetail.noActiveOpportunities', 'No active opportunities')}</p>
+                        <p className="text-xs text-gray-400 mb-2">{t('page.companyDetail.noActiveOpportunities')}</p>
                         <Link to={`/inquiries/new?company=${id}`} className="text-xs text-blue-600 hover:underline font-medium">
-                          {t('page.companyDetail.createInquiry', 'Create Inquiry')}
+                          {t('page.companyDetail.createInquiry')}
                         </Link>
                       </div>
                     )}
@@ -317,7 +331,7 @@ export default function CompanyDetail() {
 {/* RIGHT PANEL: Tasks + Summary */}
             <div className="w-[300px] flex-shrink-0 border-l border-gray-200 overflow-y-auto p-4 bg-white space-y-5">
               <div>
-                <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Tasks ({taskList.filter((t: any) => t.status !== 'completed').length})</h3>
+                <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.tasks.tasks')} ({taskList.filter((t: any) => t.status !== 'completed').length})</h3>
                 <TaskSection
                   tasks={taskList}
                   entityType="company"
@@ -329,7 +343,7 @@ export default function CompanyDetail() {
 
               {/* {t('page.companyDetail.quickStats')} */}
               <div>
-                <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.companyDetail.quickStats')}</h3>
+                <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.companyDetail.quickStats')}</h3>
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between py-1 border-b border-gray-50">
                     <span className="text-gray-500">{t('page.companyDetail.totalInquiries')}</span>
@@ -340,14 +354,14 @@ export default function CompanyDetail() {
                     <span className="font-medium">{quotationList.length}</span>
                   </div>
                   <div className="flex justify-between py-1">
-                    <span className="text-gray-500">Contacts</span>
+                    <span className="text-gray-500">{t('page.companyDetail.contacts')}</span>
                     <span className="font-medium">{contactList.length}</span>
                   </div>
                 </div>
               </div>
             </div>              </>
             }
-            rightPanelLabel="Tasks & Stats"
+            rightPanelLabel={t('page.companyDetail.tasksAndStats')}
             rightPanelIcon="☰"
           />
       </div>

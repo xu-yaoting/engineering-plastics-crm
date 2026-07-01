@@ -37,10 +37,10 @@ export default function InquiryNew() {
       const inq = await inquiries.create({
         ...form,
       });
-      toast.success('Inquiry created');
+      toast.success(t('page.inquiries.inquiryCreated'));
       navigate(`/inquiries/${inq.id}`);
     } catch (e) {
-      toast.error('Failed to create inquiry');
+      toast.error(t('page.inquiries.inquiryCreateFailed'));
     } finally {
       setSaving(false);
     }
@@ -57,7 +57,7 @@ export default function InquiryNew() {
       <div className="card p-5 space-y-5">
         {/* Customer */}
         <div>
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.inquiryNew.customer')}</h3>
+          <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.inquiryNew.customer')}</h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">{t('page.inquiryNew.company')} *</label>
@@ -123,8 +123,8 @@ export default function InquiryNew() {
             <input className="input" value={form.target_material_requested} onChange={e => set('target_material_requested', e.target.value)} placeholder={t('page.inquiryNew.placeholderMaterial')} />
           </div>
           <div>
-            <label className="label">Quantity</label>
-            <input className="input" value={form.quantity_estimate} onChange={e => set('quantity_estimate', e.target.value)} placeholder="e.g. 500 kg/year" />
+            <label className="label">{t('page.inquiryDetail.quantity')}</label>
+            <input className="input" value={form.quantity_estimate} onChange={e => set('quantity_estimate', e.target.value)} placeholder={t('page.inquiryNew.placeholderQuantityKg')} />
           </div>
         </div>
 

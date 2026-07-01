@@ -14,8 +14,7 @@ export default function Orders() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    <button onClick={() => exportFullCsv('/api/orders', 'orders')} className="btn-secondary btn-sm"><Icon name="download" size={14} className="mr-1" />CSV</button>
-          fetch('/api/orders')
+    fetch('/api/orders')
       .then(r => r.json())
       .then(setList)
       .finally(() => setLoading(false));
@@ -39,7 +38,7 @@ export default function Orders() {
       </div>
 
       <div className="flex items-center gap-3 mb-4">
-        <input className="input max-w-sm" placeholder=" Search orders..." value={search} onChange={e => setSearch(e.target.value)} />
+        <input className="input max-w-sm" placeholder={t('common.searchOrders')} value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       {loading ? (
@@ -49,12 +48,12 @@ export default function Orders() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="table-header">Order #</th>
-                <th className="table-header">Company</th>
-                <th className="table-header">Status</th>
-                <th className="table-header">Payment</th>
-                <th className="table-header text-right">Total</th>
-                <th className="table-header">Date</th>
+                <th className="table-header">{t('page.orders.orderNumber')}</th>
+                <th className="table-header">{t('page.orders.company')}</th>
+                <th className="table-header">{t('page.orders.status')}</th>
+                <th className="table-header">{t('page.orders.payment')}</th>
+                <th className="table-header text-right">{t('page.orders.total')}</th>
+                <th className="table-header">{t('page.orders.date')}</th>
               </tr>
             </thead>
             <tbody>

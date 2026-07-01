@@ -12,8 +12,8 @@ export default function QuotationDetail() {
   const { t } = useTranslation();
   const statusOptions = [
     { value: 'draft', label: t('status.draft') },
-    { value: 'pending_approval', label: t('status.pendingApproval', 'Pending Approval') },
-    { value: 'approved', label: t('status.approved', 'Approved') },
+    { value: 'pending_approval', label: t('status.pendingApproval') },
+    { value: 'approved', label: t('status.approved') },
     { value: 'sent', label: t('status.sent') },
     { value: 'negotiating', label: t('status.negotiating') },
     { value: 'accepted', label: t('status.accepted') },
@@ -62,12 +62,12 @@ export default function QuotationDetail() {
       await activities.create({
         entity_type: 'quotation', entity_id: id,
         activity_type: 'status_change',
-        subject: `Status changed to ${newStatus}`,
+        subject: t('page.quotationDetail.statusChanged', { status: statusOptions.find(opt => opt.value === newStatus)?.label || newStatus }),
       });
       setShowStatusMenu(false);
       load();
     } catch (e) {
-      toast.error('Failed to change status');
+      toast.error(t('page.quotationDetail.statusChangeFailed'));
     }
   };
 
@@ -111,14 +111,14 @@ export default function QuotationDetail() {
       await activities.create({
         entity_type: 'quotation', entity_id: id,
         activity_type: 'status_change',
-        subject: `Order ${order.order_number} created from this quotation`,
+        subject: t('page.quotationDetail.orderActivity', { number: order.order_number }),
       });
 
       await quotations.update(id, { status: 'accepted' });
-      toast.success('Order created from quotation');
+      toast.success(t('page.quotationDetail.orderCreated'));
       navigate(`/orders/${order.id}`);
     } catch (e) {
-      toast.error('Failed to create order');
+      toast.error(t('page.quotationDetail.orderCreateFailed'));
     } finally {
       setCreatingOrder(false);
     }
@@ -142,7 +142,7 @@ export default function QuotationDetail() {
       const dup = await res.json();
       navigate(`/quotations/${dup.id}`);
     } catch (e) {
-      toast.error('Failed to duplicate quotation');
+      toast.error(t('page.quotationDetail.duplicateFailed'));
     }
   };
 
@@ -150,10 +150,10 @@ export default function QuotationDetail() {
     if (!id) return;
     try {
       await quotations.update(id, { deleted_at: new Date().toISOString() });
-      toast.success('Quotation deleted');
+      toast.success(t('page.quotationDetail.quotationDeleted'));
       navigate('/quotations');
     } catch (e) {
-      toast.error('Failed to delete quotation');
+      toast.error(t('page.quotationDetail.quotationDeleteFailed'));
     }
   };
 
@@ -167,18 +167,18 @@ export default function QuotationDetail() {
           quotation_id: id,
           company_id: quotation.company_id,
           contact_id: quotation.contact_id,
-          purpose: sampleInfo.purpose || 'Sample for quotation ' + quotation.quotation_number,
+          purpose: sampleInfo.purpose || t('page.quotationDetail.sampleFor', { number: quotation.quotation_number }),
           shipping_address: sampleInfo.shipping_address || '',
           sample_charge: 0,
           status: 'approved',
         }),
       });
       const sample = await res.json();
-      toast.success('Sample request created');
+      toast.success(t('page.quotationDetail.sampleRequestCreated'));
       setSampleStatus(sample);
       setShowSamplePanel(false);
     } catch (e) {
-      toast.error('Failed to create sample request');
+      toast.error(t('page.quotationDetail.sampleRequestFailed'));
     }
   };
 
@@ -219,45 +219,45 @@ export default function QuotationDetail() {
                 </div>
               )}
             </div>
-            <span className="text-2xs text-gray-400">{t('page.quotationDetail.rev', 'Rev')} {quotation.version || 1}</span>
+            <span className="text-2xs text-gray-400">{t('page.quotationDetail.rev')} {quotation.version || 1}</span>
           </div>
           <div className="flex items-center gap-2">
-            <a href={`/api/quotations/${id}/pdf`} target="_blank" rel="noopener" className="btn-primary btn-sm no-underline inline-flex items-center gap-1"><Icon name="download" size={14} className="mr-1.5" />{t('page.quotationDetail.downloadPdf', 'PDF')}</a>
+            <a href={`/api/quotations/${id}/pdf`} target="_blank" rel="noopener" className="btn-primary btn-sm no-underline inline-flex items-center gap-1"><Icon name="download" size={14} className="mr-1.5" />{t('page.quotationDetail.downloadPdf')}</a>
             <button onClick={() => setShowEditPanel(true)} className="btn-primary btn-sm"><Icon name="square-pen" size={14} className="mr-1.5" />{t('common.edit')}</button>
             <button onClick={() => {
               if (orderId) return;
               setSampleInfo({
-                purpose: `Sample for ${quotation.quotation_number}`,
+                purpose: t('page.quotationDetail.sampleFor', { number: quotation.quotation_number }),
                 quantity: lineItems[0] ? `${lineItems[0].quantity} ${lineItems[0].unit_of_measure}` : '',
                 shipping_address: '',
               });
               setShowSamplePanel(true);
-            }} className={`btn-secondary btn-sm ${orderId ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!!orderId}><Icon name="flask-conical" size={14} className="mr-1.5" />Sample</button>
+            }} className={`btn-secondary btn-sm ${orderId ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!!orderId}><Icon name="flask-conical" size={14} className="mr-1.5" />{t('page.quotationDetail.sample')}</button>
             <button onClick={createOrder} disabled={!!orderId || creatingOrder} className={`btn-secondary btn-sm ${orderId ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              {creatingOrder ? t('page.quotationDetail.editPanel.saving', 'Creating...') : <><Icon name="package" size={14} className="mr-1.5" />{t('page.quotationDetail.createOrder')}</>}
+              {creatingOrder ? t('page.quotationDetail.editPanel.saving') : <><Icon name="package" size={14} className="mr-1.5" />{t('page.quotationDetail.createOrder')}</>}
             </button>
             {orderId && (
               <Link to={`/orders/${orderId}`} className="btn-primary btn-sm no-underline inline-flex items-center gap-1">
-                <Icon name="package" size={14} />View Order
+                <Icon name="package" size={14} />{t('page.quotationDetail.viewOrder')}
               </Link>
             )}
             {quotation.status === 'pending_approval' && (
               <>
                 <button onClick={() => {
-                  const name = prompt('Approver name (optional):');
+                  const name = prompt(t('page.quotationDetail.approverName'));
                   fetch(`/api/quotations/${id}/approve`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'approve', approved_by: name || '' }),
-                  }).then(r => r.json()).then(() => { toast.success('Approved'); load(); });
-                }} className="btn-primary btn-sm" style={{background:'#16a34a'}}><Icon name="check" size={14} className="mr-1.5" />Approve</button>
+                  }).then(r => r.json()).then(() => { toast.success(t('page.quotationDetail.approvedToast')); load(); });
+                }} className="btn-primary btn-sm" style={{background:'#16a34a'}}><Icon name="check" size={14} className="mr-1.5" />{t('page.quotationDetail.approve')}</button>
                 <button onClick={() => {
                   fetch(`/api/quotations/${id}/approve`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'reject' }),
-                  }).then(r => r.json()).then(() => { toast.success('Rejected — returned to draft'); load(); });
-                }} className="btn-secondary btn-sm" style={{color:'#dc2626',borderColor:'#dc2626'}}>Reject</button>
+                  }).then(r => r.json()).then(() => { toast.success(t('page.quotationDetail.rejectedToast')); load(); });
+                }} className="btn-secondary btn-sm" style={{color:'#dc2626',borderColor:'#dc2626'}}>{t('page.quotationDetail.reject')}</button>
               </>
             )}
             {/* Actions dropdown */}
@@ -275,7 +275,7 @@ export default function QuotationDetail() {
                   </button>
                   <a href={`/api/quotations/${id}/pdf`} target="_blank" rel="noopener"
                      className="flex items-center gap-1.5 w-full px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 no-underline">
-                    <Icon name="file-down" size={13} />{t('page.quotationDetail.downloadPdf', 'Download PDF')}
+                    <Icon name="file-down" size={13} />{t('page.quotationDetail.downloadPdf')}
                   </a>
                   {!confirmDelete ? (
                     <button onClick={() => setConfirmDelete(true)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">
@@ -283,7 +283,7 @@ export default function QuotationDetail() {
                     </button>
                   ) : (
                     <div className="px-3 py-2">
-                      <p className="text-2xs text-red-600 mb-1.5">{t('common.confirmDelete', 'Confirm delete?')}</p>
+                      <p className="text-2xs text-red-600 mb-1.5">{t('common.confirmDelete')}</p>
                       <div className="flex gap-1">
                         <button onClick={remove} className="text-xs bg-red-600 text-white px-2 py-1 rounded">{t('common.yes')}</button>
                         <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500 px-2 py-1">{t('common.no')}</button>
@@ -299,8 +299,8 @@ export default function QuotationDetail() {
           <Link to={`/companies/${quotation.company_id}`} className="text-blue-600 hover:underline">{quotation.company_name}</Link>
           {quotation.contact_name && ` · ${t('page.inquiryDetail.contact')}: ${quotation.contact_name}`}
           {` · ${quotation.currency || 'USD'}`}
-          {quotation.quotation_date && ` · ${t('page.quotationDetail.quotationDate', 'Date')}: ${quotation.quotation_date}`}
-          {quotation.valid_until && ` · ${t('page.quotationDetail.validUntil', 'Valid until')}: ${quotation.valid_until}`}
+          {quotation.quotation_date && ` · ${t('page.quotationDetail.quotationDate')}: ${quotation.quotation_date}`}
+          {quotation.valid_until && ` · ${t('page.quotationDetail.validUntil')}: ${quotation.valid_until}`}
         </div>
       </div>
 
@@ -312,7 +312,7 @@ export default function QuotationDetail() {
               {/* Line Items Table */}
               <div className="card">
                 <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('page.orderDetail.lineItems')} ({lineItems.length})</h3>
+                  <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.orderDetail.lineItems')} ({lineItems.length})</h3>
                 </div>
                 <table className="w-full">
                   <thead>
@@ -340,7 +340,7 @@ export default function QuotationDetail() {
                       </tr>
                     ))}
                     {lineItems.length === 0 && (
-                      <tr><td colSpan={6} className="text-center py-8 text-xs text-gray-400">{t('common.no')} line items</td></tr>
+                      <tr><td colSpan={6} className="text-center py-8 text-xs text-gray-400">{t('page.quotationDetail.noLineItems')}</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -348,7 +348,7 @@ export default function QuotationDetail() {
 
               {/* Terms */}
               <div className="card p-4">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.quotationDetail.terms')}</h3>
+                <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.quotationDetail.terms')}</h3>
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div><span className="text-2xs text-gray-400 block">{t('page.quotationDetail.incoterm')}</span><span className="text-gray-700">{quotation.incoterm || '—'}</span></div>
                   <div className="col-span-2"><span className="text-2xs text-gray-400 block">{t('page.quotationDetail.payment')}</span><span className="text-gray-700">{quotation.payment_term || '—'}</span></div>
@@ -360,7 +360,7 @@ export default function QuotationDetail() {
             {/* Right Sidebar */}
             <div className="space-y-4">
               <div className="card p-4">
-                <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.quotationDetail.pricingSummary')}</h3>
+                <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.quotationDetail.pricingSummary')}</h3>
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between text-gray-500">
                     <span>{t('page.quotationDetail.subtotal')}</span>
@@ -393,7 +393,7 @@ export default function QuotationDetail() {
                   </div>
                   {quotation.margin_estimate_percent != null && (
                     <div className="flex justify-between text-green-600 text-xs pt-1">
-                      <span>{t('page.quotationDetail.estMargin', 'Est. Margin')}</span>
+                      <span>{t('page.quotationDetail.estMargin')}</span>
                       <span>{quotation.margin_estimate_percent}%</span>
                     </div>
                   )}
@@ -401,14 +401,14 @@ export default function QuotationDetail() {
               </div>
 
               <div className="card p-4">
-                <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.quotationDetail.taxation')}</h3>
+                <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.quotationDetail.taxation')}</h3>
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-gray-500">{t('page.quotationDetail.type')}</span>
-                    <span className="font-medium">{quotation.tax_type === 'domestic_vat' ? t('page.quotationDetail.editPanel.domesticVat') : quotation.tax_type === 'export' ? t('page.quotationDetail.editPanel.exportTax') : t('common.na', 'N/A')}</span>
+                    <span className="font-medium">{quotation.tax_type === 'domestic_vat' ? t('page.quotationDetail.editPanel.domesticVat') : quotation.tax_type === 'export' ? t('page.quotationDetail.editPanel.exportTax') : t('common.na')}</span>
                   </div>
                   {quotation.domestic_vat_rate > 0 && (
-                    <div className="flex justify-between"><span className="text-gray-500">{t('page.quotationDetail.vatRate', 'VAT Rate')}</span><span>{quotation.domestic_vat_rate}%</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">{t('page.quotationDetail.vatRate')}</span><span>{quotation.domestic_vat_rate}%</span></div>
                   )}
                   {quotation.export_tax_rebate_rate > 0 && (
                     <div className="flex justify-between"><span className="text-gray-500">{t('page.quotationDetail.rebate')}</span><span className="text-green-600">{quotation.export_tax_rebate_rate}%</span></div>
@@ -417,7 +417,7 @@ export default function QuotationDetail() {
               </div>
 
               <div className="card p-4">
-                <h3 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.quotationDetail.recentActivity')}</h3>
+                <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.quotationDetail.recentActivity')}</h3>
                 <div className="space-y-2">
                   {activityList.slice(0, 5).map((a: any) => (
                     <div key={a.id} className="text-xs text-gray-600">
@@ -425,7 +425,7 @@ export default function QuotationDetail() {
                       {' · '}{a.subject}
                     </div>
                   ))}
-                  {activityList.length === 0 && <p className="text-xs text-gray-400">{t('common.no')} activity</p>}
+                  {activityList.length === 0 && <p className="text-xs text-gray-400">{t('page.quotationDetail.noActivity')}</p>}
                 </div>
               </div>
             </div>
@@ -437,33 +437,33 @@ export default function QuotationDetail() {
       {showSamplePanel && (
         <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center">
           <div className="bg-white rounded-xl shadow-lg p-6 w-[460px]">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Request Sample — {quotation.quotation_number}</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">{t('page.quotationDetail.requestSample')} - {quotation.quotation_number}</h3>
             <div className="space-y-4">
               <div className="bg-blue-50 rounded-lg p-3 text-sm">
                 <div className="font-medium text-gray-900">{quotation.company_name}</div>
                 {lineItems.length > 0 && (
                   <div className="text-xs text-gray-600 mt-1">
-                    Items: {lineItems.map((li: any) => `${li.quantity}x ${li.product_grade_snapshot}`).join(', ')}
+                    {t('page.quotationDetail.sampleItems')}: {lineItems.map((li: any) => `${li.quantity}x ${li.product_grade_snapshot}`).join(', ')}
                   </div>
                 )}
               </div>
               <div>
-                <label className="label">Sample Purpose</label>
+                <label className="label">{t('page.quotationDetail.samplePurpose')}</label>
                 <input className="input" value={sampleInfo.purpose} onChange={e => setSampleInfo({...sampleInfo, purpose: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">Quantity</label>
+                  <label className="label">{t('page.inquiryDetail.quantity')}</label>
                   <input className="input" value={sampleInfo.quantity} onChange={e => setSampleInfo({...sampleInfo, quantity: e.target.value})} />
                 </div>
                 <div>
-                  <label className="label">Shipping Address</label>
+                  <label className="label">{t('page.orderDetail.shippingAddress')}</label>
                   <input className="input" value={sampleInfo.shipping_address} onChange={e => setSampleInfo({...sampleInfo, shipping_address: e.target.value})} />
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
-                <button onClick={requestSample} className="btn-primary flex-1">Create Sample Request</button>
-                <button onClick={() => setShowSamplePanel(false)} className="btn-secondary">Cancel</button>
+                <button onClick={requestSample} className="btn-primary flex-1">{t('page.quotationDetail.createSampleRequest')}</button>
+                <button onClick={() => setShowSamplePanel(false)} className="btn-secondary">{t('common.cancel')}</button>
               </div>
             </div>
           </div>

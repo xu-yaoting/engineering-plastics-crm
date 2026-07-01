@@ -4,14 +4,14 @@ import toast from 'react-hot-toast';
 
 type Tab = 'dashboard' | 'products' | 'ledger' | 'stock-in' | 'stock-out' | 'adjustment' | 'import';
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'dashboard', label: 'Dashboard' },
-  { key: 'products', label: 'Products' },
-  { key: 'ledger', label: 'Ledger' },
-  { key: 'stock-in', label: 'Stock In' },
-  { key: 'stock-out', label: 'Stock Out' },
-  { key: 'adjustment', label: 'Adjustment' },
-  { key: 'import', label: 'Import' },
+const TABS: { key: Tab; labelKey: string }[] = [
+  { key: 'dashboard', labelKey: 'page.inventory.dashboardTab' },
+  { key: 'products', labelKey: 'page.inventory.productsTab' },
+  { key: 'ledger', labelKey: 'page.inventory.ledgerTab' },
+  { key: 'stock-in', labelKey: 'page.inventory.stockInTab' },
+  { key: 'stock-out', labelKey: 'page.inventory.stockOutTab' },
+  { key: 'adjustment', labelKey: 'page.inventory.adjustmentTab' },
+  { key: 'import', labelKey: 'page.inventory.importTab' },
 ];
 
 export default function InventoryPage() {
@@ -21,21 +21,21 @@ export default function InventoryPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-4">{t('nav.inventory', 'Inventory')}</h1>
+      <h1 className="text-2xl font-semibold text-gray-900 mb-4">{t('nav.inventory')}</h1>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200 mb-6">
-        {TABS.map(t => (
+        {TABS.map(item => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+            key={item.key}
+            onClick={() => setTab(item.key)}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
-              tab === t.key
+              tab === item.key
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            {t.label}
+            {t(item.labelKey)}
           </button>
         ))}
       </div>
@@ -54,6 +54,7 @@ export default function InventoryPage() {
 // ─── Dashboard ───
 
 function DashboardTab({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
+  const { t } = useTranslation();
   const [stock, setStock] = useState<any[]>([]);
   const [lowStock, setLowStock] = useState<any[]>([]);
   const [allTxns, setAllTxns] = useState<any[]>([]);
@@ -87,21 +88,21 @@ function DashboardTab({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="card p-4">
-          <div className="text-2xs text-gray-500 uppercase tracking-wider">Products</div>
+          <div className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.inventory.products')}</div>
           <div className="text-2xl font-semibold text-gray-900 mt-1">{totalProducts}</div>
         </div>
         <div className="card p-4">
-          <div className="text-2xs text-gray-500 uppercase tracking-wider">Total Qty</div>
+          <div className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.inventory.totalQty')}</div>
           <div className="text-2xl font-semibold text-gray-900 mt-1">{totalQty.toLocaleString()}</div>
           <div className="text-xs text-gray-400 mt-0.5">pcs / sheets / m</div>
         </div>
         <div className="card p-4">
-          <div className="text-2xs text-gray-500 uppercase tracking-wider">Total Weight</div>
+          <div className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.inventory.totalWeight')}</div>
           <div className="text-2xl font-semibold text-gray-900 mt-1">{totalWeight.toFixed(1)}</div>
           <div className="text-xs text-gray-400 mt-0.5">kg</div>
         </div>
         <div className="card p-4">
-          <div className="text-2xs text-gray-500 uppercase tracking-wider">Low Stock</div>
+          <div className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.inventory.lowStock')}</div>
           <div className={`text-2xl font-semibold mt-1 ${lowStock.length > 0 ? 'text-red-600' : 'text-green-600'}`}>
             {lowStock.length}
           </div>
@@ -110,22 +111,22 @@ function DashboardTab({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
 
       {/* 30-Day Activity */}
       <div className="card p-4">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Last 30 Days Activity</h3>
+        <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.inventory.last30DaysActivity')}</h3>
         <div className="grid grid-cols-3 gap-6">
           <div>
-            <div className="text-2xs text-gray-400">Stock In</div>
+            <div className="text-2xs text-gray-400">{t('page.inventory.stockInTab')}</div>
             <div className="text-lg font-semibold text-green-600 font-mono">{inQty.toLocaleString()}</div>
-            <div className="text-2xs text-gray-400">{inWt.toFixed(1)} kg received</div>
+            <div className="text-2xs text-gray-400">{inWt.toFixed(1)} kg {t('page.inventory.received')}</div>
           </div>
           <div>
-            <div className="text-2xs text-gray-400">Stock Out</div>
+            <div className="text-2xs text-gray-400">{t('page.inventory.stockOutTab')}</div>
             <div className="text-lg font-semibold text-red-600 font-mono">{outQty.toLocaleString()}</div>
-            <div className="text-2xs text-gray-400">{outWt.toFixed(1)} kg shipped</div>
+            <div className="text-2xs text-gray-400">{outWt.toFixed(1)} kg {t('page.inventory.shipped')}</div>
           </div>
           <div>
-            <div className="text-2xs text-gray-400">Adjustments</div>
+            <div className="text-2xs text-gray-400">{t('page.inventory.adjustments')}</div>
             <div className="text-lg font-semibold text-yellow-600 font-mono">{adjQty.toLocaleString()}</div>
-            <div className="text-2xs text-gray-400">units adjusted</div>
+            <div className="text-2xs text-gray-400">{t('page.inventory.unitsAdjusted')}</div>
           </div>
         </div>
       </div>
@@ -134,18 +135,18 @@ function DashboardTab({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
       {lowStock.length > 0 && (
         <div className="card">
           <div className="px-4 py-3 border-b border-gray-200">
-            <h3 className="text-xs font-semibold text-red-600 uppercase tracking-wider">⚠ Low Stock Alerts</h3>
+            <h3 className="text-xs font-450 text-red-600 uppercase tracking-[0.08em]">{t('page.inventory.lowStockAlerts')}</h3>
           </div>
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="table-header">SKU</th>
-                <th className="table-header">Product</th>
-                <th className="table-header text-right">Qty</th>
-                <th className="table-header text-right">Min Qty</th>
-                <th className="table-header text-right">Weight</th>
-                <th className="table-header text-right">Min Wt</th>
-                <th className="table-header">Status</th>
+                <th className="table-header">{t('page.inventory.product')}</th>
+                <th className="table-header text-right">{t('page.inventory.qty')}</th>
+                <th className="table-header text-right">{t('page.inventory.minQty')}</th>
+                <th className="table-header text-right">{t('page.inventory.weight')}</th>
+                <th className="table-header text-right">{t('page.inventory.minWt')}</th>
+                <th className="table-header">{t('page.inventory.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -166,8 +167,8 @@ function DashboardTab({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
                     <td className="table-cell text-right font-mono text-xs text-gray-500">{p.safety_stock_weight_kg ? p.safety_stock_weight_kg + ' kg' : '—'}</td>
                     <td className="table-cell">
                       <div className="flex gap-1">
-                        {lowQty && <span className="inline-flex px-1.5 py-0.5 rounded text-2xs font-medium bg-red-50 text-red-600">Qty</span>}
-                        {lowWt && <span className="inline-flex px-1.5 py-0.5 rounded text-2xs font-medium bg-red-50 text-red-600">Wt</span>}
+                        {lowQty && <span className="inline-flex px-1.5 py-0.5 rounded text-2xs font-450 bg-red-50 text-red-600">Qty</span>}
+                        {lowWt && <span className="inline-flex px-1.5 py-0.5 rounded text-2xs font-450 bg-red-50 text-red-600">Wt</span>}
                       </div>
                     </td>
                   </tr>
@@ -182,28 +183,28 @@ function DashboardTab({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
       <div className="card">
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between gap-4">
           <div>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Inventory</h3>
+            <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.inventory.currentInventory')}</h3>
             <p className="text-2xs text-gray-400 mt-1">
-              Use Stock In, Stock Out, or Adjustment to change quantities. Edit product specs from Products.
+              {t('page.inventory.stockChangeHelp')}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => onTabChange('products')} className="btn-secondary btn-sm">Edit Products</button>
-            <button onClick={() => onTabChange('adjustment')} className="btn-secondary btn-sm">Adjust Stock</button>
+            <button onClick={() => onTabChange('products')} className="btn-secondary btn-sm">{t('page.inventory.editProducts')}</button>
+            <button onClick={() => onTabChange('adjustment')} className="btn-secondary btn-sm">{t('page.inventory.adjustStock')}</button>
           </div>
         </div>
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
               <th className="table-header">SKU</th>
-              <th className="table-header">Product</th>
-              <th className="table-header">Material</th>
-              <th className="table-header">Type</th>
-              <th className="table-header text-right">Qty</th>
-              <th className="table-header text-right">Weight</th>
-              <th className="table-header text-right">Unit Wt</th>
-              <th className="table-header text-right">Min Qty</th>
-              <th className="table-header text-right">Actions</th>
+              <th className="table-header">{t('page.inventory.product')}</th>
+              <th className="table-header">{t('page.inventory.material')}</th>
+              <th className="table-header">{t('page.inventory.type')}</th>
+              <th className="table-header text-right">{t('page.inventory.qty')}</th>
+              <th className="table-header text-right">{t('page.inventory.weight')}</th>
+              <th className="table-header text-right">{t('page.inventory.unitWt')}</th>
+              <th className="table-header text-right">{t('page.inventory.minQty')}</th>
+              <th className="table-header text-right">{t('page.inventory.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -230,15 +231,15 @@ function DashboardTab({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
                   </td>
                   <td className="table-cell text-right">
                     <div className="inline-flex items-center gap-2">
-                      <button onClick={() => onTabChange('products')} className="text-xs text-blue-600 hover:underline">Edit</button>
-                      <button onClick={() => onTabChange('adjustment')} className="text-xs text-yellow-600 hover:underline">Adjust</button>
+                      <button onClick={() => onTabChange('products')} className="text-xs text-blue-600 hover:underline">{t('common.edit')}</button>
+                      <button onClick={() => onTabChange('adjustment')} className="text-xs text-yellow-600 hover:underline">{t('page.inventory.adjustmentTab')}</button>
                     </div>
                   </td>
                 </tr>
               );
             })}
             {stock.length === 0 && (
-              <tr><td colSpan={9} className="text-center py-8 text-xs text-gray-400">No products in inventory</td></tr>
+              <tr><td colSpan={9} className="text-center py-8 text-xs text-gray-400">{t('page.inventory.noProductsInInventory')}</td></tr>
             )}
           </tbody>
         </table>
@@ -250,39 +251,40 @@ function DashboardTab({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
 // ─── Products ───
 
 const PRODUCT_TYPES = [
-  { value: 'sheet', label: 'Sheet' },
-  { value: 'rod', label: 'Rod' },
-  { value: 'tube', label: 'Tube' },
-  { value: 'part', label: 'Part' },
+  { value: 'sheet', labelKey: 'page.inventory.productTypeSheet' },
+  { value: 'rod', labelKey: 'page.inventory.productTypeRod' },
+  { value: 'tube', labelKey: 'page.inventory.productTypeTube' },
+  { value: 'part', labelKey: 'page.inventory.productTypePart' },
 ];
 
 const TRACKING_MODES = [
-  { value: 'piece', label: 'Piece' },
-  { value: 'length', label: 'Length' },
-  { value: 'weight', label: 'Weight' },
+  { value: 'piece', labelKey: 'page.inventory.trackingPiece' },
+  { value: 'length', labelKey: 'page.inventory.trackingLength' },
+  { value: 'weight', labelKey: 'page.inventory.trackingWeight' },
 ];
 
-const DIM_FIELDS: Record<string, { key: string; label: string; placeholder: string }[]> = {
+const DIM_FIELDS: Record<string, { key: string; labelKey: string; placeholder: string }[]> = {
   sheet: [
-    { key: 'length_mm', label: 'Length', placeholder: 'mm' },
-    { key: 'width_mm', label: 'Width', placeholder: 'mm' },
-    { key: 'thickness_mm', label: 'Thickness', placeholder: 'mm' },
+    { key: 'length_mm', labelKey: 'page.inventory.length', placeholder: 'mm' },
+    { key: 'width_mm', labelKey: 'page.inventory.width', placeholder: 'mm' },
+    { key: 'thickness_mm', labelKey: 'page.inventory.thickness', placeholder: 'mm' },
   ],
   rod: [
-    { key: 'diameter_mm', label: 'Diameter', placeholder: 'mm' },
-    { key: 'length_mm', label: 'Length', placeholder: 'mm' },
+    { key: 'diameter_mm', labelKey: 'page.inventory.diameter', placeholder: 'mm' },
+    { key: 'length_mm', labelKey: 'page.inventory.length', placeholder: 'mm' },
   ],
   tube: [
-    { key: 'outer_diameter_mm', label: 'OD', placeholder: 'mm' },
-    { key: 'inner_diameter_mm', label: 'ID', placeholder: 'mm' },
-    { key: 'length_mm', label: 'Length', placeholder: 'mm' },
+    { key: 'outer_diameter_mm', labelKey: 'page.inventory.outerDiameter', placeholder: 'mm' },
+    { key: 'inner_diameter_mm', labelKey: 'page.inventory.innerDiameter', placeholder: 'mm' },
+    { key: 'length_mm', labelKey: 'page.inventory.length', placeholder: 'mm' },
   ],
   part: [
-    { key: 'unit_weight_kg', label: 'Unit Weight', placeholder: 'kg' },
+    { key: 'unit_weight_kg', labelKey: 'page.inventory.unitWeight', placeholder: 'kg' },
   ],
 };
 
 function ProductsTab() {
+  const { t } = useTranslation();
   const [products, setProducts] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -328,7 +330,7 @@ function ProductsTab() {
   })();
 
   // Auto-generate Name = "Material Type" (e.g. "PEEK Sheet")
-  const typeLabel = PRODUCT_TYPES.find(t => t.value === form.product_type)?.label || form.product_type;
+  const typeLabel = t(PRODUCT_TYPES.find(item => item.value === form.product_type)?.labelKey || 'page.inventory.type');
   const autoName = form.product_type === 'part' ? form.name : (selectedMaterial ? `${selectedMaterial.name} ${typeLabel}` : typeLabel);
 
   // Auto-update SKU + Name when dims/material change (only for new products)
@@ -352,8 +354,12 @@ function ProductsTab() {
     : density && dims.length_mm ? calcPreviewWeight(dims, density) : null;
 
   const save = async () => {
-    if (!form.sku.trim() || !form.name.trim()) { toast.error('SKU and Name required'); return; }
+    const currentSku = form.sku?.trim();
+    const currentName = form.name?.trim();
+    if (!currentSku || !currentName) { toast.error(t('page.inventory.skuNameRequired')); return; }
     const payload: any = { ...form };
+    payload.sku = currentSku;
+    payload.name = currentName;
     for (const k of ['length_mm','width_mm','thickness_mm','diameter_mm','outer_diameter_mm','inner_diameter_mm','unit_weight_kg','safety_stock_qty','safety_stock_weight_kg']) {
       const v = parseFloat(payload[k]);
       payload[k] = isNaN(v) ? null : v;
@@ -364,46 +370,58 @@ function ProductsTab() {
       let productId: string | null = null;
       if (editId) {
         const res = await fetch(`/api/inventory/products/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        if (!res.ok) throw new Error('Failed to update product');
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || data?.message || t('page.inventory.updateFailed'));
+        }
         productId = editId;
       } else {
         const res = await fetch('/api/inventory/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        if (!res.ok) throw new Error('Failed to create product');
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || data?.message || t('page.inventory.createFailed'));
+        }
         const created = await res.json();
         productId = created.id;
-        // Create initial stock-in if quantity provided
-        if (initialQty > 0 && productId) {
-          await fetch('/api/inventory/stock-in', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ product_id: productId, quantity: initialQty, unit: payload.unit || 'pc', notes: 'Initial stock', operator: 'System' })
-          });
-        }
       }
-      toast.success(editId ? 'Updated' : 'Created');
+      toast.success(editId ? t('page.inventory.productUpdated') : t('page.inventory.productCreated'));
       setShowForm(false); setEditId(null);
       setForm({ sku: '', name: '', category: '', product_type: 'sheet', stock_tracking_mode: 'piece',
         length_mm: '', width_mm: '', thickness_mm: '', diameter_mm: '', outer_diameter_mm: '', inner_diameter_mm: '',
         unit_weight_kg: '', material_id: '', unit: 'pc', safety_stock_qty: 0, safety_stock_weight_kg: 0, initial_qty: 0 });
       load();
-    } catch { toast.error('Failed to save'); }
+      // Create initial stock-in if quantity provided (separate from main success flow)
+      if (!editId && initialQty > 0 && productId) {
+        try {
+          await fetch('/api/inventory/stock-in', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_id: productId, quantity: initialQty, unit: payload.unit || 'pc', notes: t('page.inventory.initialStock'), operator: 'System' })
+          });
+        } catch {
+          toast.error(t('page.inventory.initialStockFailed'));
+        }
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('page.inventory.saveFailed'));
+    }
   };
 
   const deleteProduct = async (id: string, name: string) => {
-    if (!window.confirm(`Delete product "${name}"? Existing stock ledger records will be kept.`)) return;
+    if (!window.confirm(t('page.inventory.deleteConfirm', { name }))) return;
     try {
       const res = await fetch(`/api/inventory/products/${id}`, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        toast.error(data?.error || 'Failed to delete');
+        toast.error(data?.error || t('page.inventory.deleteFailed'));
         return;
       }
-      toast.success('Product deleted');
+      toast.success(t('page.inventory.productDeleted'));
       if (editId === id) {
         setShowForm(false);
         setEditId(null);
       }
       load();
     } catch {
-      toast.error('Failed to delete');
+      toast.error(t('page.inventory.deleteFailed'));
     }
   };
 
@@ -425,10 +443,10 @@ function ProductsTab() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-gray-500">{products.length} products</p>
+        <p className="text-sm text-gray-500">{products.length} {t('page.inventory.products')}</p>
         <button onClick={() => { setEditId(null); setForm({ sku: '', name: '', category: '', product_type: 'sheet', stock_tracking_mode: 'piece',
           length_mm: '', width_mm: '', thickness_mm: '', diameter_mm: '', outer_diameter_mm: '', inner_diameter_mm: '',
-          unit_weight_kg: '', material_id: '', unit: 'pc', safety_stock_qty: 0, safety_stock_weight_kg: 0, initial_qty: 0 }); setShowForm(true); }} className="btn-primary btn-sm">+ Add Product</button>
+          unit_weight_kg: '', material_id: '', unit: 'pc', safety_stock_qty: 0, safety_stock_weight_kg: 0, initial_qty: 0 }); setShowForm(true); }} className="btn-primary btn-sm">{t('page.inventory.addProduct')}</button>
       </div>
 
       {showForm && (
@@ -436,42 +454,37 @@ function ProductsTab() {
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
             {/* Row 1: SKU (auto-generated) + Name (auto-generated) */}
             <div>
-              {form.product_type === 'part' ? (
-                <input className="input" placeholder="SKU *" value={form.sku} onChange={e => set('sku', e.target.value)} />
-              ) : (
-                <input className="input bg-gray-50 text-gray-500 cursor-not-allowed" value={autoSku} readOnly placeholder="Auto-generated" />
+              <input className="input" placeholder="SKU *" value={form.sku} onChange={e => set('sku', e.target.value)} />
+              {form.product_type !== 'part' && autoSku && (
+                <span className="text-2xs text-gray-400 mt-0.5 block">{t('page.inventory.autoGenerated')}</span>
               )}
             </div>
             <div>
-              {form.product_type === 'part' ? (
-                <input className="input" placeholder="Name *" value={form.name} onChange={e => set('name', e.target.value)} />
-              ) : (
-                <input className="input bg-gray-50 text-gray-500 cursor-not-allowed" value={autoName} readOnly />
-              )}
+              <input className="input" placeholder={`${t('page.companies.name')} *`} value={form.name} onChange={e => set('name', e.target.value)} />
             </div>
 
             {/* Row 2: Type + Tracking + Category */}
             <select className="input" value={form.product_type} onChange={e => set('product_type', e.target.value)}>
-              {PRODUCT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {PRODUCT_TYPES.map(item => <option key={item.value} value={item.value}>{t(item.labelKey)}</option>)}
             </select>
             <select className="input" value={form.stock_tracking_mode} onChange={e => set('stock_tracking_mode', e.target.value)}>
-              {TRACKING_MODES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {TRACKING_MODES.map(item => <option key={item.value} value={item.value}>{t(item.labelKey)}</option>)}
             </select>
 
             {/* Row 3: Category + Unit */}
-            <input className="input" placeholder="Category" value={form.category} onChange={e => set('category', e.target.value)} />
+            <input className="input" placeholder={t('page.inventory.category')} value={form.category} onChange={e => set('category', e.target.value)} />
             <select className="input" value={form.unit} onChange={e => set('unit', e.target.value)}>
               <option value="pc">pc</option><option value="sheet">sheet</option><option value="m">m</option><option value="kg">kg</option>
             </select>
 
             {/* Row 4+: Dynamic dimension fields */}
             <div className="col-span-2 border-t border-gray-100 pt-3">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Dimensions</span>
+              <span className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.inventory.dimensions')}</span>
             </div>
             <div className="col-span-2 grid grid-cols-3 gap-3">
               {(DIM_FIELDS[form.product_type] || []).map((f: any) => (
                 <div key={f.key}>
-                  <label className="text-xs text-gray-500">{f.label} <span className="text-gray-400">({f.placeholder})</span></label>
+                  <label className="text-xs text-gray-500">{t(f.labelKey)} <span className="text-gray-400">({f.placeholder})</span></label>
                   <input className="input mt-0.5" type="number" step="0.01" min="0"
                     value={form[f.key]} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder} />
                 </div>
@@ -480,27 +493,27 @@ function ProductsTab() {
 
             {/* Material */}
             <div className="col-span-2 border-t border-gray-100 pt-3">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Material</span>
+              <span className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.inventory.material')}</span>
             </div>
             <div className="col-span-2 grid grid-cols-2 gap-3">
               <div>
                 <select className="input" value={form.material_id} onChange={e => set('material_id', e.target.value)}>
-                  <option value="">— No material —</option>
+                  <option value="">- {t('page.inventory.noMaterial')} -</option>
                   {materials.map((m: any) => (
                     <option key={m.id} value={m.id}>{m.name} ({m.density_kg_m3} kg/m³)</option>
                   ))}
                 </select>
               </div>
               <div className="flex items-center text-sm text-gray-500">
-                {density > 0 && <span>Density: <strong>{density}</strong> kg/m³</span>}
+                {density > 0 && <span>{t('page.inventory.density')}: <strong>{density}</strong> kg/m³</span>}
               </div>
             </div>
 
             {/* Weight Preview */}
             {weightPreview !== null && weightPreview > 0 && (
               <div className="col-span-2 bg-blue-50 rounded-lg px-3 py-2 text-sm">
-                <span className="text-blue-700 font-medium">Unit Weight:</span>
-                <span className="text-blue-900 font-mono font-bold ml-2">{weightPreview.toFixed(3)}</span>
+                <span className="text-blue-700 font-medium">{t('page.inventory.unitWeight')}:</span>
+                <span className="text-blue-900 font-mono font-semibold ml-2">{weightPreview.toFixed(3)}</span>
                 <span className="text-blue-500 ml-1">kg</span>
               </div>
             )}
@@ -508,37 +521,37 @@ function ProductsTab() {
             {/* Initial Stock (new products only) */}
             {!editId && (
               <div className="col-span-2 border-t border-gray-100 pt-3">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Initial Stock</span>
+                <span className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.inventory.initialStock')}</span>
               </div>
             )}
             {!editId && (
               <div className="col-span-1">
-                <label className="text-xs text-gray-500">Initial Qty</label>
+                <label className="text-xs text-gray-500">{t('page.inventory.initialQty')}</label>
                 <input className="input mt-0.5" type="number" min="0" step="1" value={form.initial_qty}
                   onChange={e => set('initial_qty', parseInt(e.target.value) || 0)} placeholder="0" />
-                <span className="text-2xs text-gray-400">Auto-creates a stock-in on save</span>
+                <span className="text-2xs text-gray-400">{t('page.inventory.initialQtyHelp')}</span>
               </div>
             )}
 
             {/* Safety Stock */}
             <div className="col-span-2 border-t border-gray-100 pt-3">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Safety Stock</span>
+              <span className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.inventory.safetyStock')}</span>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Min Qty</label>
+              <label className="text-xs text-gray-500">{t('page.inventory.minQty')}</label>
               <input className="input mt-0.5" type="number" min="0" value={form.safety_stock_qty}
                 onChange={e => set('safety_stock_qty', parseFloat(e.target.value) || 0)} />
             </div>
             <div>
-              <label className="text-xs text-gray-500">Min Weight (kg)</label>
+              <label className="text-xs text-gray-500">{t('page.inventory.minWeightKg')}</label>
               <input className="input mt-0.5" type="number" min="0" step="0.001" value={form.safety_stock_weight_kg}
                 onChange={e => set('safety_stock_weight_kg', parseFloat(e.target.value) || 0)} />
             </div>
           </div>
 
           <div className="flex gap-2 mt-4">
-            <button onClick={save} className="btn-primary btn-sm">{editId ? 'Save' : 'Create'}</button>
-            <button onClick={() => { setShowForm(false); setEditId(null); }} className="btn-secondary btn-sm">Cancel</button>
+            <button onClick={save} className="btn-primary btn-sm">{editId ? t('common.save') : t('common.create')}</button>
+            <button onClick={() => { setShowForm(false); setEditId(null); }} className="btn-secondary btn-sm">{t('common.cancel')}</button>
           </div>
         </div>
       )}
@@ -548,10 +561,10 @@ function ProductsTab() {
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
               <th className="table-header">SKU</th>
-              <th className="table-header">Name</th>
-              <th className="table-header">Type</th>
-              <th className="table-header">Material</th>
-              <th className="table-header text-right">Unit Wt</th>
+              <th className="table-header">{t('page.companies.name')}</th>
+              <th className="table-header">{t('page.inventory.type')}</th>
+              <th className="table-header">{t('page.inventory.material')}</th>
+              <th className="table-header text-right">{t('page.inventory.unitWt')}</th>
               <th className="table-header text-right">Min</th>
               <th className="table-header"></th>
             </tr>
@@ -569,14 +582,14 @@ function ProductsTab() {
                 </td>
                 <td className="table-cell text-right">
                   <div className="inline-flex items-center gap-3">
-                    <button onClick={() => edit(p)} className="text-xs text-blue-600 hover:underline">Edit</button>
-                    <button onClick={() => deleteProduct(p.id, p.name)} className="text-xs text-red-600 hover:underline">Delete</button>
+                    <button onClick={() => edit(p)} className="text-xs text-blue-600 hover:underline">{t('common.edit')}</button>
+                    <button onClick={() => deleteProduct(p.id, p.name)} className="text-xs text-red-600 hover:underline">{t('common.delete')}</button>
                   </div>
                 </td>
               </tr>
             ))}
             {products.length === 0 && !loading && (
-              <tr><td colSpan={7} className="text-center py-8 text-xs text-gray-400">No products yet</td></tr>
+              <tr><td colSpan={7} className="text-center py-8 text-xs text-gray-400">{t('page.inventory.noProductsYet')}</td></tr>
             )}
           </tbody>
         </table>
@@ -601,6 +614,7 @@ function calcPreviewWeight(dims: any, density: number): number {
 // ─── Ledger ───
 
 function LedgerTab() {
+  const { t } = useTranslation();
   const [txns, setTxns] = useState<any[]>([]);
   const [stock, setStock] = useState<any[]>([]);
   const [filter, setFilter] = useState('');
@@ -624,7 +638,7 @@ function LedgerTab() {
     <div>
       {/* Current Stock Summary */}
       <div className="card p-4 mb-4">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Current Stock (computed from ledger)</h3>
+        <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.inventory.currentStockComputed')}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
           {stock.map((p: any) => (
             <div key={p.id} className={`p-2 rounded-lg border ${p.current_stock < p.safety_stock ? 'border-red-200 bg-red-50' : 'border-gray-100'}`}>
@@ -635,61 +649,61 @@ function LedgerTab() {
               </div>
             </div>
           ))}
-          {stock.length === 0 && <div className="text-xs text-gray-400 col-span-full">No products</div>}
+          {stock.length === 0 && <div className="text-xs text-gray-400 col-span-full">{t('page.inventory.noProducts')}</div>}
         </div>
       </div>
 
       {/* Transactions */}
       <div className="card">
         <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-3">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Transaction History</h3>
+          <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.inventory.transactionHistory')}</h3>
           <select className="input max-w-[160px] text-xs ml-auto" value={filter} onChange={e => setFilter(e.target.value)}>
-            <option value="">All Types</option>
-            <option value="stock_in">Stock In</option>
-            <option value="stock_out">Stock Out</option>
-            <option value="adjustment">Adjustment</option>
+            <option value="">{t('page.inventory.allTypes')}</option>
+            <option value="stock_in">{t('page.inventory.stockInTab')}</option>
+            <option value="stock_out">{t('page.inventory.stockOutTab')}</option>
+            <option value="adjustment">{t('page.inventory.adjustmentTab')}</option>
           </select>
         </div>
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="table-header">Date</th>
+              <th className="table-header">{t('page.inventory.date')}</th>
               <th className="table-header">#</th>
-              <th className="table-header">Type</th>
-              <th className="table-header">Product</th>
-              <th className="table-header text-right">Qty</th>
-              <th className="table-header">Reference</th>
-              <th className="table-header">Notes</th>
-              <th className="table-header">Operator</th>
+              <th className="table-header">{t('page.inventory.type')}</th>
+              <th className="table-header">{t('page.inventory.product')}</th>
+              <th className="table-header text-right">{t('page.inventory.qty')}</th>
+              <th className="table-header">{t('page.inventory.reference')}</th>
+              <th className="table-header">{t('page.inventory.notes')}</th>
+              <th className="table-header">{t('page.inventory.operator')}</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((t: any) => (
-              <tr key={t.id} className="border-b border-gray-100">
-                <td className="table-cell text-xs text-gray-500">{t.transaction_date}</td>
-                <td className="table-cell font-mono text-xs text-gray-500">{t.transaction_number}</td>
+            {filtered.map((txn: any) => (
+              <tr key={txn.id} className="border-b border-gray-100">
+                <td className="table-cell text-xs text-gray-500">{txn.transaction_date}</td>
+                <td className="table-cell font-mono text-xs text-gray-500">{txn.transaction_number}</td>
                 <td className="table-cell">
-                  <span className={`inline-flex px-2 py-0.5 rounded text-2xs font-medium ${
-                    t.transaction_type === 'stock_in' ? 'bg-green-50 text-green-600' :
-                    t.transaction_type === 'stock_out' ? 'bg-red-50 text-red-600' :
+                  <span className={`inline-flex px-2 py-0.5 rounded text-2xs font-450 ${
+                    txn.transaction_type === 'stock_in' ? 'bg-green-50 text-green-600' :
+                    txn.transaction_type === 'stock_out' ? 'bg-red-50 text-red-600' :
                     'bg-yellow-50 text-yellow-600'
                   }`}>
-                    {t.transaction_type === 'stock_in' ? 'IN' : t.transaction_type === 'stock_out' ? 'OUT' : 'ADJ'}
+                    {txn.transaction_type === 'stock_in' ? 'IN' : txn.transaction_type === 'stock_out' ? 'OUT' : 'ADJ'}
                   </span>
                 </td>
-                <td className="table-cell"><span className="font-medium text-gray-900">{t.product_name || t.product_sku}</span></td>
-                <td className={`table-cell text-right font-mono text-sm font-medium ${t.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {t.quantity > 0 ? `+${t.quantity}` : t.quantity}
+                <td className="table-cell"><span className="font-medium text-gray-900">{txn.product_name || txn.product_sku}</span></td>
+                <td className={`table-cell text-right font-mono text-sm font-medium ${txn.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {txn.quantity > 0 ? `+${txn.quantity}` : txn.quantity}
                 </td>
                 <td className="table-cell text-xs text-gray-500">
-                  {t.reference_type === 'order' ? `Order #${t.reference_id?.slice(0,8)}` : t.reference_type || '—'}
+                  {txn.reference_type === 'order' ? t('page.inventory.orderRef', { id: txn.reference_id?.slice(0,8) }) : txn.reference_type || '—'}
                 </td>
-                <td className="table-cell text-xs text-gray-400 max-w-[200px] truncate">{t.notes || '—'}</td>
-                <td className="table-cell text-xs text-gray-500">{t.operator || '—'}</td>
+                <td className="table-cell text-xs text-gray-400 max-w-[200px] truncate">{txn.notes || '—'}</td>
+                <td className="table-cell text-xs text-gray-500">{txn.operator || '—'}</td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="text-center py-8 text-xs text-gray-400">No transactions</td></tr>
+              <tr><td colSpan={8} className="text-center py-8 text-xs text-gray-400">{t('page.inventory.noTransactions')}</td></tr>
             )}
           </tbody>
         </table>
@@ -721,6 +735,7 @@ function useProductsAndStock() {
 // ─── Stock In ───
 
 function StockInTab() {
+  const { t } = useTranslation();
   const { products, stockMap, refreshStock } = useProductsAndStock();
   const [form, setForm] = useState({ product_id: '', quantity: 1, unit: 'pc', reference_type: '', reference_id: '', notes: '', operator: '', transaction_date: new Date().toISOString().slice(0, 10) });
   const [saved, setSaved] = useState(0);
@@ -733,23 +748,23 @@ function StockInTab() {
   const estWt = unitWt > 0 ? form.quantity * unitWt : 0;
 
   const submit = async () => {
-    if (!form.product_id || form.quantity <= 0) { toast.error('Select product and enter quantity'); return; }
+    if (!form.product_id || form.quantity <= 0) { toast.error(t('page.inventory.selectProductQuantity')); return; }
     try {
       await fetch('/api/inventory/stock-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
-      toast.success('Stock in recorded');
+      toast.success(t('page.inventory.stockInRecorded'));
       setForm(f => ({ ...f, quantity: 1, reference_type: '', reference_id: '', notes: '', operator: '' }));
       setSaved(s => s + 1);
       const newMap = await refreshStock();
       setSaved(s => s); // re-render via dependency
       if (newMap) Object.assign(stockMap, newMap);
-    } catch { toast.error('Failed'); }
+    } catch { toast.error(t('page.inventory.failed')); }
   };
 
   return (
     <TransactionForm
-      title="Stock In" products={products} form={form} setForm={setForm} submit={submit}
+      title={t('page.inventory.stockInTab')} products={products} form={form} setForm={setForm} submit={submit}
       sel={sel} currentQty={currentQty} currentWt={currentWt} unitWt={unitWt} estWt={estWt}
-      showRef={true} qtyLabel="Quantity (+)" btnColor="bg-green-600"
+      showRef={true} qtyLabel={`${t('page.inventory.qty')} (+)`} btnColor="bg-green-600"
     />
   );
 }
@@ -757,6 +772,7 @@ function StockInTab() {
 // ─── Stock Out (with inventory check) ───
 
 function StockOutTab() {
+  const { t } = useTranslation();
   const { products, stockMap, refreshStock } = useProductsAndStock();
   const [form, setForm] = useState({ product_id: '', quantity: 1, unit: 'pc', reference_type: 'order', reference_id: '', notes: '', operator: '', transaction_date: new Date().toISOString().slice(0, 10) });
   const [errInfo, setErrInfo] = useState<any>(null);
@@ -771,43 +787,43 @@ function StockOutTab() {
 
   const submit = async () => {
     setErrInfo(null);
-    if (!form.product_id || form.quantity <= 0) { toast.error('Select product and enter quantity'); return; }
+    if (!form.product_id || form.quantity <= 0) { toast.error(t('page.inventory.selectProductQuantity')); return; }
     try {
       const res = await fetch('/api/inventory/stock-out', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) {
-        if (data.error === 'Insufficient inventory') { setErrInfo(data); } else { toast.error(data.error || 'Failed'); }
+        if (data.error === 'Insufficient inventory') { setErrInfo(data); } else { toast.error(data.error || t('page.inventory.failed')); }
         return;
       }
-      toast.success('Stock out recorded');
+      toast.success(t('page.inventory.stockOutRecorded'));
       setForm(f => ({ ...f, quantity: 1, reference_type: 'order', reference_id: '', notes: '', operator: '' }));
       setSaved(s => s + 1);
       const newMap = await refreshStock();
       if (newMap) Object.assign(stockMap, newMap);
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(t('page.inventory.networkError')); }
   };
 
   return (
     <div className="max-w-xl">
       {errInfo && (
         <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-sm">
-          <div className="font-semibold text-red-700 mb-1">⚠ Insufficient Inventory</div>
+          <div className="font-semibold text-red-700 mb-1">{t('page.inventory.insufficientInventory')}</div>
           <div className="text-red-600 space-y-0.5">
-            <div>Product: <span className="font-medium">{errInfo.product_sku} — {errInfo.product_name}</span></div>
-            <div>Current: <span className="font-mono font-bold">{errInfo.currentStock}</span> units</div>
-            <div>Requested: <span className="font-mono font-bold">{errInfo.requestedQuantity}</span> units</div>
-            <div className="text-xs text-red-500 mt-1">Reduce quantity or perform a stock-in first.</div>
+            <div>{t('page.inventory.product')}: <span className="font-medium">{errInfo.product_sku} — {errInfo.product_name}</span></div>
+            <div>{t('page.inventory.current')}: <span className="font-mono font-semibold">{errInfo.currentStock}</span> {t('page.inventory.unit')}</div>
+            <div>{t('page.inventory.requested')}: <span className="font-mono font-semibold">{errInfo.requestedQuantity}</span> {t('page.inventory.unit')}</div>
+            <div className="text-xs text-red-500 mt-1">{t('page.inventory.reduceOrStockIn')}</div>
           </div>
         </div>
       )}
       <TransactionForm
-        title="Stock Out" products={products} form={form} setForm={setForm} submit={submit}
+        title={t('page.inventory.stockOutTab')} products={products} form={form} setForm={setForm} submit={submit}
         sel={sel} currentQty={currentQty} currentWt={currentWt} unitWt={unitWt} estWt={estWt}
-        showRef={true} qtyLabel="Quantity (−)" btnColor="bg-red-600" isOut={true}
+        showRef={true} qtyLabel={`${t('page.inventory.qty')} (-)`} btnColor="bg-red-600" isOut={true}
       />
       {errInfo && (
         <div className="mt-3 text-xs text-gray-400">
-          Transaction <strong>not</strong> recorded. Stock remains at {errInfo.currentStock} units / {errInfo.currentStock * (unitWt || 0)} kg.
+          {t('page.inventory.notRecorded', { qty: errInfo.currentStock, weight: errInfo.currentStock * (unitWt || 0) })}
         </div>
       )}
     </div>
@@ -817,6 +833,7 @@ function StockOutTab() {
 // ─── Stock Adjustment ───
 
 function AdjustmentTab() {
+  const { t } = useTranslation();
   const { products, stockMap, refreshStock } = useProductsAndStock();
   const [form, setForm] = useState({ product_id: '', quantity: 0, unit: 'pc', notes: '', operator: '', transaction_date: new Date().toISOString().slice(0, 10) });
   const [saved, setSaved] = useState(0);
@@ -828,27 +845,27 @@ function AdjustmentTab() {
   const unitWt = sel?.unit_weight_kg || 0;
 
   const submit = async () => {
-    if (!form.product_id || form.quantity === 0) { toast.error('Select product and enter +/- quantity'); return; }
+    if (!form.product_id || form.quantity === 0) { toast.error(t('page.inventory.selectProductQuantity')); return; }
     try {
       await fetch('/api/inventory/adjustment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
-      toast.success('Adjustment recorded');
+      toast.success(t('page.inventory.adjustmentRecorded'));
       setForm(f => ({ ...f, quantity: 0, notes: '', operator: '' }));
       setSaved(s => s + 1);
       const newMap = await refreshStock();
       if (newMap) Object.assign(stockMap, newMap);
-    } catch { toast.error('Failed'); }
+    } catch { toast.error(t('page.inventory.failed')); }
   };
 
   return (
     <div className="max-w-xl">
       <p className="text-xs text-gray-500 mb-4">
-        Use <strong>positive</strong> for increase, <strong>negative</strong> for decrease.<br />
-        E.g. annual count: system 100 → actual 98, enter <strong>−2</strong> with reason.
+        {t('page.inventory.adjustmentHelp')}<br />
+        {t('page.inventory.adjustmentExample')}
       </p>
       <TransactionForm
-        title="Stock Adjustment" products={products} form={form} setForm={setForm} submit={submit}
+        title={t('page.inventory.adjustmentTab')} products={products} form={form} setForm={setForm} submit={submit}
         sel={sel} currentQty={currentQty} currentWt={currentWt} unitWt={unitWt} estWt={0}
-        showRef={false} qtyLabel="Quantity (+/−)" btnColor="bg-yellow-600"
+        showRef={false} qtyLabel={`${t('page.inventory.qty')} (+/-)`} btnColor="bg-yellow-600"
         allowNegative={true}
       />
     </div>
@@ -862,6 +879,7 @@ function TransactionForm({ title, products, form, setForm, submit, sel, currentQ
   sel: any; currentQty: number; currentWt: number; unitWt: number; estWt: number;
   showRef: boolean; qtyLabel: string; btnColor: string; isOut?: boolean; allowNegative?: boolean;
 }) {
+  const { t } = useTranslation();
   const lowQty = isOut && currentQty === 0;
 
   return (
@@ -877,28 +895,28 @@ function TransactionForm({ title, products, form, setForm, submit, sel, currentQ
             <div className="flex gap-4 text-xs text-gray-500">
               <span className="capitalize">{sel.product_type}</span>
               {sel.material_name && <span>{sel.material_name}</span>}
-              {unitWt > 0 && <span>{unitWt.toFixed(3)} kg/unit</span>}
+              {unitWt > 0 && <span>{unitWt.toFixed(3)} kg/{t('page.inventory.unit')}</span>}
             </div>
           </div>
           <div className={`grid grid-cols-2 gap-3 ${lowQty ? 'bg-red-50 border border-red-200' : 'bg-gray-50'} rounded-lg p-3 text-sm`}>
             <div>
-              <span className="text-xs text-gray-500">Current Qty</span>
-              <div className={`font-mono font-bold ${lowQty ? 'text-red-600' : 'text-gray-800'}`}>{currentQty}</div>
+              <span className="text-xs text-gray-500">{t('page.inventory.currentQty')}</span>
+              <div className={`font-mono font-semibold ${lowQty ? 'text-red-600' : 'text-gray-800'}`}>{currentQty}</div>
             </div>
             <div>
-              <span className="text-xs text-gray-500">Current Weight</span>
-              <div className="font-mono font-bold text-gray-800">{currentWt.toFixed(1)} kg</div>
+              <span className="text-xs text-gray-500">{t('page.inventory.currentWeight')}</span>
+              <div className="font-mono font-semibold text-gray-800">{currentWt.toFixed(1)} kg</div>
             </div>
           </div>
-          {lowQty && <div className="text-xs text-red-600 font-medium">⚠ Cannot stock out — current stock is 0</div>}
+          {lowQty && <div className="text-xs text-red-600 font-medium">{t('page.inventory.cannotStockOut')}</div>}
         </div>
       )}
 
       <div className="card p-4 space-y-4">
         <div>
-          <label className="label">Product *</label>
+          <label className="label">{t('page.inventory.productRequired')}</label>
           <select className="input" value={form.product_id} onChange={e => setForm({...form, product_id: e.target.value})}>
-            <option value="">Select product</option>
+            <option value="">{t('page.inventory.selectProduct')}</option>
             {products.map((p: any) => (
               <option key={p.id} value={p.id}>{p.sku} — {p.name} ({p.material_name || p.product_type || '—'})</option>
             ))}
@@ -912,7 +930,7 @@ function TransactionForm({ title, products, form, setForm, submit, sel, currentQ
               onChange={e => setForm({...form, quantity: parseFloat(e.target.value) || 0})} />
           </div>
           <div>
-            <label className="label">Unit</label>
+            <label className="label">{t('page.inventory.unit')}</label>
             <select className="input" value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
               <option value="pc">pc</option><option value="sheet">sheet</option><option value="m">m</option><option value="kg">kg</option>
             </select>
@@ -922,14 +940,14 @@ function TransactionForm({ title, products, form, setForm, submit, sel, currentQ
         {/* Weight preview */}
         {estWt > 0 && (
           <div className="bg-blue-50 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
-            <span className="text-blue-600 font-medium">Est. Weight:</span>
-            <span className="text-blue-800 font-mono font-bold">{estWt.toFixed(3)} kg</span>
+            <span className="text-blue-600 font-medium">{t('page.inventory.estWeight')}:</span>
+            <span className="text-blue-800 font-mono font-semibold">{estWt.toFixed(3)} kg</span>
             <span className="text-blue-400">({form.quantity || 0} × {unitWt.toFixed(3)} kg)</span>
           </div>
         )}
 
         <div>
-          <label className="label">Date</label>
+          <label className="label">{t('page.inventory.date')}</label>
           <input className="input" type="date" value={form.transaction_date}
             onChange={e => setForm({...form, transaction_date: e.target.value})} />
         </div>
@@ -937,30 +955,30 @@ function TransactionForm({ title, products, form, setForm, submit, sel, currentQ
         {showRef && (
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Reference Type</label>
+              <label className="label">{t('page.inventory.referenceType')}</label>
               <select className="input" value={form.reference_type} onChange={e => setForm({...form, reference_type: e.target.value})}>
-                <option value="">None (direct)</option>
-                <option value="order">Order</option>
-                <option value="purchase_order">Purchase Order</option>
-                <option value="production">Production</option>
+                <option value="">{t('page.inventory.noneDirect')}</option>
+                <option value="order">{t('page.inventory.order')}</option>
+                <option value="purchase_order">{t('page.inventory.purchaseOrder')}</option>
+                <option value="production">{t('page.inventory.production')}</option>
               </select>
             </div>
             <div>
-              <label className="label">Reference ID</label>
-              <input className="input" placeholder="e.g. order ID" value={form.reference_id}
+              <label className="label">{t('page.inventory.referenceId')}</label>
+              <input className="input" placeholder={t('page.inventory.placeholderOrderId')} value={form.reference_id}
                 onChange={e => setForm({...form, reference_id: e.target.value})} />
             </div>
           </div>
         )}
 
         <div>
-          <label className="label">Notes</label>
-          <input className="input" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="Optional notes..." />
+          <label className="label">{t('page.inventory.notes')}</label>
+          <input className="input" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder={t('page.inventory.placeholderNotes')} />
         </div>
 
         <div>
-          <label className="label">Operator</label>
-          <input className="input" value={form.operator} onChange={e => setForm({...form, operator: e.target.value})} placeholder="Who performed this?" />
+          <label className="label">{t('page.inventory.operator')}</label>
+          <input className="input" value={form.operator} onChange={e => setForm({...form, operator: e.target.value})} placeholder={t('page.inventory.placeholderOperator')} />
         </div>
 
         <button onClick={submit} disabled={isOut && currentQty === 0} className={`btn-primary ${btnColor} hover:opacity-90 disabled:opacity-50`}>
@@ -974,6 +992,7 @@ function TransactionForm({ title, products, form, setForm, submit, sel, currentQ
 // ─── Import (CSV / XLSX) ───
 
 function ImportTab() {
+  const { t } = useTranslation();
   const [importType, setImportType] = useState('stock-initial');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<any[] | null>(null);
@@ -1002,11 +1021,11 @@ function ImportTab() {
       setPreview(rows);
     };
     if (f.name.endsWith('.csv')) reader.readAsText(f);
-    else setPreview([{ 'Note:': 'XLSX preview not available — will be parsed server-side' }]);
+    else setPreview([{ 'Note:': t('page.inventory.xlsxPreviewUnavailable') }]);
   };
 
   const doImport = async () => {
-    if (!file) { toast.error('Please select a file'); return; }
+    if (!file) { toast.error(t('page.inventory.selectFile')); return; }
     setImporting(true);
     try {
       const fd = new FormData();
@@ -1015,27 +1034,27 @@ function ImportTab() {
       fd.append('operator', operator || 'Import');
       const res = await fetch('/api/inventory/import', { method: 'POST', body: fd });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error || 'Import failed'); setResult({ error: data }); }
-      else { setResult(data); toast.success(`Import complete: ${data.created} records`); }
-    } catch { toast.error('Import failed'); }
+      if (!res.ok) { toast.error(data.error || t('page.inventory.importFailed')); setResult({ error: data }); }
+      else { setResult(data); toast.success(t('page.inventory.importCompleteToast', { count: data.created })); }
+    } catch { toast.error(t('page.inventory.importFailed')); }
     finally { setImporting(false); }
   };
 
   return (
     <div className="max-w-2xl">
       <div className="card p-4 space-y-4">
-        <h3 className="text-sm font-semibold text-gray-900">Import Inventory Data</h3>
-        <p className="text-xs text-gray-500">Supports <strong>.csv</strong> and <strong>.xlsx</strong> files (max 5MB).</p>
+        <h3 className="text-sm font-semibold text-gray-900">{t('page.inventory.importInventoryData')}</h3>
+        <p className="text-xs text-gray-500">{t('page.inventory.importHelp')}</p>
 
         {/* Import type selector */}
         <div>
-          <label className="label mb-1.5">Import Type</label>
+          <label className="label mb-1.5">{t('page.inventory.importType')}</label>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { key: 'products', label: 'Products', desc: 'Bulk create/update products' },
-              { key: 'stock-initial', label: 'Opening Balance', desc: 'Initial stock on CRM launch (⭐)' },
-              { key: 'stock-count', label: 'Stock Count', desc: 'Auto-generate adjustments from actual qty' },
-              { key: 'stock-in', label: 'Stock In', desc: 'Bulk stock-in from purchase order' },
+              { key: 'products', label: t('page.inventory.productsTab'), desc: t('page.inventory.bulkProducts') },
+              { key: 'stock-initial', label: t('page.inventory.openingBalance'), desc: t('page.inventory.openingBalanceDesc') },
+              { key: 'stock-count', label: t('page.inventory.stockCount'), desc: t('page.inventory.stockCountDesc') },
+              { key: 'stock-in', label: t('page.inventory.stockInTab'), desc: t('page.inventory.stockInDesc') },
             ].map(opt => (
               <button
                 key={opt.key}
@@ -1057,57 +1076,57 @@ function ImportTab() {
         <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 leading-relaxed">
           {importType === 'products' && (
             <div>
-              <strong>Template columns:</strong><br />
+              <strong>{t('page.inventory.templateColumns')}</strong><br />
               SKU, Name, Type (sheet/rod/tube/part), Category, Unit (pc), MaterialID<br />
-              <span className="text-gray-400">Dimensions and weight are auto-calculated server-side.</span>
+              <span className="text-gray-400">{t('page.inventory.dimensionsAuto')}</span>
             </div>
           )}
           {importType === 'stock-initial' && (
             <div>
-              <strong>Template columns:</strong><br />
+              <strong>{t('page.inventory.templateColumns')}</strong><br />
               SKU, Quantity, Remark (optional)<br />
-              <span className="text-gray-400">Unit defaults to "pc". Weight is auto-calculated from product data.</span>
+              <span className="text-gray-400">{t('page.inventory.unitDefaults')}</span>
             </div>
           )}
           {importType === 'stock-count' && (
             <div>
-              <strong>Template columns:</strong><br />
+              <strong>{t('page.inventory.templateColumns')}</strong><br />
               SKU, ActualQty, Remark (optional)<br />
-              <span className="text-gray-400">System compares ActualQty vs current stock → auto-generates adjustment (+/−).</span>
+              <span className="text-gray-400">{t('page.inventory.countCompare')}</span>
             </div>
           )}
           {importType === 'stock-in' && (
             <div>
-              <strong>Template columns:</strong><br />
+              <strong>{t('page.inventory.templateColumns')}</strong><br />
               SKU, Quantity, Remark (optional)<br />
-              <span className="text-gray-400">Bulk stock-in. Weight is auto-calculated.</span>
+              <span className="text-gray-400">{t('page.inventory.bulkStockIn')}</span>
             </div>
           )}
         </div>
 
         {/* File upload */}
         <div>
-          <label className="label">File</label>
+          <label className="label">{t('page.inventory.file')}</label>
           <div className="flex items-center gap-3">
             <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 border-0">
-              Choose File
+              {t('page.inventory.chooseFile')}
               <input type="file" accept=".csv,.xlsx" onChange={handleFile} className="sr-only" />
             </label>
-            <span className="text-xs text-gray-500">{file ? file.name : 'No file selected'}</span>
+            <span className="text-xs text-gray-500">{file ? file.name : t('page.inventory.noFileSelected')}</span>
           </div>
         </div>
 
         <div>
-          <label className="label">Operator (optional)</label>
-          <input className="input" value={operator} onChange={e => setOperator(e.target.value)} placeholder="Who is importing?" />
+          <label className="label">{t('page.inventory.operatorOptional')}</label>
+          <input className="input" value={operator} onChange={e => setOperator(e.target.value)} placeholder={t('page.inventory.placeholderOperator')} />
         </div>
 
         {/* Preview */}
         {preview && !result && (
           <div>
-            <div className="text-xs font-medium text-gray-500 mb-1">Preview (first rows):</div>
+            <div className="text-xs font-medium text-gray-500 mb-1">{t('page.inventory.previewRows')}</div>
             <div className="bg-gray-50 rounded-lg p-2 text-xs font-mono overflow-x-auto">
-              {preview.length === 0 ? <span className="text-gray-400">Empty file</span> :
+              {preview.length === 0 ? <span className="text-gray-400">{t('page.inventory.emptyFile')}</span> :
                 <table><thead><tr>{Object.keys(preview[0]).map(h => <th key={h} className="px-2 py-1 text-left text-gray-400">{h}</th>)}</tr></thead>
                   <tbody>{preview.map((row: any, i: number) => <tr key={i}>{Object.values(row).map((v: any, j: number) => <td key={j} className="px-2 py-0.5 text-gray-700">{String(v || '—')}</td>)}</tr>)}</tbody></table>}
             </div>
@@ -1116,19 +1135,19 @@ function ImportTab() {
 
         {/* Action */}
         <button onClick={doImport} disabled={!file || importing} className="btn-primary">
-          {importing ? 'Importing...' : `Import ${importType === 'stock-initial' ? 'Opening Balance' : importType === 'stock-count' ? 'Stock Count' : importType === 'stock-in' ? 'Stock In' : 'Products'}`}
+          {importing ? t('page.inventory.importing') : t('page.inventory.importButton', { type: importType === 'stock-initial' ? t('page.inventory.openingBalance') : importType === 'stock-count' ? t('page.inventory.stockCount') : importType === 'stock-in' ? t('page.inventory.stockInTab') : t('page.inventory.productsTab') })}
         </button>
 
         {/* Result */}
         {result && !result.error && (
           <div className={`rounded-lg p-4 text-sm ${result.created > 0 ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
             <div className="font-semibold text-gray-900 mb-1">
-              ✅ Import Complete — {result.created} records created
+              {t('page.inventory.importComplete', { count: result.created })}
             </div>
             <div className="text-xs text-gray-600 space-y-0.5">
-              <div>Total rows in file: {result.total}</div>
-              <div>Skipped: {result.skipped}</div>
-              {result.errors?.length > 0 && <div className="text-red-600">Errors: {result.errors.length}</div>}
+              <div>{t('page.inventory.totalRows')}: {result.total}</div>
+              <div>{t('page.inventory.skipped')}: {result.skipped}</div>
+              {result.errors?.length > 0 && <div className="text-red-600">{t('page.inventory.errors')}: {result.errors.length}</div>}
             </div>
             {result.results?.length > 0 && (
               <div className="mt-2 max-h-32 overflow-y-auto">
@@ -1141,7 +1160,7 @@ function ImportTab() {
         )}
         {result?.error && (
           <div className="rounded-lg p-4 bg-red-50 border border-red-200 text-sm text-red-700">
-            ❌ Import Error: {result.error.error || 'Unknown error'}
+            {t('page.inventory.importError')}: {result.error.error || t('page.inventory.unknownError')}
           </div>
         )}
       </div>
@@ -1161,14 +1180,16 @@ function StockForm({ title, products, form, setForm, submit, showRef, qtyLabel, 
   qtyLabel: string;
   helpText?: string;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="max-w-xl">
       {helpText && <p className="text-xs text-gray-500 mb-4">{helpText}</p>}
       <div className="card p-4 space-y-4">
         <div>
-          <label className="label">Product *</label>
+          <label className="label">{t('page.inventory.productRequired')}</label>
           <select className="input" value={form.product_id} onChange={e => setForm({...form, product_id: e.target.value})}>
-            <option value="">Select product</option>
+            <option value="">{t('page.inventory.selectProduct')}</option>
             {products.map((p: any) => (
               <option key={p.id} value={p.id}>{p.sku} — {p.name}</option>
             ))}
@@ -1181,7 +1202,7 @@ function StockForm({ title, products, form, setForm, submit, showRef, qtyLabel, 
               onChange={e => setForm({...form, quantity: parseFloat(e.target.value) || 0})} />
           </div>
           <div>
-            <label className="label">Unit</label>
+            <label className="label">{t('page.inventory.unit')}</label>
             <select className="input" value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
               <option value="kg">kg</option>
               <option value="pc">pc</option>
@@ -1192,35 +1213,35 @@ function StockForm({ title, products, form, setForm, submit, showRef, qtyLabel, 
           </div>
         </div>
         <div>
-          <label className="label">Date</label>
+          <label className="label">{t('page.inventory.date')}</label>
           <input className="input" type="date" value={form.transaction_date}
             onChange={e => setForm({...form, transaction_date: e.target.value})} />
         </div>
         {showRef && (
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Reference Type</label>
+              <label className="label">{t('page.inventory.referenceType')}</label>
               <select className="input" value={form.reference_type} onChange={e => setForm({...form, reference_type: e.target.value})}>
-                <option value="">None</option>
-                <option value="order">Order</option>
-                <option value="purchase_order">Purchase Order</option>
-                <option value="production">Production</option>
+                <option value="">{t('page.inventory.none')}</option>
+                <option value="order">{t('page.inventory.order')}</option>
+                <option value="purchase_order">{t('page.inventory.purchaseOrder')}</option>
+                <option value="production">{t('page.inventory.production')}</option>
               </select>
             </div>
             <div>
-              <label className="label">Reference ID (optional)</label>
-              <input className="input" placeholder="e.g. order ID" value={form.reference_id}
+              <label className="label">{t('page.inventory.referenceIdOptional')}</label>
+              <input className="input" placeholder={t('page.inventory.placeholderOrderId')} value={form.reference_id}
                 onChange={e => setForm({...form, reference_id: e.target.value})} />
             </div>
           </div>
         )}
         <div>
-          <label className="label">Notes</label>
-          <input className="input" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="Optional notes..." />
+          <label className="label">{t('page.inventory.notes')}</label>
+          <input className="input" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder={t('page.inventory.placeholderNotes')} />
         </div>
         <div>
-          <label className="label">Operator</label>
-          <input className="input" value={form.operator} onChange={e => setForm({...form, operator: e.target.value})} placeholder="Who performed this?" />
+          <label className="label">{t('page.inventory.operator')}</label>
+          <input className="input" value={form.operator} onChange={e => setForm({...form, operator: e.target.value})} placeholder={t('page.inventory.placeholderOperator')} />
         </div>
         <button onClick={submit} className="btn-primary">{title}</button>
       </div>

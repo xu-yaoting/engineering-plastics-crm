@@ -50,11 +50,11 @@ export default function CompanyEditPanel({
     setSaving(true);
     try {
       await companies.update(company.id, form);
-      toast.success('Company updated');
+      toast.success(t('page.companies.companyUpdated'));
       onSaved();
       onClose();
     } catch (e) {
-      toast.error('Failed to save');
+      toast.error(t('page.companies.companySaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -79,10 +79,10 @@ export default function CompanyEditPanel({
           <div>
             <label className="label">{t('page.companies.type')}</label>
             <select className="input" value={form.company_type} onChange={e => set('company_type', e.target.value)}>
-              <option value="end_user">End-user</option>
-              <option value="distributor">Distributor</option>
-              <option value="oem">OEM</option>
-              <option value="trading_company">Trading Company</option>
+              <option value="end_user">{t('page.companies.endUser')}</option>
+              <option value="distributor">{t('page.companies.distributor')}</option>
+              <option value="oem">{t('page.companies.oem')}</option>
+              <option value="trading_company">{t('page.companies.trading')}</option>
             </select>
           </div>
           <div>
@@ -97,9 +97,9 @@ export default function CompanyEditPanel({
             <input className="input" value={form.registration_number} onChange={e => set('registration_number', e.target.value)} />
           </div>
           <div>
-            <label className="label">Customer Code</label>
+            <label className="label">{t('page.companies.customerCode')}</label>
             <input className="input font-mono uppercase" value={form.customer_code} onChange={e => set('customer_code', e.target.value.toUpperCase())} placeholder="SMP" maxLength={10} />
-            <span className="text-2xs text-gray-400">Used for order numbering: {`{PREFIX}-{CODE}-{YYMM}-{SEQ}`}</span>
+            <span className="text-2xs text-gray-400">{t('page.companies.usedForOrderNumbering')}: {`{PREFIX}-{CODE}-{YYMM}-{SEQ}`}</span>
           </div>
         </div>
 
@@ -114,7 +114,7 @@ export default function CompanyEditPanel({
         </div>
 
         <div className="border-t border-gray-100 pt-4">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.companies.address')}</h4>
+          <h4 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.companies.address')}</h4>
           <div className="space-y-3">
             <input className="input" value={form.address_line_1} onChange={e => set('address_line_1', e.target.value)} placeholder={t('page.companies.placeholderAddress1')} />
             <input className="input" value={form.address_line_2} onChange={e => set('address_line_2', e.target.value)} placeholder={t('page.companies.placeholderAddress2')} />
@@ -130,7 +130,7 @@ export default function CompanyEditPanel({
         </div>
 
         <div className="border-t border-gray-100 pt-4">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.companies.classificationCredit')}</h4>
+          <h4 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.companies.classificationCredit')}</h4>
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
               <label className="label">{t('page.companies.status')}</label>

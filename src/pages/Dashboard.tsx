@@ -53,13 +53,13 @@ export default function Dashboard() {
 
   // Sales Pipeline
   const pipeline = [
-    { label: 'Inquiry', count: inquiries.filter((i: any) => ['open', 'under_review'].includes(i.status)).length, link: '/inquiries', icon: Inbox },
-    { label: 'Quotation', count: openQuotes.length, link: '/quotations', icon: FileText },
-    { label: 'Sample', count: 0, link: '/samples', icon: FlaskConical },
-    { label: 'Confirmed', count: orders.filter((o: any) => o.status === 'confirmed').length, link: '/orders', icon: BadgeCheck },
-    { label: 'Production', count: orders.filter((o: any) => ['in_production', 'quality_check'].includes(o.status)).length, link: '/orders', icon: Factory },
-    { label: 'Shipment', count: orders.filter((o: any) => ['ready_to_ship', 'shipped'].includes(o.status)).length, link: '/orders', icon: Truck },
-    { label: 'Payment', count: invoices.filter((i: any) => i.status !== 'paid' && i.status !== 'cancelled').length, link: '/payments', icon: Wallet },
+    { labelKey: 'stageInquiry', count: inquiries.filter((i: any) => ['open', 'under_review'].includes(i.status)).length, link: '/inquiries', icon: Inbox },
+    { labelKey: 'stageQuotation', count: openQuotes.length, link: '/quotations', icon: FileText },
+    { labelKey: 'stageSample', count: 0, link: '/samples', icon: FlaskConical },
+    { labelKey: 'stageConfirmed', count: orders.filter((o: any) => o.status === 'confirmed').length, link: '/orders', icon: BadgeCheck },
+    { labelKey: 'stageProduction', count: orders.filter((o: any) => ['in_production', 'quality_check'].includes(o.status)).length, link: '/orders', icon: Factory },
+    { labelKey: 'stageShipment', count: orders.filter((o: any) => ['ready_to_ship', 'shipped'].includes(o.status)).length, link: '/orders', icon: Truck },
+    { labelKey: 'stagePayment', count: invoices.filter((i: any) => i.status !== 'paid' && i.status !== 'cancelled').length, link: '/payments', icon: Wallet },
   ];
 
   // Monthly Performance
@@ -79,7 +79,7 @@ export default function Dashboard() {
   // Top Customers
   const byCompany: Record<string, { total: number; currency: string; count: number; id: string }> = {};
   thisMonthQuotes.forEach((q: any) => {
-    const key = q.company_name || q.company_id || 'Unknown';
+    const key = q.company_name || q.company_id || t('page.dashboard.unknownCustomer');
     if (!byCompany[key]) byCompany[key] = { total: 0, currency: q.currency || 'USD', count: 0, id: key };
     byCompany[key].total += (q.total || 0);
     byCompany[key].count += 1;
@@ -92,57 +92,59 @@ export default function Dashboard() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">{t('page.title.dashboard')}</h1>
-        <p className="text-sm text-gray-500 mt-1">{openOrders.length} active orders · {openQuotes.length} open quotations</p>
+        <p className="text-sm text-gray-500 mt-1">
+          {t('page.dashboard.activeOrdersSummary', { count: openOrders.length })} · {t('page.dashboard.openQuotationsSummary', { count: openQuotes.length })}
+        </p>
       </div>
 
       {/* 1. KPI Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link to="/payments" className="card p-4 hover:border-gray-300 transition-colors">
           <div className="mb-2">
-            <span className="text-xs text-gray-500 font-medium">Outstanding Receivables</span>
+            <span className="text-xs text-gray-500 font-medium">{t('page.dashboard.outstandingReceivables')}</span>
           </div>
           <div className="text-3xl font-semibold text-gray-900">{formatWithCurrency(outstandingUSD, outstandingCNY)}</div>
-          <div className="text-2xs text-gray-400 mt-1">{unpaid.length} unpaid invoices</div>
+          <div className="text-2xs text-gray-400 mt-1">{t('page.dashboard.unpaidInvoices', { count: unpaid.length })}</div>
         </Link>
         <Link to="/payments" className="card p-4 hover:border-gray-300 transition-colors">
           <div className="mb-2">
-            <span className="text-xs text-gray-500 font-medium">Overdue Receivables</span>
+            <span className="text-xs text-gray-500 font-medium">{t('page.dashboard.overdueReceivables')}</span>
           </div>
           <div className="text-3xl font-semibold text-red-600">{formatWithCurrency(overdueUSD, overdueCNY)}</div>
-          <div className="text-2xs text-red-500 mt-1">{overdue.length} overdue invoices</div>
+          <div className="text-2xs text-red-500 mt-1">{t('page.dashboard.overdueInvoices', { count: overdue.length })}</div>
         </Link>
         <Link to="/orders" className="card p-4 hover:border-gray-300 transition-colors">
           <div className="mb-2">
-            <span className="text-xs text-gray-500 font-medium">Open Orders</span>
+            <span className="text-xs text-gray-500 font-medium">{t('page.dashboard.openOrders')}</span>
           </div>
           <div className="text-3xl font-semibold text-blue-600">{openOrders.length}</div>
-          <div className="text-2xs text-gray-400 mt-1">Not yet delivered</div>
+          <div className="text-2xs text-gray-400 mt-1">{t('page.dashboard.notYetDelivered')}</div>
         </Link>
         <Link to="/quotations" className="card p-4 hover:border-gray-300 transition-colors">
           <div className="mb-2">
-            <span className="text-xs text-gray-500 font-medium">Open Quotations</span>
+            <span className="text-xs text-gray-500 font-medium">{t('page.dashboard.openQuotations')}</span>
           </div>
           <div className="text-3xl font-semibold text-yellow-600">{openQuotes.length}</div>
-          <div className="text-2xs text-gray-400 mt-1">Awaiting decision</div>
+          <div className="text-2xs text-gray-400 mt-1">{t('page.dashboard.awaitingDecision')}</div>
         </Link>
       </div>
 
       {/* 2. Accounts Receivable Alert */}
       <div className="card">
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><ReceiptText size={18} strokeWidth={1.75} className="text-gray-500" />Accounts Receivable Alert</h2>
+          <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><ReceiptText size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.accountsReceivableAlert')}</h2>
           <Link to="/payments" className="text-xs text-blue-600 hover:underline">{t('page.dashboard.viewAll')}</Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left text-2xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">Customer</th>
-                <th className="text-left text-2xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">Invoice</th>
-                <th className="text-right text-2xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">Amount</th>
-                <th className="text-center text-2xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">Curr.</th>
-                <th className="text-left text-2xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">Due Date</th>
-                <th className="text-center text-2xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">Status</th>
+                <th className="text-left text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] px-3 py-2">{t('page.dashboard.customer')}</th>
+                <th className="text-left text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] px-3 py-2">{t('page.dashboard.invoice')}</th>
+                <th className="text-right text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] px-3 py-2">{t('page.dashboard.amount')}</th>
+                <th className="text-center text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] px-3 py-2">{t('page.dashboard.currencyShort')}</th>
+                <th className="text-left text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] px-3 py-2">{t('page.dashboard.dueDate')}</th>
+                <th className="text-center text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] px-3 py-2">{t('page.dashboard.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -150,10 +152,10 @@ export default function Dashboard() {
                 const diffDays = Math.ceil((new Date(inv.due_date).getTime() - now.getTime()) / 86400000);
                 let statusLabel: string, statusColor: string;
                 let StatusIcon: React.ComponentType<any> = AlertCircle;
-                if (diffDays < 0) { statusLabel = 'Overdue'; statusColor = 'text-red-600 bg-red-50'; StatusIcon = AlertCircle; }
-                else if (diffDays === 0) { statusLabel = 'Due Today'; statusColor = 'text-orange-600 bg-orange-50'; StatusIcon = AlertTriangle; }
-                else if (diffDays <= 7) { statusLabel = 'Due Soon'; statusColor = 'text-yellow-600 bg-yellow-50'; StatusIcon = AlertTriangle; }
-                else { statusLabel = 'Normal'; statusColor = 'text-green-600 bg-green-50'; StatusIcon = CheckCircle; }
+                if (diffDays < 0) { statusLabel = t('page.dashboard.overdue'); statusColor = 'text-red-600 bg-red-50'; StatusIcon = AlertCircle; }
+                else if (diffDays === 0) { statusLabel = t('page.dashboard.dueToday'); statusColor = 'text-orange-600 bg-orange-50'; StatusIcon = AlertTriangle; }
+                else if (diffDays <= 7) { statusLabel = t('page.dashboard.dueSoon'); statusColor = 'text-yellow-600 bg-yellow-50'; StatusIcon = AlertTriangle; }
+                else { statusLabel = t('page.dashboard.normal'); statusColor = 'text-green-600 bg-green-50'; StatusIcon = CheckCircle; }
                 return (
                   <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="px-3 py-2 text-xs text-gray-700 max-w-[120px] truncate">{inv.company_name || '—'}</td>
@@ -162,12 +164,12 @@ export default function Dashboard() {
                     <td className="px-3 py-2 text-2xs text-center text-gray-400">{inv.currency || 'USD'}</td>
                     <td className="px-3 py-2 text-xs text-gray-600">{inv.due_date?.slice(0, 10)}</td>
                     <td className="px-3 py-2 text-center">
-                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-medium ${statusColor}`}><StatusIcon size={12} strokeWidth={1.75} />{statusLabel}</span>
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-450 ${statusColor}`}><StatusIcon size={12} strokeWidth={1.75} />{statusLabel}</span>
                     </td>
                   </tr>
                 );
               })}
-              {unpaid.length === 0 && <tr><td colSpan={6} className="text-center py-6 text-sm text-gray-400">All invoices paid 🎉</td></tr>}
+              {unpaid.length === 0 && <tr><td colSpan={6} className="text-center py-6 text-sm text-gray-400">{t('page.dashboard.allInvoicesPaid')}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -177,17 +179,17 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
           <div className="px-4 py-3 border-b border-gray-200">
-            <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><Workflow size={18} strokeWidth={1.75} className="text-gray-500" />Sales Pipeline</h2>
+            <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><Workflow size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.salesPipeline')}</h2>
           </div>
           <div className="p-4">
             <div className="space-y-2">
               {pipeline.map(stage => (
-                <Link key={stage.label} to={stage.link} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
+                <Link key={stage.labelKey} to={stage.link} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
                   <stage.icon size={18} strokeWidth={1.75} className="opacity-75 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-gray-700">{stage.label}</span>
-                      <span className={`text-sm font-semibold ${stage.label === 'Payment' && stage.count > 0 ? 'text-red-600' : 'text-gray-700'}`}>{stage.count}</span>
+                      <span className="text-xs font-medium text-gray-700">{t(`page.dashboard.${stage.labelKey}`)}</span>
+                      <span className={`text-sm font-semibold ${stage.labelKey === 'stagePayment' && stage.count > 0 ? 'text-red-600' : 'text-gray-700'}`}>{stage.count}</span>
                     </div>
                     <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full transition-all ${"bg-gray-300"}`}
@@ -198,19 +200,19 @@ export default function Dashboard() {
                 </Link>
               ))}
             </div>
-            {pipeline.reduce((s, p) => s + p.count, 0) === 0 && <p className="text-sm text-gray-400 text-center py-6">No active deals in pipeline</p>}
+            {pipeline.reduce((s, p) => s + p.count, 0) === 0 && <p className="text-sm text-gray-400 text-center py-6">{t('page.dashboard.noActiveDeals')}</p>}
           </div>
         </div>
 
         {/* Recent Inquiries */}
         <div className="card">
           <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><Inbox size={18} strokeWidth={1.75} className="text-gray-500" />Recent Inquiries</h2>
+            <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><Inbox size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.recentInquiries')}</h2>
             <Link to="/inquiries" className="text-xs text-blue-600 hover:underline">{t('page.dashboard.viewAll')}</Link>
           </div>
           <div className="p-4">
             {inquiries.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-6">No inquiries</p>
+              <p className="text-sm text-gray-400 text-center py-6">{t('page.dashboard.noInquiries')}</p>
             ) : (
               <div className="space-y-1">
                 {inquiries.slice(0, 5).map((inq: any) => (
@@ -231,12 +233,12 @@ export default function Dashboard() {
       {/* 4. Monthly Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="card p-4 lg:col-span-1">
-          <h2 className="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2"><TrendingUp size={18} strokeWidth={1.75} className="text-gray-500" />This Month Sales</h2>
+          <h2 className="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2"><TrendingUp size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.thisMonthSales')}</h2>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-2xs text-gray-400 uppercase tracking-wider">Currency</span>
-            <span className="text-2xs text-gray-400 uppercase tracking-wider">Target</span>
-            <span className="text-2xs text-gray-400 uppercase tracking-wider">Actual</span>
-            <span className="text-2xs text-gray-400 uppercase tracking-wider">%</span>
+            <span className="text-2xs font-450 text-gray-400 uppercase tracking-[0.08em]">{t('page.dashboard.currency')}</span>
+            <span className="text-2xs font-450 text-gray-400 uppercase tracking-[0.08em]">{t('page.dashboard.target')}</span>
+            <span className="text-2xs font-450 text-gray-400 uppercase tracking-[0.08em]">{t('page.dashboard.actual')}</span>
+            <span className="text-2xs font-450 text-gray-400 uppercase tracking-[0.08em]">%</span>
           </div>
           {actualUSD > 0 && (
             <div className="flex items-center justify-between py-1.5 border-b border-gray-50">
@@ -254,7 +256,7 @@ export default function Dashboard() {
               <span className="text-xs font-semibold">{Math.round((actualCNY / targetCNY) * 100)}%</span>
             </div>
           )}
-          {actualUSD === 0 && actualCNY === 0 && <p className="text-xs text-gray-400 text-center py-4">No closed sales this month</p>}
+          {actualUSD === 0 && actualCNY === 0 && <p className="text-xs text-gray-400 text-center py-4">{t('page.dashboard.noClosedSalesThisMonth')}</p>}
           {(actualUSD > 0 || actualCNY > 0) && (
             <div className="mt-3">
               <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -266,7 +268,7 @@ export default function Dashboard() {
         </div>
 
         <div className="card p-4 lg:col-span-2">
-          <h2 className="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2"><Award size={18} strokeWidth={1.75} className="text-gray-500" />Top Customers This Month</h2>
+          <h2 className="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2"><Award size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.topCustomersThisMonth')}</h2>
           {topCustomers.length > 0 ? (
             <div className="space-y-2">
               {topCustomers.map((c, idx) => (
@@ -276,13 +278,13 @@ export default function Dashboard() {
                    idx === 2 ? <Award size={18} strokeWidth={1.75} className="text-orange-500 flex-shrink-0" /> :
                    <span className="w-6 h-6 flex items-center justify-center text-xs font-medium text-gray-300">{idx + 1}</span>}
                   <span className="flex-1 text-sm text-gray-700 truncate">{c.name}</span>
-                  <span className="text-xs text-gray-400">{c.count} deals</span>
+                  <span className="text-xs text-gray-400">{t('page.dashboard.deals', { count: c.count })}</span>
                   <span className="text-sm font-mono font-semibold text-gray-900">{formatCurrency(c.total, c.currency)}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-gray-400 text-center py-6">No closed sales this month</p>
+            <p className="text-xs text-gray-400 text-center py-6">{t('page.dashboard.noClosedSalesThisMonth')}</p>
           )}
         </div>
       </div>
@@ -290,15 +292,15 @@ export default function Dashboard() {
       {/* 5. Receivable Aging */}
       <div className="card">
         <div className="px-4 py-3 border-b border-gray-200">
-          <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><CalendarClock size={18} strokeWidth={1.75} className="text-gray-500" />Receivable Aging</h2>
+          <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><CalendarClock size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.receivableAging')}</h2>
         </div>
         <div className="p-4">
           {(() => {
             const buckets = [
-              { label: '0-30 Days', min: 0, max: 30, bar: 'bg-green-500' },
-              { label: '31-60 Days', min: 31, max: 60, bar: 'bg-yellow-500' },
-              { label: '61-90 Days', min: 61, max: 90, bar: 'bg-orange-500' },
-              { label: '90+ Days', min: 91, max: Infinity, bar: 'bg-red-500' },
+              { label: t('page.dashboard.days0to30'), min: 0, max: 30, bar: 'bg-green-500' },
+              { label: t('page.dashboard.days31to60'), min: 31, max: 60, bar: 'bg-yellow-500' },
+              { label: t('page.dashboard.days61to90'), min: 61, max: 90, bar: 'bg-orange-500' },
+              { label: t('page.dashboard.days90Plus'), min: 91, max: Infinity, bar: 'bg-red-500' },
             ];
             const unpaid2 = invoices.filter((i: any) => i.status !== 'paid' && i.status !== 'cancelled' && i.due_date);
             const aging = buckets.map(b => {
@@ -337,26 +339,26 @@ export default function Dashboard() {
                           <span className="font-mono">{formatCurrency(inv.amount_due || inv.total, inv.currency)}</span>
                         </div>
                       ))}
-                      {b.items.length > 4 && <div className="text-2xs text-gray-400">+{b.items.length - 4} more</div>}
+                      {b.items.length > 4 && <div className="text-2xs text-gray-400">{t('page.dashboard.more', { count: b.items.length - 4 })}</div>}
                     </div>
                   )}
                 </div>
               );
             });
           })()}
-          {unpaid.length === 0 && <p className="text-sm text-gray-400 text-center py-6">No outstanding receivables 🎉</p>}
+          {unpaid.length === 0 && <p className="text-sm text-gray-400 text-center py-6">{t('page.dashboard.noOutstandingReceivables')}</p>}
         </div>
       </div>
 
       {/* 6. Recent Quotations */}
       <div className="card">
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><FileText size={18} strokeWidth={1.75} className="text-gray-500" />Recent Quotations</h2>
+          <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><FileText size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.recentQuotations')}</h2>
           <Link to="/quotations" className="text-xs text-blue-600 hover:underline">{t('page.dashboard.viewAll')}</Link>
         </div>
         <div className="p-4">
           {quotations.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">No quotations</p>
+            <p className="text-sm text-gray-400 text-center py-6">{t('page.dashboard.noQuotations')}</p>
           ) : (
             <div className="space-y-1">
               {quotations.slice(0, 5).map((q: any) => (

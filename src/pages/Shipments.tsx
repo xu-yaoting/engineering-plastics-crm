@@ -6,11 +6,11 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
 const SHIPPING_TYPES = [
-  { value: 'sea_freight', label: 'Sea Freight' },
-  { value: 'air_freight', label: 'Air Freight' },
-  { value: 'express', label: 'Express' },
-  { value: 'truck', label: 'Truck' },
-  { value: 'pickup', label: 'Pickup' },
+  { value: 'sea_freight', labelKey: 'seaFreight' },
+  { value: 'air_freight', labelKey: 'airFreight' },
+  { value: 'express', labelKey: 'express' },
+  { value: 'truck', labelKey: 'truck' },
+  { value: 'pickup', labelKey: 'pickup' },
 ];
 
 const SHIPPING_STATUSES = [
@@ -75,9 +75,9 @@ export default function Shipments() {
     try {
       await fetch(`/api/shipments/${id}`, { method: 'DELETE' });
       setConfirmDelete(null);
-      toast.success('Shipment deleted');
+      toast.success(t('page.shipments.shipmentDeleted'));
       fetch('/api/shipments').then(r => r.json()).then(setList);
-    } catch (e) { toast.error('Delete failed'); }
+    } catch (e) { toast.error(t('page.shipments.deleteFailed')); }
   };
 
   const save = async () => {
@@ -98,15 +98,20 @@ export default function Shipments() {
       }
       setShowForm(false);
       setEditId(null);
-      toast.success('Shipment saved');
+      toast.success(t('page.shipments.shipmentSaved'));
       setForm(defaultForm());
       fetch('/api/shipments').then(r => r.json()).then(setList);
     } catch (e) {
-      toast.error('Failed to save shipment');
+      toast.error(t('page.shipments.shipmentSaveFailed'));
     }
   };
 
   const st = form.shipping_type;
+  const shipmentTypeLabel = (value: string) => {
+    const type = SHIPPING_TYPES.find(x => x.value === value);
+    return type ? t(`page.shipments.${type.labelKey}`) : value;
+  };
+  const shipmentStatusLabel = (value: string) => t(`status.${value}`);
 
   const filtered = list.filter(s =>
     !search ||
@@ -124,7 +129,7 @@ export default function Shipments() {
           <h1 className="text-2xl font-semibold text-gray-900">{t('page.title.shipments')}</h1>
           <p className="text-sm text-gray-500">{list.length} {t('page.title.shipments')}</p>
         </div>
-        <button onClick={() => { setEditId(null); setForm(defaultForm()); setShowForm(true); }} className="btn-primary btn-sm"><Icon name="plus" size={16} className="mr-1.5" />New Shipment</button>
+        <button onClick={() => { setEditId(null); setForm(defaultForm()); setShowForm(true); }} className="btn-primary btn-sm"><Icon name="plus" size={16} className="mr-1.5" />{t('page.shipments.new')}</button>
       </div>
 
       <div className="flex items-center gap-3 mb-4">
@@ -133,8 +138,8 @@ export default function Shipments() {
 
       {showForm && (
         <div className="card p-4 mb-6">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            {editId ? 'Edit Shipment' : 'New Shipment'}
+          <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-4">
+            {editId ? t('page.shipments.editShipment') : t('page.shipments.new')}
           </h3>
           {/* Show pre-selected order info when coming from Order Detail */}
           {presetOrder && (
@@ -145,7 +150,7 @@ export default function Shipments() {
               </div>
               {presetOrder.line_items && presetOrder.line_items.length > 0 && (
                 <div className="text-xs text-gray-600 mt-1">
-                  Items: {presetOrder.line_items.map((li: any) => `${li.quantity_ordered}x ${li.product_grade_snapshot}`).join(', ')}
+                  {t('page.shipments.items')}: {presetOrder.line_items.map((li: any) => `${li.quantity_ordered}x ${li.product_grade_snapshot}`).join(', ')}
                 </div>
               )}
             </div>
@@ -153,28 +158,28 @@ export default function Shipments() {
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">Order *</label>
+                <label className="label">{t('page.shipments.order')} *</label>
                 <select className="input" value={form.order_id} onChange={e => set('order_id', e.target.value)}>
-                  <option value="">Select order...</option>
+                  <option value="">{t('page.shipments.selectOrder')}</option>
                   {orders.map((o: any) => (
                     <option key={o.id} value={o.id}>{o.order_number} — {o.company_name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="label">Ship Date</label>
+                <label className="label">{t('page.shipments.shipDate')}</label>
                 <input className="input" type="date" value={form.shipped_at} onChange={e => set('shipped_at', e.target.value)} />
               </div>
               <div>
-                <label className="label">Shipment Type</label>
+                <label className="label">{t('page.shipments.shipmentType')}</label>
                 <select className="input" value={st} onChange={e => set('shipping_type', e.target.value)}>
-                  {SHIPPING_TYPES.map(x => <option key={x.value} value={x.value}>{x.label}</option>)}
+                  {SHIPPING_TYPES.map(x => <option key={x.value} value={x.value}>{t(`page.shipments.${x.labelKey}`)}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">Status</label>
+                <label className="label">{t('page.shipments.status')}</label>
                 <select className="input" value={form.status} onChange={e => set('status', e.target.value)}>
-                  {SHIPPING_STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+                  {SHIPPING_STATUSES.map(s => <option key={s} value={s}>{shipmentStatusLabel(s)}</option>)}
                 </select>
               </div>
             </div>
@@ -182,57 +187,57 @@ export default function Shipments() {
             {/* Sea Freight */}
             {st === 'sea_freight' && (
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="label">Container No.</label><input className="input font-mono" value={form.container_no} onChange={e => set('container_no', e.target.value)} placeholder="e.g. MSCU4820347" /></div>
-                <div><label className="label">Vessel</label><input className="input" value={form.vessel} onChange={e => set('vessel', e.target.value)} placeholder="e.g. EVER FORTUNE" /></div>
-                <div><label className="label">Voyage</label><input className="input" value={form.voyage} onChange={e => set('voyage', e.target.value)} placeholder="e.g. 123E" /></div>
-                <div><label className="label">ETD</label><input className="input" type="date" value={form.etd} onChange={e => set('etd', e.target.value)} /></div>
-                <div><label className="label">ETA</label><input className="input" type="date" value={form.eta} onChange={e => set('eta', e.target.value)} /></div>
+                <div><label className="label">{t('page.shipments.containerNo')}</label><input className="input font-mono" value={form.container_no} onChange={e => set('container_no', e.target.value)} placeholder="e.g. MSCU4820347" /></div>
+                <div><label className="label">{t('page.shipments.vessel')}</label><input className="input" value={form.vessel} onChange={e => set('vessel', e.target.value)} placeholder="e.g. EVER FORTUNE" /></div>
+                <div><label className="label">{t('page.shipments.voyage')}</label><input className="input" value={form.voyage} onChange={e => set('voyage', e.target.value)} placeholder="e.g. 123E" /></div>
+                <div><label className="label">{t('page.shipments.etd')}</label><input className="input" type="date" value={form.etd} onChange={e => set('etd', e.target.value)} /></div>
+                <div><label className="label">{t('page.shipments.eta')}</label><input className="input" type="date" value={form.eta} onChange={e => set('eta', e.target.value)} /></div>
               </div>
             )}
 
             {/* Air Freight */}
             {st === 'air_freight' && (
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="label">AWB</label><input className="input font-mono" value={form.awb} onChange={e => set('awb', e.target.value)} placeholder="Air Waybill #" /></div>
-                <div><label className="label">Airline</label><input className="input" value={form.airline} onChange={e => set('airline', e.target.value)} placeholder="e.g. Cathay Pacific" /></div>
-                <div><label className="label">ETD</label><input className="input" type="date" value={form.etd} onChange={e => set('etd', e.target.value)} /></div>
-                <div><label className="label">ETA</label><input className="input" type="date" value={form.eta} onChange={e => set('eta', e.target.value)} /></div>
+                <div><label className="label">{t('page.shipments.awb')}</label><input className="input font-mono" value={form.awb} onChange={e => set('awb', e.target.value)} placeholder={t('page.shipments.airWaybillPlaceholder')} /></div>
+                <div><label className="label">{t('page.shipments.airline')}</label><input className="input" value={form.airline} onChange={e => set('airline', e.target.value)} placeholder="e.g. Cathay Pacific" /></div>
+                <div><label className="label">{t('page.shipments.etd')}</label><input className="input" type="date" value={form.etd} onChange={e => set('etd', e.target.value)} /></div>
+                <div><label className="label">{t('page.shipments.eta')}</label><input className="input" type="date" value={form.eta} onChange={e => set('eta', e.target.value)} /></div>
               </div>
             )}
 
             {/* Express */}
             {st === 'express' && (
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="label">Provider</label><input className="input" value={form.express_provider} onChange={e => set('express_provider', e.target.value)} placeholder="DHL, FedEx, UPS..." /></div>
-                <div><label className="label">Tracking Number</label><input className="input font-mono" value={form.tracking_number} onChange={e => set('tracking_number', e.target.value)} /></div>
+                <div><label className="label">{t('page.shipments.provider')}</label><input className="input" value={form.express_provider} onChange={e => set('express_provider', e.target.value)} placeholder="DHL, FedEx, UPS..." /></div>
+                <div><label className="label">{t('page.shipments.trackingNumber')}</label><input className="input font-mono" value={form.tracking_number} onChange={e => set('tracking_number', e.target.value)} /></div>
               </div>
             )}
 
             {/* Truck */}
             {st === 'truck' && (
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="label">Carrier</label><input className="input" value={form.carrier} onChange={e => set('carrier', e.target.value)} placeholder="Trucking company" /></div>
-                <div><label className="label">ETD</label><input className="input" type="date" value={form.etd} onChange={e => set('etd', e.target.value)} /></div>
-                <div><label className="label">ETA</label><input className="input" type="date" value={form.eta} onChange={e => set('eta', e.target.value)} /></div>
+                <div><label className="label">{t('page.shipments.carrier')}</label><input className="input" value={form.carrier} onChange={e => set('carrier', e.target.value)} placeholder={t('page.shipments.truckingCompany')} /></div>
+                <div><label className="label">{t('page.shipments.etd')}</label><input className="input" type="date" value={form.etd} onChange={e => set('etd', e.target.value)} /></div>
+                <div><label className="label">{t('page.shipments.eta')}</label><input className="input" type="date" value={form.eta} onChange={e => set('eta', e.target.value)} /></div>
               </div>
             )}
 
             {/* Pickup */}
             {st === 'pickup' && (
               <div>
-                <label className="label">Address</label>
-                <textarea className="input min-h-[60px] resize-y" value={form.shipping_address} onChange={e => set('shipping_address', e.target.value)} placeholder="Pickup address" />
+                <label className="label">{t('page.shipments.address')}</label>
+                <textarea className="input min-h-[60px] resize-y" value={form.shipping_address} onChange={e => set('shipping_address', e.target.value)} placeholder={t('page.shipments.pickupAddress')} />
               </div>
             )}
 
             <div>
-              <label className="label">Notes</label>
-              <textarea className="input min-h-[50px] resize-y" value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Optional notes..." />
+              <label className="label">{t('page.shipments.notes')}</label>
+              <textarea className="input min-h-[50px] resize-y" value={form.notes} onChange={e => set('notes', e.target.value)} placeholder={t('page.shipments.optionalNotes')} />
             </div>
 
             <div className="flex gap-2 pt-2">
               <button onClick={save} disabled={!form.order_id} className="btn-primary btn-sm flex-1">
-                {editId ? 'Save Changes' : 'Create Shipment'}
+                {editId ? t('page.shipments.saveChanges') : t('page.shipments.createShipment')}
               </button>
               <button onClick={() => { setShowForm(false); setEditId(null); }} className="btn-secondary btn-sm">{t('common.cancel')}</button>
             </div>
@@ -247,15 +252,15 @@ export default function Shipments() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="table-header">Shipment #</th>
-                <th className="table-header">Order</th>
-                <th className="table-header">Company</th>
-                <th className="table-header">Type</th>
-                <th className="table-header">Carrier / Vessel</th>
-                <th className="table-header">Tracking</th>
-                <th className="table-header">ETD</th>
-                <th className="table-header">ETA</th>
-                <th className="table-header">Status</th>
+                <th className="table-header">{t('page.shipments.shipmentNumber')}</th>
+                <th className="table-header">{t('page.shipments.order')}</th>
+                <th className="table-header">{t('page.shipments.company')}</th>
+                <th className="table-header">{t('page.shipments.type')}</th>
+                <th className="table-header">{t('page.shipments.carrierVessel')}</th>
+                <th className="table-header">{t('page.shipments.tracking')}</th>
+                <th className="table-header">{t('page.shipments.etd')}</th>
+                <th className="table-header">{t('page.shipments.eta')}</th>
+                <th className="table-header">{t('page.shipments.status')}</th>
                 <th className="table-header"></th>
               </tr>
             </thead>
@@ -267,7 +272,7 @@ export default function Shipments() {
                   </td>
                   <td className="table-cell text-xs">{s.order_number || '—'}</td>
                   <td className="table-cell text-xs">{s.company_name || '—'}</td>
-                  <td className="table-cell text-xs">{SHIPPING_TYPES.find(x => x.value === s.shipping_type)?.label || s.shipping_type || '—'}</td>
+                  <td className="table-cell text-xs">{shipmentTypeLabel(s.shipping_type) || '—'}</td>
                   <td className="table-cell text-xs">{s.carrier || s.vessel || '—'}</td>
                   <td className="table-cell font-mono text-xs">{s.tracking_number || '—'}</td>
                   <td className="table-cell text-2xs text-gray-400">{s.etd?.slice(0, 10) || '—'}</td>
@@ -300,7 +305,7 @@ export default function Shipments() {
                             </button>
                           ) : (
                             <div className="px-3 py-2">
-                              <p className="text-2xs text-red-600 mb-1">Confirm?</p>
+                              <p className="text-2xs text-red-600 mb-1">{t('common.confirmDelete')}</p>
                               <div className="flex gap-1">
                                 <button onClick={() => remove(s.id)} className="text-xs bg-red-600 text-white px-2 py-0.5 rounded">{t('common.yes')}</button>
                                 <button onClick={() => setConfirmDelete(null)} className="text-xs text-gray-500 px-2 py-0.5">{t('common.no')}</button>
@@ -313,7 +318,7 @@ export default function Shipments() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={10} className="text-center py-12 text-gray-400 text-sm">{search ? 'No shipments match your search' : t('noData.shipments')}</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={10} className="text-center py-12 text-gray-400 text-sm">{search ? t('page.shipments.noShipmentsMatchSearch') : t('noData.shipments')}</td></tr>}
             </tbody>
           </table>
         </div>

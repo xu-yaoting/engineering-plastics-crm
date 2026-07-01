@@ -11,51 +11,53 @@
   body {
     @apply bg-gray-50 text-gray-700;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-weight: 400;
+    text-rendering: optimizeLegibility;
   }
 }
 
 @layer components {
   /* Status Badges */
   .badge-gray {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-medium bg-gray-100 text-gray-500;
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-450 bg-gray-100 text-gray-500;
   }
   .badge-blue {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-medium bg-blue-50 text-blue-600;
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-450 bg-blue-50 text-blue-600;
   }
   .badge-green {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-medium bg-green-50 text-green-600;
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-450 bg-green-50 text-green-600;
   }
   .badge-yellow {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-medium bg-yellow-50 text-yellow-600;
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-450 bg-yellow-50 text-yellow-600;
   }
   .badge-red {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-medium bg-red-50 text-red-600;
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-450 bg-red-50 text-red-600;
   }
 
   /* Product Tags */
   .tag-peek {
-    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-medium bg-[#EFF6FF] text-[#2563EB];
+    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-450 bg-[#EFF6FF] text-[#2563EB];
   }
   .tag-pai {
-    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-medium bg-[#F5F3FF] text-[#7C3AED];
+    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-450 bg-[#F5F3FF] text-[#7C3AED];
   }
   .tag-pei {
-    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-medium bg-[#ECFDF5] text-[#059669];
+    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-450 bg-[#ECFDF5] text-[#059669];
   }
   .tag-ppsu {
-    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-medium bg-[#FFF7ED] text-[#EA580C];
+    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-450 bg-[#FFF7ED] text-[#EA580C];
   }
   .tag-pps {
-    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-medium bg-[#FEFCE8] text-[#CA8A04];
+    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-450 bg-[#FEFCE8] text-[#CA8A04];
   }
   .tag-pom {
-    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-medium bg-gray-100 text-gray-500;
+    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-450 bg-gray-100 text-gray-500;
   }
   .tag-ptfe {
-    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-medium bg-[#FDF2F8] text-[#EC4899];
+    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-450 bg-[#FDF2F8] text-[#EC4899];
   }
   .tag-hdpe {
-    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-medium bg-[#F4F4F5] text-[#A1A1AA];
+    @apply inline-flex px-1.5 py-0.5 rounded text-2xs font-450 bg-[#F4F4F5] text-[#A1A1AA];
   }
 
   /* Cards */
@@ -68,7 +70,7 @@
 
   /* Buttons */
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-450 transition-colors;
   }
   .btn-primary {
     @apply btn bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800;
@@ -85,7 +87,7 @@
 
   /* Inputs */
   .input {
-    @apply w-full h-9 px-3 rounded-lg border border-gray-300 text-sm text-gray-700
+    @apply w-full h-8 px-2.5 rounded-md border border-gray-300 text-sm font-normal text-gray-700
       placeholder:text-gray-400 bg-white
       focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-0
       disabled:bg-gray-100 disabled:text-gray-400;
@@ -94,15 +96,15 @@
     @apply input border-red-500 focus:ring-red-500;
   }
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-xs font-450 text-gray-600 mb-1;
   }
 
   /* Data Table */
   .table-header {
-    @apply px-3 py-2 text-2xs font-semibold text-gray-500 uppercase tracking-wider text-left bg-gray-50;
+    @apply px-3 py-2 text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] text-left bg-gray-50;
   }
   .table-cell {
-    @apply px-3 py-2.5 text-sm text-gray-700;
+    @apply px-3 py-2.5 text-sm font-normal text-gray-700;
   }
   .table-row {
     @apply border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer;

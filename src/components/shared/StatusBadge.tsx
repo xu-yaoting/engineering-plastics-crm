@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 const statusStyles: Record<string, string> = {
   // Company statuses
   active: 'bg-green-50 text-green-600',
@@ -44,6 +46,47 @@ const statusStyles: Record<string, string> = {
   in_progress: 'bg-blue-50 text-blue-600',
 };
 
+const statusTranslationKeys: Record<string, string> = {
+  active: 'active',
+  on_hold: 'onHold',
+  dormant: 'dormant',
+  blacklisted: 'blacklisted',
+  open: 'open',
+  under_review: 'underReview',
+  quoted: 'quoted',
+  closed_won: 'won',
+  closed_lost: 'lost',
+  draft: 'draft',
+  pending_approval: 'pendingApproval',
+  approved: 'approved',
+  sent: 'sent',
+  negotiating: 'negotiating',
+  accepted: 'accepted',
+  rejected: 'rejected',
+  expired: 'expired',
+  cancelled: 'cancelled',
+  confirmed: 'confirmed',
+  in_production: 'inProduction',
+  quality_check: 'qualityCheck',
+  ready_to_ship: 'readyToShip',
+  partially_shipped: 'partiallyShipped',
+  shipped: 'shipped',
+  delivered: 'delivered',
+  unpaid: 'unpaid',
+  partial: 'partial',
+  paid: 'paid',
+  overdue: 'overdue',
+  urgent: 'urgent',
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+  completed: 'completed',
+  pending: 'pending',
+  in_progress: 'inProgress',
+};
+
+const formatFallbackStatus = (status: string) => status.split('_').join(' ');
+
 export default function StatusBadge({
   status,
   className = '',
@@ -51,10 +94,14 @@ export default function StatusBadge({
   status: string;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const style = statusStyles[status] || 'bg-gray-100 text-gray-500';
-  const label = status.replace(/_/g, ' ');
+  const labelKey = statusTranslationKeys[status];
+  const label = labelKey
+    ? t(`status.${labelKey}`, { defaultValue: formatFallbackStatus(status) })
+    : formatFallbackStatus(status);
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium ${style} ${className}`}>
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-450 ${style} ${className}`}>
       {label}
     </span>
   );

@@ -26,6 +26,14 @@ export default function Activities() {
     a.subject?.toLowerCase().includes(search.toLowerCase()) ||
     a.description?.toLowerCase().includes(search.toLowerCase())
   );
+  const activityTypeLabel = (type: string) => {
+    const activityLabel = t(`page.activities.${type}`, { defaultValue: '' });
+    return activityLabel || t(`page.activityTimeline.${type}`, { defaultValue: type });
+  };
+  const directionLabel = (direction?: string) => {
+    if (!direction) return t('page.activities.internal');
+    return t(`page.activities.${direction}`, { defaultValue: direction });
+  };
 
   const getIcon = (type: string) => {
     const map: Record<string, React.ReactNode> = {
@@ -44,11 +52,11 @@ export default function Activities() {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">{t('page.title.activities')}</h1>
-        <p className="text-sm text-gray-500">{list.length} total activities</p>
+        <p className="text-sm text-gray-500">{t('page.activities.totalActivities', { count: list.length })}</p>
       </div>
 
       <div className="mb-4">
-        <input className="input max-w-sm" placeholder=" Search activities..." value={search} onChange={e => setSearch(e.target.value)} />
+        <input className="input max-w-sm" placeholder={t('page.activities.searchActivities')} value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       {loading ? (
@@ -64,7 +72,7 @@ export default function Activities() {
                   <span className="mt-0.5 flex-shrink-0">{getIcon(a.activity_type)}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-gray-700 capitalize">{a.activity_type}</span>
+                      <span className="text-xs font-medium text-gray-700">{activityTypeLabel(a.activity_type)}</span>
                       <span className="text-2xs text-gray-400">·</span>
                       <span className="text-2xs text-gray-400">{new Date(a.created_at).toLocaleString()}</span>
                     </div>
@@ -75,15 +83,15 @@ export default function Activities() {
                     )}
                   </div>
                   <span className="text-2xs text-gray-400 capitalize px-1.5 py-0.5 bg-gray-100 rounded">
-                    {a.direction || 'internal'}
+                    {directionLabel(a.direction)}
                   </span>
                   {confirmDelete === a.id ? (
                     <div className="flex items-center gap-1">
-                      <button onClick={() => remove(a.id)} className="text-2xs text-red-600 hover:text-red-800 font-medium">Delete</button>
-                      <button onClick={() => setConfirmDelete(null)} className="text-2xs text-gray-400 hover:text-gray-600">Cancel</button>
+                      <button onClick={() => remove(a.id)} className="text-2xs text-red-600 hover:text-red-800 font-medium">{t('common.delete')}</button>
+                      <button onClick={() => setConfirmDelete(null)} className="text-2xs text-gray-400 hover:text-gray-600">{t('common.cancel')}</button>
                     </div>
                   ) : (
-                    <button onClick={() => setConfirmDelete(a.id)} className="text-2xs text-gray-300 hover:text-red-500 ml-2 flex-shrink-0" title="Delete">✕</button>
+                    <button onClick={() => setConfirmDelete(a.id)} className="text-2xs text-gray-300 hover:text-red-500 ml-2 flex-shrink-0" title={t('common.delete')}>✕</button>
                   )}
                 </div>
               ))}

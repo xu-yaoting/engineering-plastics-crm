@@ -54,7 +54,7 @@ export default function Contacts() {
       engineering: 'bg-green-50 text-green-600',
       quality: 'bg-yellow-50 text-yellow-600',
     };
-    return <span className={`inline-flex px-1.5 py-0.5 rounded text-2xs font-medium ${styles[role] || 'bg-gray-100 text-gray-500'}`}>{role}</span>;
+    return <span className={`inline-flex px-1.5 py-0.5 rounded text-2xs font-450 ${styles[role] || 'bg-gray-100 text-gray-500'}`}>{t(`page.contacts.roles.${role}`, role)}</span>;
   };
 
   return (
@@ -110,22 +110,22 @@ export default function Contacts() {
                     <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-md z-20 py-1">
                       {confirmDelete === c.id ? (
                         <div className="px-3 py-2">
-                          <p className="text-2xs text-red-600 mb-1">Delete?</p>
+                          <p className="text-2xs text-red-600 mb-1">{t('common.confirmDelete')}</p>
                           <div className="flex gap-1">
-                            <button onClick={() => remove(c.id)} className="text-xs bg-red-600 text-white px-2 py-0.5 rounded">Yes</button>
-                            <button onClick={() => { setConfirmDelete(null); setOpenMenu(null); }} className="text-xs text-gray-500 px-2 py-0.5">No</button>
+                            <button onClick={() => remove(c.id)} className="text-xs bg-red-600 text-white px-2 py-0.5 rounded">{t('common.yes')}</button>
+                            <button onClick={() => { setConfirmDelete(null); setOpenMenu(null); }} className="text-xs text-gray-500 px-2 py-0.5">{t('common.no')}</button>
                           </div>
                         </div>
                       ) : (
                         <>
                           <button onClick={() => { setOpenMenu(null); setContactPanel({ companyId: c.company_id, contact: c }); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
-                            <Icon name="square-pen" size={13} />Edit
+                            <Icon name="square-pen" size={13} />{t('common.edit')}
                           </button>
                           <button onClick={() => duplicate(c)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
-                            <Icon name="copy" size={13} />Duplicate
+                            <Icon name="copy" size={13} />{t('common.duplicate')}
                           </button>
                           <button onClick={() => setConfirmDelete(c.id)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">
-                            <Icon name="delete" size={13} />Delete
+                            <Icon name="delete" size={13} />{t('common.delete')}
                           </button>
                         </>
                       )}
@@ -140,8 +140,8 @@ export default function Contacts() {
                   {c.first_name?.[0]}{c.last_name?.[0]}
                 </div>
                 <div className="flex gap-1">
-                  <span className={`w-2 h-2 rounded-full inline-block ${c.is_primary_contact ? 'bg-green-500' : 'bg-gray-300'}`} title={c.is_primary_contact ? 'Primary' : ''} />
-                  <span className={`w-2 h-2 rounded-full inline-block ${c.is_decision_maker ? 'bg-red-500' : 'bg-gray-300'}`} title={c.is_decision_maker ? 'Decision Maker' : ''} />
+                  <span className={`w-2 h-2 rounded-full inline-block ${c.is_primary_contact ? 'bg-green-500' : 'bg-gray-300'}`} title={c.is_primary_contact ? t('page.contacts.primaryContact') : ''} />
+                  <span className={`w-2 h-2 rounded-full inline-block ${c.is_decision_maker ? 'bg-red-500' : 'bg-gray-300'}`} title={c.is_decision_maker ? t('page.contacts.decisionMaker') : ''} />
                 </div>
               </div>
               <h3 className="text-sm font-medium text-gray-900">{c.first_name} {c.last_name}</h3>

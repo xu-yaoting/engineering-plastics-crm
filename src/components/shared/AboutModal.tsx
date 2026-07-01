@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import Icon from './Icon';
 
 const ABOUT = {
@@ -8,6 +9,8 @@ const ABOUT = {
 };
 
 export default function AboutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
+
   if (!open) return null;
 
   return (
@@ -20,16 +23,16 @@ export default function AboutModal({ open, onClose }: { open: boolean; onClose: 
         <div className="bg-gradient-to-br from-blue-600 to-blue-700 px-5 py-6 text-center">
           <Icon name="target" size={28} className="text-white/90 inline-block mb-2" />
           <h2 className="text-lg font-semibold text-white">Basepoint</h2>
-          <p className="text-xs text-blue-200 mt-0.5">Engineering Plastics CRM</p>
+          <p className="text-xs text-blue-200 mt-0.5">{t('about.subtitle')}</p>
         </div>
 
         {/* Details */}
         <div className="px-5 py-4 space-y-3">
           {[
-            { label: 'Version', value: ABOUT.version },
-            { label: 'Build', value: ABOUT.build },
-            { label: 'Database', value: ABOUT.database },
-            { label: 'UI', value: ABOUT.ui },
+            { label: t('about.version'), value: ABOUT.version },
+            { label: t('about.build'), value: ABOUT.build },
+            { label: t('about.database'), value: ABOUT.database },
+            { label: t('about.ui'), value: ABOUT.ui },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between">
               <span className="text-xs text-gray-500">{item.label}</span>
@@ -44,7 +47,7 @@ export default function AboutModal({ open, onClose }: { open: boolean; onClose: 
             onClick={onClose}
             className="w-full py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
       </div>

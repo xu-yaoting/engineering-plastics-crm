@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { exportFullCsv } from '../lib/exportCsv';
 import { companies } from '../lib/api';
 import StatusBadge from '../components/shared/StatusBadge';
-import { formatCurrency } from '../lib/currency';
 import Icon from '../components/shared/Icon';
 import SidePanel from '../components/shared/SidePanel';
 import toast from 'react-hot-toast';
@@ -34,15 +33,28 @@ export default function Companies() {
     c.city?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const companyTypeLabel = (type: string) => {
+    const key = type === 'end_user' ? 'endUser'
+      : type === 'trading_company' ? 'trading'
+        : type;
+    return t(`page.companies.${key}`, type?.replace('_', ' '));
+  };
+
+  const classificationLabel = (value: string) => value === 'A'
+    ? t('page.companies.strategic')
+    : value === 'B'
+      ? t('page.companies.regular')
+      : t('page.companies.emerging');
+
   const create = async () => {
     try {
       await companies.create(form);
-      toast.success('Company created');
+      toast.success(t('page.companies.companyCreated'));
       setShowForm(false);
       setForm({ name: '', company_type: 'end_user', industry: '', country: 'US', city: '', notes: '', customer_code: '' });
       load();
     } catch (e: any) {
-      toast.error(e.message || 'Failed to create');
+      toast.error(e.message || t('page.companies.createFailed'));
     }
   };
 
@@ -63,7 +75,7 @@ export default function Companies() {
   const saveEdit = async () => {
     if (!editTarget) return;
     await companies.update(editTarget.id, editForm);
-    toast.success('Company updated');
+    toast.success(t('page.companies.companyUpdated'));
     setEditTarget(null);
     load();
   };
@@ -71,7 +83,7 @@ export default function Companies() {
   const duplicate = async (c: any) => {
     setOpenMenu(null);
     await companies.create({
-      name: `${c.name} (copy)`,
+      name: `${c.name} (${t('common.duplicate')})`,
       company_type: c.company_type,
       industry: c.industry,
       country: c.country,
@@ -92,41 +104,41 @@ export default function Companies() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* New Company Panel */}
-      <SidePanel open={showForm} onClose={() => setShowForm(false)} title="New Company">
+      <SidePanel open={showForm} onClose={() => setShowForm(false)} title={t('page.companies.new')}>
         <div className="space-y-4">
           <div>
-            <label className="label">Company Name *</label>
+            <label className="label">{t('page.companies.companyName')} *</label>
             <input className="input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Acme Aerospace Corp" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Type</label>
+              <label className="label">{t('page.companies.type')}</label>
               <select className="input" value={form.company_type} onChange={e => setForm({...form, company_type: e.target.value})}>
-                <option value="end_user">End-user</option>
-                <option value="distributor">Distributor</option>
+                <option value="end_user">{t('page.companies.endUser')}</option>
+                <option value="distributor">{t('page.companies.distributor')}</option>
                 <option value="oem">OEM</option>
-                <option value="trading_company">Trading Company</option>
+                <option value="trading_company">{t('page.companies.trading')}</option>
               </select>
             </div>
             <div>
-              <label className="label">Industry</label>
-              <input className="input" value={form.industry} onChange={e => setForm({...form, industry: e.target.value})} placeholder="Aerospace, Medical..." />
+              <label className="label">{t('page.companies.industry')}</label>
+              <input className="input" value={form.industry} onChange={e => setForm({...form, industry: e.target.value})} placeholder={t('page.companies.placeholderIndustry')} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Country</label>
+              <label className="label">{t('page.companies.country')}</label>
               <input className="input" value={form.country} onChange={e => setForm({...form, country: e.target.value})} />
             </div>
             <div>
-              <label className="label">City</label>
-              <input className="input" value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder="City" />
+              <label className="label">{t('page.companies.city')}</label>
+              <input className="input" value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder={t('page.companies.placeholderCity')} />
             </div>
           </div>
           <div>
-            <label className="label">Customer Code</label>
+            <label className="label">{t('page.companies.customerCode')}</label>
             <input className="input font-mono uppercase" value={form.customer_code} onChange={e => setForm({...form, customer_code: e.target.value.toUpperCase()})} placeholder="SMP" maxLength={10} />
-            <span className="text-2xs text-gray-400">Used for order numbers: PREFIX-{'{CODE}'}-YYMM-SEQ</span>
+            <span className="text-2xs text-gray-400">{t('page.companies.orderNumberHint')}</span>
           </div>
           <div className="flex gap-2 pt-4 border-t border-gray-100">
             <button onClick={create} className="btn-primary flex-1">{t('common.create')}</button>
@@ -139,52 +151,52 @@ export default function Companies() {
       {editTarget && (
         <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center">
           <div className="bg-white rounded-xl shadow-lg p-6 w-[480px]">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Edit Company — {editTarget.name}</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">{t('page.companies.editCompany')} — {editTarget.name}</h3>
             <div className="space-y-4">
               <div>
-                <label className="label">Company Name</label>
+                <label className="label">{t('page.companies.companyName')}</label>
                 <input className="input" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">Type</label>
+                  <label className="label">{t('page.companies.type')}</label>
                   <select className="input" value={editForm.company_type} onChange={e => setEditForm({...editForm, company_type: e.target.value})}>
-                    <option value="end_user">End-user</option><option value="distributor">Distributor</option>
-                    <option value="oem">OEM</option><option value="trading_company">Trading Company</option>
+                    <option value="end_user">{t('page.companies.endUser')}</option><option value="distributor">{t('page.companies.distributor')}</option>
+                    <option value="oem">OEM</option><option value="trading_company">{t('page.companies.trading')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="label">Industry</label>
+                  <label className="label">{t('page.companies.industry')}</label>
                   <input className="input" value={editForm.industry} onChange={e => setEditForm({...editForm, industry: e.target.value})} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">Country</label>
+                  <label className="label">{t('page.companies.country')}</label>
                   <input className="input" value={editForm.country} onChange={e => setEditForm({...editForm, country: e.target.value})} />
                 </div>
                 <div>
-                  <label className="label">City</label>
+                  <label className="label">{t('page.companies.city')}</label>
                   <input className="input" value={editForm.city} onChange={e => setEditForm({...editForm, city: e.target.value})} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">Status</label>
+                  <label className="label">{t('page.companies.status')}</label>
                   <select className="input" value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}>
                     <option value="active">{t('status.active')}</option><option value="on_hold">{t('status.onHold')}</option>
                     <option value="dormant">{t('status.dormant')}</option><option value="blacklisted">{t('status.blacklisted')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="label">Classification</label>
+                  <label className="label">{t('page.companies.classification')}</label>
                   <select className="input" value={editForm.classification} onChange={e => setEditForm({...editForm, classification: e.target.value})}>
-                    <option value="A">A — Strategic</option><option value="B">B — Regular</option><option value="C">C — Emerging</option>
+                    <option value="A">A — {t('page.companies.strategic')}</option><option value="B">B — {t('page.companies.regular')}</option><option value="C">C — {t('page.companies.emerging')}</option>
                   </select>
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
-                <button onClick={saveEdit} className="btn-primary flex-1">Save Changes</button>
+                <button onClick={saveEdit} className="btn-primary flex-1">{t('page.companies.saveChanges')}</button>
                 <button onClick={() => setEditTarget(null) } className="btn-secondary">{t('common.cancel')}</button>
               </div>
             </div>
@@ -196,13 +208,13 @@ export default function Companies() {
       {showImport && (
         <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) setShowImport(false); }}>
           <div className="bg-white rounded-xl shadow-lg p-6 w-[520px] max-h-[80vh] overflow-y-auto">
-            <h3 className="text-sm font-semibold text-gray-900 mb-1">Import Companies</h3>
-            <p className="text-xs text-gray-500 mb-4">Upload a <strong>.csv</strong> or <strong>.xlsx</strong> file. Duplicate company names are skipped.</p>
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">{t('page.companies.importCompanies')}</h3>
+            <p className="text-xs text-gray-500 mb-4">{t('page.companies.importHelp')}</p>
 
             {/* Template */}
             <div className="bg-gray-50 rounded-lg p-3 mb-4 text-xs">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-gray-700">Template format:</span>
+                <span className="font-medium text-gray-700">{t('page.companies.templateFormat')}</span>
                 <button
                   onClick={() => {
                     const csv = 'Name,Type,Industry,Country,City,Phone,Email,Website,Status,Classification,CustomerCode,RegistrationNo,Address1,Address2,State,PostalCode\nAcme Aerospace,end_user,Aerospace,US,Los Angeles,+1-555-0100,sales@acme.com,https://acme.com,active,A,SMP,,,,,,\n';
@@ -213,7 +225,7 @@ export default function Companies() {
                     URL.revokeObjectURL(url);
                   }}
                   className="text-blue-600 hover:underline font-medium"
-                >Download Template</button>
+                >{t('page.companies.downloadTemplate')}</button>
               </div>
               <div className="font-mono text-2xs text-gray-500 leading-relaxed">
                 Name*,Type,Industry,Country,City,Phone,Email,Website,Status,Classification<br />
@@ -223,13 +235,13 @@ export default function Companies() {
 
             <div className="space-y-4">
               <div>
-                <label className="label">File</label>
+                <label className="label">{t('page.companies.file')}</label>
                 <div className="flex items-center gap-3">
                   <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 border-0">
-                    Choose File
+                    {t('page.companies.chooseFile')}
                     <input type="file" accept=".csv,.xlsx" onChange={e => { setImportFile(e.target.files?.[0] || null); setImportResult(null); }} className="sr-only" />
                   </label>
-                  <span className="text-xs text-gray-500">{importFile ? importFile.name : 'No file selected'}</span>
+                  <span className="text-xs text-gray-500">{importFile ? importFile.name : t('page.companies.noFileSelected')}</span>
                 </div>
               </div>
 
@@ -243,31 +255,31 @@ export default function Companies() {
                     const res = await fetch('/api/companies/import', { method: 'POST', body: fd });
                     const data = await res.json();
                     setImportResult(data);
-                    if (res.ok) { load(); toast.success(`Imported ${data.created} companies`); }
-                    else { toast.error(data.error || 'Import failed'); }
-                  } catch { toast.error('Import failed'); }
+                    if (res.ok) { load(); toast.success(`${data.created} ${t('page.companies.importedCompanies')}`); }
+                    else { toast.error(data.error || t('page.companies.importFailed')); }
+                  } catch { toast.error(t('page.companies.importFailed')); }
                   finally { setImporting(false); }
                 }}
                 disabled={!importFile || importing}
                 className="btn-primary"
               >
-                {importing ? 'Importing...' : 'Upload & Import'}
+                {importing ? t('page.companies.importing') : t('page.companies.uploadImport')}
               </button>
 
               {/* Result */}
               {importResult && (
                 <div className={`rounded-lg p-3 text-sm ${importResult.created > 0 ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
                   <div className="font-semibold text-gray-900 mb-1">
-                    {importResult.created > 0 ? `✅ ${importResult.created} companies imported` : 'No new companies'}
+                    {importResult.created > 0 ? `✅ ${importResult.created} ${t('page.companies.importedCompanies')}` : t('page.companies.noNewCompanies')}
                   </div>
                   <div className="text-xs text-gray-600">
-                    Total rows: {importResult.total} | Created: {importResult.created} | Skipped: {importResult.skipped}
+                    {t('page.companies.totalRows')}: {importResult.total} | {t('page.companies.created')}: {importResult.created} | {t('page.companies.skipped')}: {importResult.skipped}
                   </div>
                   {importResult.results?.slice(0, 10).map((r: any, i: number) => (
                     <div key={i} className="text-2xs text-gray-500 mt-1">{r.name} — {r.action}</div>
                   ))}
                   {importResult.errors?.length > 0 && (
-                    <div className="mt-2 text-xs text-red-600">{importResult.errors.length} errors (check format)</div>
+                    <div className="mt-2 text-xs text-red-600">{importResult.errors.length} errors ({t('page.companies.checkFormat')})</div>
                   )}
                 </div>
               )}
@@ -287,7 +299,7 @@ export default function Companies() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowForm(true)} className="btn-primary btn-sm"><Icon name="plus" size={16} className="mr-1.5" />{t('page.companies.new')}</button>
-          <button onClick={() => setShowImport(true)} className="btn-secondary btn-sm"><Icon name="upload" size={14} className="mr-1" />Import</button>
+          <button onClick={() => setShowImport(true)} className="btn-secondary btn-sm"><Icon name="upload" size={14} className="mr-1" />{t('page.companies.import')}</button>
           <button onClick={() => exportFullCsv('/api/companies', 'companies')} className="btn-secondary btn-sm"><Icon name="download" size={14} className="mr-1" />CSV</button>
         </div>
       </div>
@@ -304,7 +316,7 @@ export default function Companies() {
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="table-header">{t("page.companies.name")}</th>
-                <th className="table-header hidden sm:table-cell">Code</th>
+                <th className="table-header hidden sm:table-cell">{t('page.companies.code')}</th>
                 <th className="table-header hidden sm:table-cell">{t("page.companies.type")}</th>
                 <th className="table-header hidden md:table-cell">{t("page.companies.industry")}</th>
                 <th className="table-header hidden md:table-cell">{t("page.companies.location")}</th>
@@ -325,26 +337,26 @@ export default function Companies() {
                     </div>
                   </td>
                   <td className="table-cell hidden sm:table-cell text-gray-500">{c.customer_code || '—'}</td>
-                  <td className="table-cell hidden sm:table-cell text-gray-500">{c.company_type?.replace('_', ' ')}</td>
+                  <td className="table-cell hidden sm:table-cell text-gray-500">{companyTypeLabel(c.company_type)}</td>
                   <td className="table-cell hidden md:table-cell text-gray-500">{c.industry || '—'}</td>
                   <td className="table-cell hidden md:table-cell text-gray-500">{c.city ? `${c.city}, ${c.country}` : c.country}</td>
                   <td className="table-cell"><StatusBadge status={c.status} /></td>
-                  <td className="table-cell">{c.classification || 'C'}-Class</td>
+                  <td className="table-cell">{c.classification || 'C'} — {classificationLabel(c.classification || 'C')}</td>
                   <td className="table-cell" onClick={e => e.stopPropagation()}>
                     <div className="relative">
                       <button onClick={() => setOpenMenu(openMenu === c.id ? null : c.id)} className="btn-ghost btn-sm text-xs px-1">⋮</button>
                       {openMenu === c.id && (
                         <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-md z-20 py-1">
                           <button onClick={() => openEdit(c)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"><Icon name="square-pen" size={13} />{t('common.edit')}</button>
-                          <button onClick={() => duplicate(c)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"><Icon name="copy" size={13} />Duplicate</button>
+                          <button onClick={() => duplicate(c)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"><Icon name="copy" size={13} />{t('common.duplicate')}</button>
                           {confirmDelete !== c.id ? (
                             <button onClick={() => setConfirmDelete(c.id)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"><Icon name="delete" size={13} />{t('common.delete')}</button>
                           ) : (
                             <div className="px-3 py-2">
-                              <p className="text-2xs text-red-600 mb-1">Confirm?</p>
+                              <p className="text-2xs text-red-600 mb-1">{t('common.confirmDelete')}</p>
                               <div className="flex gap-1">
-                                <button onClick={() => remove(c.id)} className="text-xs bg-red-600 text-white px-2 py-0.5 rounded">Yes</button>
-                                <button onClick={() => setConfirmDelete(null)} className="text-xs text-gray-500 px-2 py-0.5">No</button>
+                                <button onClick={() => remove(c.id)} className="text-xs bg-red-600 text-white px-2 py-0.5 rounded">{t('common.yes')}</button>
+                                <button onClick={() => setConfirmDelete(null)} className="text-xs text-gray-500 px-2 py-0.5">{t('common.no')}</button>
                               </div>
                             </div>
                           )}

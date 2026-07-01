@@ -41,6 +41,7 @@ export default function SettingsProfile() {
 
   const save = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+    window.dispatchEvent(new CustomEvent('crm-profile-updated', { detail: form }));
     setSaved(true);
     toast.success(t('profile.saved'));
   };
@@ -50,7 +51,7 @@ export default function SettingsProfile() {
       {/* Header */}
       <div className="mb-8">
         <button onClick={() => navigate(-1)} className="text-xs text-gray-400 hover:text-gray-600 mb-3 flex items-center gap-1">
-          ← Back
+          ← {t('common.back')}
         </button>
         <h1 className="text-2xl font-semibold text-gray-900">{t('profile.title')}</h1>
         <p className="text-sm text-gray-500 mt-1">{t('profile.subtitle')}</p>
@@ -62,8 +63,8 @@ export default function SettingsProfile() {
           {form.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
         </span>
         <div>
-          <div className="text-sm font-medium text-gray-900">{form.fullName || 'Your Name'}</div>
-          <div className="text-xs text-gray-500">{form.jobTitle || 'Your Role'}</div>
+          <div className="text-sm font-medium text-gray-900">{form.fullName || t('profile.yourName')}</div>
+          <div className="text-xs text-gray-500">{form.jobTitle || t('profile.yourRole')}</div>
         </div>
       </div>
 
@@ -71,15 +72,15 @@ export default function SettingsProfile() {
       <div className="space-y-5">
         <div>
           <label className="label">{t('profile.fullName')}</label>
-          <input className="input" value={form.fullName} onChange={e => set('fullName', e.target.value)} placeholder="Your full name" />
+          <input className="input" value={form.fullName} onChange={e => set('fullName', e.target.value)} placeholder={t('profile.placeholderFullName')} />
         </div>
         <div>
           <label className="label">{t('profile.jobTitle')}</label>
-          <input className="input" value={form.jobTitle} onChange={e => set('jobTitle', e.target.value)} placeholder="e.g. Sales Engineer" />
+          <input className="input" value={form.jobTitle} onChange={e => set('jobTitle', e.target.value)} placeholder={t('profile.placeholderJobTitle')} />
         </div>
         <div>
           <label className="label">{t('profile.company')}</label>
-          <input className="input" value={form.company} onChange={e => set('company', e.target.value)} placeholder="Company name" />
+          <input className="input" value={form.company} onChange={e => set('company', e.target.value)} placeholder={t('profile.placeholderCompany')} />
         </div>
         <div>
           <label className="label">{t('profile.email')}</label>

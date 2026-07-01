@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { tasks as tasksApi } from '../../lib/api';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 interface Task {
   id: string;
@@ -25,6 +26,7 @@ export default function TaskSection({
   onTaskChanged?: () => void;
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   const [list, setList] = useState(initialTasks);
   const [newTask, setNewTask] = useState('');
   const [showInput, setShowInput] = useState(false);
@@ -51,7 +53,7 @@ export default function TaskSection({
       setShowInput(false);
       onTaskChanged?.();
     } catch (e) {
-      toast.error('Failed to add task');
+      toast.error(t('page.tasks.taskAddFailed'));
     } finally {
       setSaving(false);
     }
@@ -63,7 +65,7 @@ export default function TaskSection({
       await tasksApi.update(task.id, { status: newStatus });
       onTaskChanged?.();
     } catch (e) {
-      toast.error('Failed to update task');
+      toast.error(t('page.tasks.taskUpdateFailed'));
     }
   };
 
@@ -78,8 +80,8 @@ export default function TaskSection({
 
   const priorityDot = (task: Task) => {
     if (task.status === 'completed') return null;
-    if (isOverdue(task.due_date)) return <span className="text-red-500 text-xs mt-0.5 flex-shrink-0" title="Overdue"></span>;
-    if (isDueSoon(task.due_date)) return <span className="text-yellow-500 text-xs mt-0.5 flex-shrink-0" title="Due soon">🟡</span>;
+    if (isOverdue(task.due_date)) return <span className="text-red-500 text-xs mt-0.5 flex-shrink-0" title={t('page.tasks.overdue')}></span>;
+    if (isDueSoon(task.due_date)) return <span className="text-yellow-500 text-xs mt-0.5 flex-shrink-0" title={t('page.tasks.dueSoon')}>●</span>;
     return <span className="text-gray-300 text-xs mt-0.5 flex-shrink-0"></span>;
   };
 
@@ -109,14 +111,14 @@ export default function TaskSection({
                 <p className={`text-2xs mt-0.5 ${
                   isOverdue(task.due_date) && task.status !== 'completed' ? 'text-red-500 font-medium' : 'text-gray-400'
                 }`}>
-                  {isOverdue(task.due_date) && task.status !== 'completed' ? `Overdue: ${task.due_date}` : `Due: ${task.due_date}`}
+                  {isOverdue(task.due_date) && task.status !== 'completed' ? `${t('page.tasks.overdue')}: ${task.due_date}` : `${t('page.tasks.due')}: ${task.due_date}`}
                 </p>
               )}
             </div>
           </div>
         ))}
         {list.length === 0 && (
-          <p className="text-xs text-gray-400 py-2 text-center">No tasks</p>
+          <p className="text-xs text-gray-400 py-2 text-center">{t('page.tasks.noTasks')}</p>
         )}
       </div>
 
@@ -127,16 +129,16 @@ export default function TaskSection({
             className="input flex-1 text-sm"
             value={newTask}
             onChange={e => setNewTask(e.target.value)}
-            placeholder="Add a task..."
+            placeholder={t('page.tasks.addTaskPlaceholder')}
             autoFocus
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTask(); } }}
           />
-          <button onClick={addTask} disabled={!newTask.trim() || saving} className="btn-primary btn-sm">Add</button>
+          <button onClick={addTask} disabled={!newTask.trim() || saving} className="btn-primary btn-sm">{t('page.tasks.add')}</button>
           <button onClick={() => setShowInput(false)} className="btn-ghost btn-sm text-xs">✕</button>
         </div>
       ) : (
         <button onClick={() => setShowInput(true)} className="text-xs text-blue-600 hover:text-blue-700 mt-2 inline-flex items-center gap-1">
-          Add Task
+          {t('page.tasks.addTask')}
         </button>
       )}
     </div>

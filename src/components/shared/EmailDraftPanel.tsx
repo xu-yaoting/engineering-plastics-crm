@@ -59,7 +59,7 @@ export default function EmailDraftPanel({
   const preview = generatePreview();
 
   const copyToClipboard = async () => {
-    const text = `Subject: ${preview.subject}\n\n${preview.body}`;
+    const text = `${t('page.emailDraft.subject')}: ${preview.subject}\n\n${preview.body}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -84,7 +84,12 @@ export default function EmailDraftPanel({
   };
 
   return (
-    <SidePanel open={open} onClose={onClose} title="Email Draft" subtitle={step === 'preview' ? selectedTemplate?.title : 'Select a template'}>
+    <SidePanel
+      open={open}
+      onClose={onClose}
+      title={t('page.emailDraft.emailDraft')}
+      subtitle={step === 'preview' ? selectedTemplate?.title : t('page.emailDraft.selectTemplate')}
+    >
       {/* Template Selector */}
       {step === 'select' && (
         <div className="space-y-4">
@@ -96,7 +101,7 @@ export default function EmailDraftPanel({
                 !category ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              All
+              {t('page.emailDraft.all')}
             </button>
             {categories.map(cat => (
               <button
@@ -123,7 +128,7 @@ export default function EmailDraftPanel({
                 <div className="text-2xs text-gray-500 mt-0.5 truncate">{tpl.subject}</div>
                 <div className="flex gap-1 mt-1.5">
                   <span className="text-2xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{tpl.category}</span>
-                  <span className="text-2xs text-gray-400">{tpl.variables.length} variables</span>
+                  <span className="text-2xs text-gray-400">{tpl.variables.length} {t('page.emailDraft.variables')}</span>
                 </div>
               </button>
             ))}
@@ -136,7 +141,7 @@ export default function EmailDraftPanel({
         <div className="space-y-4 h-full flex flex-col">
           {/* Variables form */}
           <div className="space-y-2">
-            <h4 className="text-2xs font-semibold text-gray-500 uppercase tracking-wider">Fill in Variables</h4>
+            <h4 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.emailDraft.fillVariables')}</h4>
             <div className="grid grid-cols-2 gap-2">
               {selectedTemplate.variables.filter(v => !v.startsWith('sender')).map(v => (
                 <div key={v} className={v.length > 12 ? 'col-span-2' : ''}>
@@ -154,15 +159,15 @@ export default function EmailDraftPanel({
 
           {/* Subject */}
           <div>
-            <label className="text-2xs text-gray-400 block">Subject</label>
+            <label className="text-2xs text-gray-400 block">{t('page.emailDraft.subject')}</label>
             <div className="text-sm text-gray-900 font-medium bg-gray-50 rounded-lg px-3 py-2 mt-0.5 border border-gray-200">
-              {preview.subject || '(fill variables above)'}
+              {preview.subject || t('page.emailDraft.fillVariablesAbove')}
             </div>
           </div>
 
           {/* Body */}
           <div className="flex-1 min-h-0">
-            <label className="text-2xs text-gray-400 block mb-1">Body</label>
+            <label className="text-2xs text-gray-400 block mb-1">{t('page.emailDraft.body')}</label>
             <textarea
               className="w-full h-full min-h-[200px] text-xs text-gray-700 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200 resize-y font-sans leading-relaxed focus:outline-none focus:ring-1 focus:ring-blue-600"
               value={preview.body}
@@ -173,7 +178,11 @@ export default function EmailDraftPanel({
           {/* Actions */}
           <div className="flex gap-2 pt-2 border-t border-gray-100">
             <button onClick={copyToClipboard} className="btn-primary flex-1 text-sm">
-              {copied ? <><Icon name="check" size={13} className="mr-1" />Copied!</> : <><Icon name="copy" size={13} className="mr-1" />Copy to Clipboard</>}
+              {copied ? (
+                <><Icon name="check" size={13} className="mr-1" />{t('page.emailDraft.copied')}</>
+              ) : (
+                <><Icon name="copy" size={13} className="mr-1" />{t('page.emailDraft.copyToClipboard')}</>
+              )}
             </button>
             <button onClick={reset} className="btn-secondary text-sm">{t('common.back')}</button>
           </div>

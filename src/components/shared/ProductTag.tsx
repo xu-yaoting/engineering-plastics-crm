@@ -20,7 +20,7 @@ export default function ProductTag({ family }: { family: string }) {
   const key = family.toUpperCase();
   const style = productStyles[key] || 'bg-gray-100 text-gray-500';
   return (
-    <span className={`inline-flex px-1.5 py-0.5 rounded text-2xs font-medium ${style}`}>
+    <span className={`inline-flex px-1.5 py-0.5 rounded text-2xs font-450 ${style}`}>
       {key}
     </span>
   );

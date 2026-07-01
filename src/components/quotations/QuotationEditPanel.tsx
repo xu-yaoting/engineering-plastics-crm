@@ -123,7 +123,7 @@ export default function QuotationEditPanel({
         version: (quotation?.version || 0) + 1,
         line_items: lineItems.map((item, idx) => ({
           line_number: idx + 1,
-          product_grade_snapshot: item.product_grade_snapshot || 'Custom item',
+          product_grade_snapshot: item.product_grade_snapshot || t('page.quotationDetail.customItem'),
           unit_of_measure: item.unit_of_measure,
           quantity: item.quantity,
           unit_price: item.unit_price,
@@ -144,11 +144,11 @@ export default function QuotationEditPanel({
         await quotations.update(quotation.id, payload);
       }
 
-      toast.success(isNew ? 'Quotation created' : 'Quotation updated');
+      toast.success(isNew ? t('page.quotationDetail.quotationCreated') : t('page.quotationDetail.quotationUpdated'));
       onSaved();
       onClose();
     } catch (e) {
-      toast.error('Failed to save quotation');
+      toast.error(t('page.quotationDetail.quotationSaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -168,7 +168,7 @@ export default function QuotationEditPanel({
           {/* Line Items Section */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('page.quotationDetail.editPanel.lineItems')}</h4>
+              <h4 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.quotationDetail.editPanel.lineItems')}</h4>
               <button onClick={addLine} className="btn-ghost btn-sm text-xs">{t('page.quotationDetail.editPanel.add')}</button>
             </div>
 
@@ -234,7 +234,7 @@ export default function QuotationEditPanel({
 
           {/* Terms */}
           <div className="border-t border-gray-100 pt-4">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.quotationDetail.editPanel.terms')}</h4>
+            <h4 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.quotationDetail.editPanel.terms')}</h4>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">{t('page.quotationDetail.editPanel.currency')}</label>
@@ -256,7 +256,7 @@ export default function QuotationEditPanel({
                 <input className="input" value={form.delivery_term} onChange={e => set('delivery_term', e.target.value)} placeholder={t('page.quotationDetail.editPanel.placeholderDelivery')} />
               </div>
               <div className="col-span-2">
-                <label className="label">{t('page.quotationDetail.editPanel.quotationDate', 'Quotation Date')}</label>
+                <label className="label">{t('page.quotationDetail.quotationDate')}</label>
                 <input className="input" type="date" value={form.quotation_date} onChange={e => set('quotation_date', e.target.value)} />
               </div>
               <div className="col-span-2">
@@ -268,7 +268,7 @@ export default function QuotationEditPanel({
 
           {/* Tax Type */}
           <div className="border-t border-gray-100 pt-4">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.quotationDetail.editPanel.taxation')}</h4>
+            <h4 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.quotationDetail.editPanel.taxation')}</h4>
             <div className="flex gap-2 mb-3">
               {(['domestic_vat', 'export', 'none'] as const).map(type => (
                 <button
@@ -304,7 +304,7 @@ export default function QuotationEditPanel({
 
           {/* Shipping & Discount */}
           <div className="border-t border-gray-100 pt-4">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('page.quotationDetail.editPanel.shippingDiscount')}</h4>
+            <h4 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.quotationDetail.editPanel.shippingDiscount')}</h4>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">{t('page.quotationDetail.editPanel.shippingHandling')}</label>

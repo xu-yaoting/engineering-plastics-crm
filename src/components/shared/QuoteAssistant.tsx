@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface QuoteAssistantProps {
   companyId?: string;
@@ -21,6 +22,7 @@ export default function QuoteAssistant({
   onApplyPrice,
   onApplyDiscount,
 }: QuoteAssistantProps) {
+  const { t } = useTranslation();
   const insights = useMemo(() => {
     const result: {
       suggestedPrice: number | null;
@@ -99,28 +101,28 @@ export default function QuoteAssistant({
 
       // Notes
       if (upper.includes('PEEK')) {
-        result.notes.push('PEEK pricing is volatile — check current raw material costs');
+        result.notes.push(t('page.quoteAssistant.priceVolatile'));
       }
       if (upper.includes('PAI') || upper.includes('PI')) {
-        result.notes.push('Premium grade — lead time may be 4-6 weeks');
+        result.notes.push(t('page.quoteAssistant.premiumLeadTime'));
       }
       if (costPrice && result.suggestedPrice) {
         if (result.marginAtSuggested! < 15) {
-          result.notes.push(`Margin at suggested price is only ${result.marginAtSuggested}% — consider increasing`);
+          result.notes.push(t('page.quoteAssistant.lowMargin', { margin: result.marginAtSuggested }));
         } else if (result.marginAtSuggested! > 40) {
-          result.notes.push(`Healthy margin at ${result.marginAtSuggested}%`);
+          result.notes.push(t('page.quoteAssistant.healthyMargin', { margin: result.marginAtSuggested }));
         }
       }
     }
 
     return result;
-  }, [productGrade, targetQuantity, costPrice, targetPrice]);
+  }, [productGrade, targetQuantity, costPrice, targetPrice, t]);
 
   if (!productGrade) {
     return (
       <div className="card p-4 bg-gray-50 border-gray-200">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Quote Assistant</h3>
-        <p className="text-xs text-gray-400">Add a product grade to see pricing suggestions.</p>
+        <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-2">{t('page.quoteAssistant.quoteAssistant')}</h3>
+        <p className="text-xs text-gray-400">{t('page.quoteAssistant.addProductGrade')}</p>
       </div>
     );
   }
@@ -129,14 +131,14 @@ export default function QuoteAssistant({
 
   return (
     <div className="card p-4 bg-gradient-to-br from-blue-50 to-white border-blue-100">
-      <h3 className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-3">
-        Quote Assistant
+      <h3 className="text-xs font-450 text-blue-600 uppercase tracking-[0.08em] mb-3">
+        {t('page.quoteAssistant.quoteAssistant')}
       </h3>
 
       <div className="space-y-3">
         {/* Suggested Price */}
         <div className="bg-white rounded-lg p-3 border border-blue-100">
-          <div className="text-2xs text-gray-400 mb-1">Suggested Price</div>
+          <div className="text-2xs text-gray-400 mb-1">{t('page.quoteAssistant.suggestedPrice')}</div>
           <div className="flex items-end justify-between">
             <div>
               <span className="text-xl font-semibold text-blue-600 font-mono">
@@ -149,13 +151,13 @@ export default function QuoteAssistant({
                 onClick={() => insights.suggestedPrice && onApplyPrice(insights.suggestedPrice)}
                 className="text-xs text-blue-600 hover:text-blue-700 font-medium"
               >
-                Apply 
+                {t('page.quoteAssistant.apply')}
               </button>
             )}
           </div>
           {insights.priceRange && (
             <div className="text-2xs text-gray-400 mt-1">
-              Range: {sym}{insights.priceRange.low.toFixed(2)} – {sym}{insights.priceRange.high.toFixed(2)}
+              {t('page.quoteAssistant.range')}: {sym}{insights.priceRange.low.toFixed(2)} - {sym}{insights.priceRange.high.toFixed(2)}
             </div>
           )}
         </div>
@@ -163,10 +165,10 @@ export default function QuoteAssistant({
         {/* Margin Analysis */}
         {costPrice && (
           <div className="bg-white rounded-lg p-3 border border-gray-100">
-            <div className="text-2xs text-gray-400 mb-1">Margin Analysis</div>
+            <div className="text-2xs text-gray-400 mb-1">{t('page.quoteAssistant.marginAnalysis')}</div>
             {insights.marginAtSuggested !== null && (
               <div className="flex items-center justify-between text-sm mb-1">
-                <span className="text-gray-600">At suggested price</span>
+                <span className="text-gray-600">{t('page.quoteAssistant.atSuggestedPrice')}</span>
                 <span className={`font-mono font-semibold ${
                   insights.marginAtSuggested >= 20 ? 'text-green-600' :
                   insights.marginAtSuggested >= 10 ? 'text-yellow-600' : 'text-red-600'
@@ -177,7 +179,7 @@ export default function QuoteAssistant({
             )}
             {insights.marginAtTarget !== null && (
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">At target price ({sym}{targetPrice})</span>
+                <span className="text-gray-600">{t('page.quoteAssistant.atTargetPrice')} ({sym}{targetPrice})</span>
                 <span className={`font-mono font-semibold ${
                   insights.marginAtTarget >= 20 ? 'text-green-600' :
                   insights.marginAtTarget >= 10 ? 'text-yellow-600' : 'text-red-600'
@@ -186,25 +188,25 @@ export default function QuoteAssistant({
                 </span>
               </div>
             )}
-            <div className="text-2xs text-gray-400 mt-1">Cost: {sym}{(costPrice || 0).toFixed(2)}/kg</div>
+            <div className="text-2xs text-gray-400 mt-1">{t('page.quoteAssistant.cost')}: {sym}{(costPrice || 0).toFixed(2)}/kg</div>
           </div>
         )}
 
         {/* Volume Discount Tiers */}
         <div className="bg-white rounded-lg p-3 border border-gray-100">
-          <div className="text-2xs text-gray-400 mb-2">Volume Discount Suggestions</div>
+          <div className="text-2xs text-gray-400 mb-2">{t('page.quoteAssistant.volumeDiscountSuggestions')}</div>
           <div className="space-y-1">
             {insights.volumeDiscount.map((vd, i) => (
               <div key={i} className="flex items-center justify-between text-xs">
                 <span className="text-gray-600">{vd.qty}+ kg</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-900 font-medium">{vd.discount}% off</span>
+                  <span className="text-gray-900 font-medium">{t('page.quoteAssistant.percentOff', { discount: vd.discount })}</span>
                   {onApplyDiscount && (
                     <button
                       onClick={() => onApplyDiscount(vd.discount)}
                       className="text-blue-600 hover:text-blue-700 text-2xs"
                     >
-                      Apply
+                      {t('page.quoteAssistant.apply')}
                     </button>
                   )}
                 </div>
@@ -215,7 +217,7 @@ export default function QuoteAssistant({
 
         {/* Standard Discounts */}
         <div className="bg-white rounded-lg p-3 border border-gray-100">
-          <div className="text-2xs text-gray-400 mb-2">Quick Discounts</div>
+          <div className="text-2xs text-gray-400 mb-2">{t('page.quoteAssistant.quickDiscounts')}</div>
           <div className="flex flex-wrap gap-1.5">
             {insights.discountSuggestions.map(d => (
               <button
@@ -232,7 +234,7 @@ export default function QuoteAssistant({
         {/* Notes */}
         {insights.notes.length > 0 && (
           <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-100">
-            <div className="text-2xs text-yellow-700 font-medium mb-1">Insights</div>
+            <div className="text-2xs text-yellow-700 font-medium mb-1">{t('page.quoteAssistant.insights')}</div>
             <ul className="space-y-0.5">
               {insights.notes.map((note, i) => (
                 <li key={i} className="text-xs text-yellow-800">{note}</li>

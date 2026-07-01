@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import StatusBadge from '../components/shared/StatusBadge';
-import { formatCurrency, currencySymbol } from '../lib/currency';
+import { formatCurrency } from '../lib/currency';
 import Icon from '../components/shared/Icon';
 import { useTranslation } from 'react-i18next';
 import { exportFullCsv } from '../lib/exportCsv';
@@ -29,7 +29,9 @@ export default function Payments() {
   const readError = async (res: Response, fallback: string) => {
     const data = await res.json().catch(() => null);
     if (data?.error === 'Payment exceeds remaining balance') {
-      return `Payment exceeds remaining balance. Remaining due: ${formatCurrency(data.remainingDue || 0, 'USD')}`;
+      return t('page.payments.paymentExceedsBalance', {
+        remainingDue: formatCurrency(data.remainingDue || 0, 'USD'),
+      });
     }
     return data?.error || data?.message || fallback;
   };
@@ -64,7 +66,7 @@ export default function Payments() {
       body: JSON.stringify(form),
     });
     if (!res.ok) {
-      toast.error(await readError(res, 'Failed to create invoice'));
+      toast.error(await readError(res, t('page.payments.failedCreateInvoice')));
       return;
     }
     setShowForm(false);
@@ -80,7 +82,7 @@ export default function Payments() {
       body: JSON.stringify({ amount: payForm.amount, payment_method: payForm.method, reference_number: payForm.ref }),
     });
     if (!res.ok) {
-      toast.error(await readError(res, 'Failed to record payment'));
+      toast.error(await readError(res, t('page.payments.failedRecordPayment')));
       return;
     }
     setPayForm(null);
@@ -160,24 +162,24 @@ export default function Payments() {
       {/* KPI Cards — Accounts Receivable */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card p-4">
-          <div className="text-xs text-gray-500 font-medium mb-1">Outstanding Receivables</div>
+          <div className="text-xs text-gray-500 font-medium mb-1">{t('page.payments.outstandingReceivables')}</div>
           <div className="text-xl font-semibold text-gray-900">{fmt(outstandingUSD, outstandingCNY)}</div>
-          <div className="text-2xs text-gray-400 mt-1">{unpaid.length} unpaid invoices</div>
+          <div className="text-2xs text-gray-400 mt-1">{t('page.payments.unpaidInvoices', { count: unpaid.length })}</div>
         </div>
         <div className="card p-4">
-          <div className="text-xs text-gray-500 font-medium mb-1">Overdue Receivables</div>
+          <div className="text-xs text-gray-500 font-medium mb-1">{t('page.payments.overdueReceivables')}</div>
           <div className="text-xl font-semibold text-red-600">{fmt(overdueUSD, overdueCNY)}</div>
-          <div className="text-2xs text-red-500 mt-1">{overdueInvs.length} overdue invoices</div>
+          <div className="text-2xs text-red-500 mt-1">{t('page.payments.overdueInvoices', { count: overdueInvs.length })}</div>
         </div>
         <div className="card p-4">
-          <div className="text-xs text-gray-500 font-medium mb-1">Due This Month</div>
+          <div className="text-xs text-gray-500 font-medium mb-1">{t('page.payments.dueThisMonth')}</div>
           <div className="text-xl font-semibold text-yellow-600">{fmt(dueThisMonthUSD, dueThisMonthCNY)}</div>
-          <div className="text-2xs text-gray-400 mt-1">{dueThisMonth.length} invoices due</div>
+          <div className="text-2xs text-gray-400 mt-1">{t('page.payments.invoicesDue', { count: dueThisMonth.length })}</div>
         </div>
         <div className="card p-4">
-          <div className="text-xs text-gray-500 font-medium mb-1">Collected This Month</div>
+          <div className="text-xs text-gray-500 font-medium mb-1">{t('page.payments.collectedThisMonth')}</div>
           <div className="text-xl font-semibold text-green-600">{fmt(collectedUSD, collectedCNY)}</div>
-          <div className="text-2xs text-gray-400 mt-1">{collectedThisMonth.length} invoices paid</div>
+          <div className="text-2xs text-gray-400 mt-1">{t('page.payments.invoicesPaid', { count: collectedThisMonth.length })}</div>
         </div>
       </div>
 
@@ -214,25 +216,25 @@ export default function Payments() {
       {editTarget && (
         <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center">
           <div className="bg-white rounded-xl shadow-lg p-6 w-[420px]">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Edit Invoice — {editTarget.invoice_number}</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">{t('page.payments.editInvoice')} — {editTarget.invoice_number}</h3>
             <div className="space-y-4">
               <div>
-                <label className="label">Total ({editTarget.currency || 'USD'})</label>
+                <label className="label">{t('page.payments.total')} ({editTarget.currency || 'USD'})</label>
                 <input className="input font-mono" type="number" step="0.01" value={editForm.total}
                   onChange={e => setEditForm({...editForm, total: parseFloat(e.target.value) || 0})} />
               </div>
               <div>
-                <label className="label">Due Date</label>
+                <label className="label">{t('page.payments.dueDate')}</label>
                 <input className="input" type="date" value={editForm.due_date}
                   onChange={e => setEditForm({...editForm, due_date: e.target.value})} />
               </div>
               <div>
-                <label className="label">Notes</label>
+                <label className="label">{t('page.payments.notes')}</label>
                 <textarea className="input min-h-[60px] resize-y" value={editForm.notes}
                   onChange={e => setEditForm({...editForm, notes: e.target.value})} />
               </div>
               <div className="flex gap-2 pt-2">
-                <button onClick={saveEdit} className="btn-primary flex-1">Save Changes</button>
+                <button onClick={saveEdit} className="btn-primary flex-1">{t('page.payments.saveChanges')}</button>
                 <button onClick={() => setEditTarget(null) } className="btn-secondary">{t('common.cancel')}</button>
               </div>
             </div>
@@ -260,7 +262,7 @@ export default function Payments() {
               </div>
               <div>
                 <label className="label">{t('page.payments.reference')}</label>
-                <input className="input" value={payForm.ref} onChange={e => setPayForm({...payForm, ref: e.target.value})} placeholder="Transaction ID" />
+                <input className="input" value={payForm.ref} onChange={e => setPayForm({...payForm, ref: e.target.value})} placeholder={t('page.payments.transactionId')} />
               </div>
             </div>
             <div className="flex gap-2">
@@ -277,7 +279,7 @@ export default function Payments() {
         {['', 'issued', 'partial_paid', 'paid', 'overdue', 'cancelled'].map(s => (
           <button key={s} onClick={() => setFilter(s)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium ${filter === s ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}>
-            {s || t('status.all')}
+            {s ? t(`status.${s}`) : t('status.all')}
           </button>
         ))}
         </div>
@@ -343,7 +345,7 @@ export default function Payments() {
                             </button>
                           ) : (
                             <div className="px-3 py-2">
-                              <p className="text-2xs text-red-600 mb-1">Confirm?</p>
+                              <p className="text-2xs text-red-600 mb-1">{t('common.confirmDelete')}</p>
                               <div className="flex gap-1">
                                 <button onClick={() => remove(inv.id)} className="text-xs bg-red-600 text-white px-2 py-0.5 rounded">{t('common.yes')}</button>
                                 <button onClick={() => setConfirmDelete(null)} className="text-xs text-gray-500 px-2 py-0.5">{t('common.no')}</button>

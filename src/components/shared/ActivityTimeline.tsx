@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { activities as activitiesApi, tasks as tasksApi } from '../../lib/api';
 import Icon from './Icon';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 const activityIcons: Record<string, string> = {
   call: 'phone', email: 'mail', note: 'edit', meeting: 'calendar',
@@ -32,7 +32,7 @@ export default function ActivityTimeline({
   onActivityAdded?: () => void;
   compact?: boolean;
 }) {
-  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [list, setList] = useState(initialActivities);
   const [noteText, setNoteText] = useState('');
   const [showInput, setShowInput] = useState(false);
@@ -52,9 +52,9 @@ export default function ActivityTimeline({
     setLogging(true);
     try {
       const subject = noteText || (
-        type === 'call' ? `Called ${entityType}` :
-        type === 'email' ? `Email to ${entityType}` :
-        type === 'note' ? 'Note' : `${type} on ${entityType}`
+        type === 'call' ? t('page.activityTimeline.calledEntity', { entity: entityType }) :
+        type === 'email' ? t('page.activityTimeline.emailEntity', { entity: entityType }) :
+        type === 'note' ? t('page.activityTimeline.note') : t('page.activityTimeline.activityOnEntity', { type: activityTypeLabel(type), entity: entityType })
       );
       await activitiesApi.create({
         entity_type: entityType,
@@ -74,7 +74,7 @@ export default function ActivityTimeline({
       setFollowUpDate(future.toISOString().slice(0, 10));
       onActivityAdded?.();
     } catch (e) {
-      toast.error('Failed to log activity');
+      toast.error(t('page.activityTimeline.activityLogFailed'));
     } finally {
       setLogging(false);
     }
@@ -82,9 +82,9 @@ export default function ActivityTimeline({
 
   const scheduleFollowUp = async () => {
     if (!followUpDate) return;
-    const subject = lastActivityType === 'call' ? 'Follow up on call' :
-                    lastActivityType === 'email' ? 'Follow up on email' :
-                    'Follow up';
+    const subject = lastActivityType === 'call' ? t('page.activityTimeline.followUpCall') :
+                    lastActivityType === 'email' ? t('page.activityTimeline.followUpEmail') :
+                    t('page.activityTimeline.followUp');
     await tasksApi.create({
       subject: `${subject} — ${entityType}`,
       task_type: 'follow_up',
@@ -102,10 +102,20 @@ export default function ActivityTimeline({
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    if (d.toDateString() === today.toDateString()) return 'Today';
-    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (d.toDateString() === today.toDateString()) return t('page.activityTimeline.today');
+    if (d.toDateString() === yesterday.toDateString()) return t('page.activityTimeline.yesterday');
+    return d.toLocaleDateString(i18n.language === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
+
+  const todayLabel = t('page.activityTimeline.today');
+
+  function activityTypeLabel(type: string) {
+    if (type === 'call') return t('page.activityTimeline.call');
+    if (type === 'email') return t('page.activityTimeline.email');
+    if (type === 'note') return t('page.activityTimeline.note');
+    if (type === 'meeting') return t('page.activityTimeline.meeting');
+    return type.replaceAll('_', ' ');
+  }
 
   // Group by date
   const groups: Record<string, Activity[]> = {};
@@ -119,10 +129,10 @@ export default function ActivityTimeline({
     <div>
       {/* Quick action buttons */}
       <div className="flex items-center gap-1.5 mb-3">
-        <button onClick={() => { setShowInput(!showInput); }} className="btn-ghost btn-sm text-xs"><Icon name="edit" size={13} className="mr-1" />Note</button>
-        <button onClick={() => logActivity('call')} disabled={logging} className="btn-ghost btn-sm text-xs"><Icon name="phone" size={13} className="mr-1" />Call</button>
-        <button onClick={() => logActivity('email')} disabled={logging} className="btn-ghost btn-sm text-xs"><Icon name="mail" size={13} className="mr-1" />Email</button>
-        <button onClick={() => logActivity('meeting')} disabled={logging} className="btn-ghost btn-sm text-xs"><Icon name="calendar" size={13} className="mr-1" />Meeting</button>
+        <button onClick={() => { setShowInput(!showInput); }} className="btn-ghost btn-sm text-xs"><Icon name="edit" size={13} className="mr-1" />{t('page.activityTimeline.note')}</button>
+        <button onClick={() => logActivity('call')} disabled={logging} className="btn-ghost btn-sm text-xs"><Icon name="phone" size={13} className="mr-1" />{t('page.activityTimeline.call')}</button>
+        <button onClick={() => logActivity('email')} disabled={logging} className="btn-ghost btn-sm text-xs"><Icon name="mail" size={13} className="mr-1" />{t('page.activityTimeline.email')}</button>
+        <button onClick={() => logActivity('meeting')} disabled={logging} className="btn-ghost btn-sm text-xs"><Icon name="calendar" size={13} className="mr-1" />{t('page.activityTimeline.meeting')}</button>
       </div>
 
       {/* Quick capture input */}
@@ -132,12 +142,12 @@ export default function ActivityTimeline({
             className="input flex-1"
             value={noteText}
             onChange={e => setNoteText(e.target.value)}
-            placeholder="Type a note..."
+            placeholder={t('page.activityTimeline.typeNote')}
             autoFocus
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); logActivity('note'); } }}
           />
           <button onClick={() => logActivity('note')} disabled={!noteText.trim() || logging} className="btn-primary btn-sm">
-            Save
+            {t('common.save')}
           </button>
         </div>
       )}
@@ -148,8 +158,8 @@ export default function ActivityTimeline({
           <div className="flex items-center gap-2">
             <Icon name="calendar" size={14} className="text-gray-400" />
             <div>
-              <p className="text-xs font-medium text-yellow-800">Schedule a follow-up?</p>
-              <p className="text-2xs text-yellow-600">Remind yourself to check back on this</p>
+              <p className="text-xs font-medium text-yellow-800">{t('page.activityTimeline.scheduleFollowUp')}</p>
+              <p className="text-2xs text-yellow-600">{t('page.activityTimeline.followUpHelp')}</p>
             </div>
             <input
               type="date"
@@ -160,7 +170,7 @@ export default function ActivityTimeline({
           </div>
           <div className="flex items-center gap-1">
             <button onClick={scheduleFollowUp} className="text-xs font-medium text-yellow-800 bg-yellow-100 px-2.5 py-1 rounded hover:bg-yellow-200">
-              Schedule
+              {t('page.activityTimeline.schedule')}
             </button>
             <button onClick={() => setShowFollowUp(false)} className="text-xs text-yellow-600 px-2 py-1 hover:text-yellow-800">
               <Icon name="close" size={12} />
@@ -172,8 +182,8 @@ export default function ActivityTimeline({
       {/* Timeline */}
       {list.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-sm text-gray-400 mb-2">No activity yet</p>
-          <p className="text-xs text-gray-400">Log your first interaction using the buttons above.</p>
+          <p className="text-sm text-gray-400 mb-2">{t('page.activityTimeline.noActivityYet')}</p>
+          <p className="text-xs text-gray-400">{t('page.activityTimeline.logFirstInteraction')}</p>
         </div>
       ) : (
         <div className="relative">
@@ -183,18 +193,18 @@ export default function ActivityTimeline({
               <div key={dateLabel}>
                 <div className="flex items-center gap-3 my-4">
                   <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-2xs font-semibold text-gray-500 uppercase tracking-wider">{dateLabel}</span>
+                  <span className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em]">{dateLabel}</span>
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
                 {items.map((a, idx) => (
                   <div key={a.id} className="relative pl-8 pb-4 group hover:bg-gray-50 rounded-lg px-2 py-2 -mx-2 cursor-default">
                     <div className={`absolute left-1 top-1.5 w-3.5 h-3.5 rounded-full border-2 border-white ${
-                      idx === 0 && dateLabel === 'Today' ? 'bg-blue-600' : 'bg-gray-300'
+                      idx === 0 && dateLabel === todayLabel ? 'bg-blue-600' : 'bg-gray-300'
                     }`} />
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-0.5">
                         <Icon name={(activityIcons[a.activity_type] || 'edit') as any} size={14} className="text-gray-400" />
-                        <span className="font-medium text-gray-700 capitalize">{a.activity_type}</span>
+                        <span className="font-medium text-gray-700 capitalize">{activityTypeLabel(a.activity_type)}</span>
                         <span>·</span>
                         <span>{new Date(a.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                         {a.duration_minutes && <span>· {a.duration_minutes} min</span>}

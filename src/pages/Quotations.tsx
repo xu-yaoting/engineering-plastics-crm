@@ -42,10 +42,10 @@ export default function Quotations() {
       <div className="flex items-center gap-3 mb-4">
         <input className="input max-w-sm" placeholder={t('common.searchQuotations')} value={search} onChange={e => setSearch(e.target.value)} />
         <select className="input max-w-[180px]" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          <option value="">All</option>
+          <option value="">{t('page.quotations.all')}</option>
           <option value="draft">{t('status.draft')}</option>
-          <option value="pending_approval">Pending Approval</option>
-          <option value="approved">Approved</option>
+          <option value="pending_approval">{t('status.pendingApproval')}</option>
+          <option value="approved">{t('status.approved')}</option>
           <option value="sent">{t('status.sent')}</option>
           <option value="negotiating">{t('status.negotiating')}</option>
           <option value="accepted">{t('status.accepted')}</option>
@@ -61,14 +61,14 @@ export default function Quotations() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="table-header">Number</th>
-                <th className="table-header">Date</th>
-                <th className="table-header">Company</th>
-                <th className="table-header">Status</th>
-                <th className="table-header text-right">Total</th>
-                <th className="table-header">Currency</th>
-                <th className="table-header">Valid Until</th>
-                <th className="table-header">Version</th>
+                <th className="table-header">{t('page.quotations.number')}</th>
+                <th className="table-header">{t('page.quotations.date')}</th>
+                <th className="table-header">{t('page.quotations.company')}</th>
+                <th className="table-header">{t('page.quotations.status')}</th>
+                <th className="table-header text-right">{t('page.quotations.total')}</th>
+                <th className="table-header">{t('page.quotations.currency')}</th>
+                <th className="table-header">{t('page.quotations.validUntil')}</th>
+                <th className="table-header">{t('page.quotations.version')}</th>
               </tr>
             </thead>
             <tbody>
@@ -81,7 +81,7 @@ export default function Quotations() {
                   <td className="table-cell text-right font-mono text-sm font-medium">{formatCurrency(q.total, q.currency)}</td>
                   <td className="table-cell text-xs text-gray-500">{q.currency}</td>
                   <td className="table-cell text-xs text-gray-500">{q.valid_until || '—'}</td>
-                  <td className="table-cell text-xs text-gray-500">Rev {q.version || 1}</td>
+                  <td className="table-cell text-xs text-gray-500">{t('page.quotations.rev')} {q.version || 1}</td>
                 </tr>
               ))}
             </tbody>

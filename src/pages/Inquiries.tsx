@@ -31,7 +31,13 @@ export default function Inquiries() {
     return 'text-gray-400';
   };
 
-
+  const urgencyLabel = (u?: string) => {
+    if (u === 'immediate') return t('page.inquiries.immediate');
+    if (u === 'within_2_weeks') return t('page.inquiries.within2Weeks');
+    if (u === 'within_1_month') return t('page.inquiries.within1Month');
+    if (u === 'no_rush') return t('page.inquiries.noRush');
+    return u || '—';
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -65,12 +71,12 @@ export default function Inquiries() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="table-header">Number</th>
-                <th className="table-header">Company</th>
-                <th className="table-header">Material</th>
-                <th className="table-header">Status</th>
-                <th className="table-header">Urgency</th>
-                <th className="table-header">Created</th>
+                <th className="table-header">{t('page.inquiries.number')}</th>
+                <th className="table-header">{t('page.inquiries.company')}</th>
+                <th className="table-header">{t('page.inquiries.material')}</th>
+                <th className="table-header">{t('page.inquiries.status')}</th>
+                <th className="table-header">{t('page.inquiries.urgency')}</th>
+                <th className="table-header">{t('page.inquiries.created')}</th>
               </tr>
             </thead>
             <tbody>
@@ -86,7 +92,7 @@ export default function Inquiries() {
                   </td>
                   <td className="table-cell"><StatusBadge status={inq.status} /></td>
                   <td className="table-cell">
-                    <span className={`text-xs ${urgencyColor(inq.urgency)}`}>{inq.urgency?.replace('_', ' ') || '—'}</span>
+                    <span className={`text-xs ${urgencyColor(inq.urgency)}`}>{urgencyLabel(inq.urgency)}</span>
                   </td>
                   <td className="table-cell text-2xs text-gray-400">{inq.created_at?.slice(0, 10)}</td>
                 </tr>

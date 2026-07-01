@@ -36,7 +36,7 @@ export default function PipelineCard({
     >
       {/* Material + Days */}
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-2xs font-medium text-blue-600 truncate max-w-[60%]">
+        <span className="text-2xs font-450 text-blue-600 truncate max-w-[60%]">
           {card.material}
         </span>
         <span className="text-2xs text-gray-400 flex-shrink-0">

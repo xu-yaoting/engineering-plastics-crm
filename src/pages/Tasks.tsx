@@ -32,13 +32,15 @@ export default function Tasks() {
   };
 
   const overdue = (date: string) => date && new Date(date) < new Date();
+  const priorityLabel = (priority: string) => t(`status.${priority}`);
+  const statusLabel = (status: string) => t(`status.${status}`);
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">{t('page.title.tasks')}</h1>
-          <p className="text-sm text-gray-500">{list.filter(t => t.status !== 'completed').length} pending</p>
+          <p className="text-sm text-gray-500">{t('page.tasks.pendingSummary', { count: list.filter(t => t.status !== 'completed').length })}</p>
         </div>
         <button onClick={() => setShowForm(true)} className="btn-primary btn-sm"><Icon name="plus" size={16} className="mr-1.5" />{t('page.tasks.new')}</button>
       </div>
@@ -47,11 +49,11 @@ export default function Tasks() {
         <div className="card p-4 mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="sm:col-span-2">
-              <label className="label">Subject *</label>
-              <input className="input" value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} placeholder="Task description" />
+              <label className="label">{t('page.tasks.subject')} *</label>
+              <input className="input" value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} placeholder={t('page.tasks.taskDescription')} />
             </div>
             <div>
-              <label className="label">Priority</label>
+              <label className="label">{t('page.tasks.priority')}</label>
               <select className="input" value={form.priority} onChange={e => setForm({...form, priority: e.target.value})}>
                 <option value="urgent">{t('status.urgent')}</option>
                 <option value="high">{t('status.high')}</option>
@@ -60,7 +62,7 @@ export default function Tasks() {
               </select>
             </div>
             <div>
-              <label className="label">Due Date</label>
+              <label className="label">{t('page.tasks.dueDate')}</label>
               <input className="input" type="date" value={form.due_date} onChange={e => setForm({...form, due_date: e.target.value})} />
             </div>
           </div>
@@ -109,19 +111,19 @@ export default function Tasks() {
                   <p className={`text-sm ${t.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                     {t.subject}
                   </p>
-                  <span className={`inline-flex px-1.5 py-0.5 rounded text-2xs font-medium ${
+                  <span className={`inline-flex px-1.5 py-0.5 rounded text-2xs font-450 ${
                     t.priority === 'urgent' ? 'bg-red-50 text-red-600' :
                     t.priority === 'high' ? 'bg-yellow-50 text-yellow-600' :
                     'bg-gray-100 text-gray-500'
-                  }`}>{t.priority}</span>
+                  }`}>{priorityLabel(t.priority)}</span>
                 </div>
                 <div className="flex items-center gap-3 mt-1">
                   {t.due_date && (
                     <span className={`text-2xs ${overdue(t.due_date) && t.status !== 'completed' ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
-                      {overdue(t.due_date) && t.status !== 'completed' ? 'Overdue' : 'Due'}: {t.due_date}
+                      {overdue(t.due_date) && t.status !== 'completed' ? t('page.tasks.overdue') : t('page.tasks.due')}: {t.due_date}
                     </span>
                   )}
-                  <span className="text-2xs text-gray-400 capitalize">{t.status?.replace('_', ' ')}</span>
+                  <span className="text-2xs text-gray-400">{statusLabel(t.status)}</span>
                 </div>
               </div>
               {t.status === 'completed' && (
@@ -131,7 +133,7 @@ export default function Tasks() {
                     load();
                   }}
                   className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
-                  title="Delete task"
+                  title={t('page.tasks.deleteTask')}
                 >
                   <Icon name="delete" size={13} />
                 </button>
