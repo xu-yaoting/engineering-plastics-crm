@@ -17,8 +17,8 @@ Prepare the CRM for reliable personal daily use first, then move to a controlled
 ### Must Finish Before Daily Use
 
 - [ ] Freeze the current feature set and avoid new large features during stabilization.
-- [ ] Review all current uncommitted changes and split them into clear commits.
-- [ ] Run the full verification set:
+- [x] Review all current uncommitted changes and split them into clear commits.
+- [x] Run the full verification set:
   - `npm run test`
   - `npm run smoke:api`
   - `npm run build`
@@ -38,7 +38,7 @@ Prepare the CRM for reliable personal daily use first, then move to a controlled
 - [x] Add a simple local backup script for the local SQLite CRM database.
 - [x] Add a short restore note so backups are actually usable.
 - [ ] Confirm the desktop app or shortcut starts the current project path only.
-- [ ] Keep `.api-key`, `.env*`, `crm.db`, and backup files out of git.
+- [x] Keep `.api-key`, `.env*`, `crm.db`, and backup files out of git.
 - [ ] Create a local version tag or release note after stabilization.
 
 ### Local Acceptance Criteria

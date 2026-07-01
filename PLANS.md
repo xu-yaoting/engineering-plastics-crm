@@ -203,9 +203,10 @@
 - [x] Fix inventory product duplicate SKU saves by returning a clear 400 error instead of a SQLite 500.
 - [x] Extend the write smoke test to submit the same boolean contact payload shape used by the page.
 - [x] Add a local-first release checklist for personal daily use and later internal company use.
-- [ ] Freeze current feature work and review the uncommitted changes before creating a stable local release.
+- [ ] Freeze current feature work before creating a stable local release.
+- [x] Review the uncommitted changes and split them into clear local release commits.
 - [x] Add local database backup and restore instructions.
-- [ ] Run a final local formal release verification pass.
+- [x] Run a final local formal release verification pass.
 
 ## Batch Order
 
