@@ -94,7 +94,7 @@ npm install
 ./start-crm.sh
 ```
 
-或双击桌面 `CRM.app` / `CRM.command`。
+或双击桌面 `CRM.app`。
 
 ---
 
