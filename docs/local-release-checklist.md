@@ -37,7 +37,7 @@ Prepare the CRM for reliable personal daily use first, then move to a controlled
   - profile and language settings
 - [x] Add a simple local backup script for the local SQLite CRM database.
 - [x] Add a short restore note so backups are actually usable.
-- [ ] Confirm the desktop app or shortcut starts the current project path only.
+- [x] Confirm the desktop app or shortcut starts the current project path only.
 - [x] Keep `.api-key`, `.env*`, `crm.db`, and backup files out of git.
 - [ ] Create a local version tag or release note after stabilization.
 

@@ -207,6 +207,7 @@
 - [x] Review the uncommitted changes and split them into clear local release commits.
 - [x] Add local database backup and restore instructions.
 - [x] Run a final local formal release verification pass.
+- [x] Confirm the desktop CRM app starts the current main project path.
 
 ## Batch Order
 
