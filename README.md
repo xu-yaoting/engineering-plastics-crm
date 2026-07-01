@@ -32,6 +32,7 @@ npm run test         # run lightweight safety checks
 npm run smoke:api    # build and run local write smoke checks
 npm run build        # build frontend and server
 npm run db:seed      # seed local demo data
+npm run backup       # create a local database backup
 ```
 
 ## One-Click Local Start
@@ -51,8 +52,25 @@ If `API_KEY` is set in the environment, the API requires an `x-api-key` header. 
 ## Data And Secrets
 
 - Local data lives in `crm.db`.
-- `.api-key`, `.env*`, `crm.db`, WAL files, build output, and `node_modules` are ignored by git.
+- Local backups are written to `backups/`.
+- `.api-key`, `.env*`, `crm.db`, WAL files, backups, build output, and `node_modules` are ignored by git.
 - Do not commit real customer data, API keys, passwords, or database files.
+
+## Local Backup And Restore
+
+Create a backup before major edits, before system updates, and at the end of each workday once real data is in the CRM:
+
+```bash
+npm run backup
+```
+
+Restore is intentionally protected. Close the CRM first, then run:
+
+```bash
+npm run restore -- --confirm /Users/myairbook/AIProjects/engineering-plastics-crm/backups/crm-YYYYMMDD-HHMMSS.db.gz
+```
+
+The restore script creates one more backup of the current database before replacing it.
 
 ## Verification Before Handoff
 

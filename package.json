@@ -11,7 +11,9 @@
     "test": "node --test tests/*.test.mjs",
     "smoke:api": "npm run build && node tests/api-write-smoke.mjs",
     "preview": "vite preview",
-    "db:seed": "tsx server/seed.ts"
+    "db:seed": "tsx server/seed.ts",
+    "backup": "bash scripts/backup-crm.sh",
+    "restore": "bash scripts/restore-crm.sh"
   },
   "dependencies": {
     "better-sqlite3": "^11.0.0",

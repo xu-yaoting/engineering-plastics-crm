@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dist-server/
+backups/
 .claude/
 *.db
 *.db-wal
