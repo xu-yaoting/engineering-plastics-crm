@@ -163,11 +163,14 @@ async function runSmoke() {
     method: 'PUT',
     body: JSON.stringify({
       job_title: 'QA Updated',
-      is_decision_maker: 1,
+      is_primary_contact: false,
+      is_decision_maker: true,
       ignored_field_should_not_break_update: 'ignored',
     }),
   });
   assert.equal(updatedContact.job_title, 'QA Updated');
+  assert.equal(updatedContact.is_primary_contact, 0);
+  assert.equal(updatedContact.is_decision_maker, 1);
 
   const task = await request('/tasks', {
     method: 'POST',
@@ -424,6 +427,17 @@ async function runSmoke() {
   });
   created.productId = product.id;
   assert.equal(product.sku, `SMOKE-${runId}`);
+
+  const duplicateProduct = await expectRequestFailure('/inventory/products', {
+    method: 'POST',
+    body: JSON.stringify({
+      sku: `SMOKE-${runId}`,
+      name: `Duplicate Smoke Product ${runId}`,
+      product_type: 'part',
+      unit: 'pc',
+    }),
+  }, 400);
+  assert.equal(duplicateProduct.error, 'SKU already exists');
 
   const updatedProduct = await request(`/inventory/products/${created.productId}`, {
     method: 'PUT',

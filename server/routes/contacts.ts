@@ -26,6 +26,15 @@ const CONTACT_UPDATE_FIELDS = [
   'is_active',
 ] as const;
 
+type ContactUpdateField = typeof CONTACT_UPDATE_FIELDS[number];
+
+function toContactSqlValue(field: ContactUpdateField, value: any) {
+  if (field === 'is_primary_contact' || field === 'is_decision_maker' || field === 'is_active') {
+    return value ? 1 : 0;
+  }
+  return value;
+}
+
 router.get('/', (req: Request, res: Response) => {
   const { company_id } = req.query;
   const q = req.query.q as string | undefined;
@@ -106,7 +115,7 @@ router.put('/:id', (req: Request, res: Response) => {
     return res.status(400).json({ success: false, message: 'No valid fields to update' });
   }
   const fields = updateFields.map((field) => `${field} = ?`).join(', ');
-  const values = updateFields.map((field) => req.body[field]);
+  const values = updateFields.map((field) => toContactSqlValue(field, req.body[field]));
   const result = db.prepare(`UPDATE contacts SET ${fields}, updated_at = ? WHERE id = ? AND deleted_at IS NULL`)
     .run(...values, now, req.params.id);
   if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });

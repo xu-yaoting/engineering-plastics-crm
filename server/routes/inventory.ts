@@ -103,6 +103,8 @@ router.get('/products', (_req: Request, res: Response) => {
 router.post('/products', (req: Request, res: Response) => {
   const err = validate(req.body, ['sku', 'name']);
   if (err) return res.status(400).json({ error: err });
+  const existing = db.prepare("SELECT id FROM products WHERE sku = ? AND deleted_at IS NULL").get(req.body.sku);
+  if (existing) return res.status(400).json({ error: 'SKU already exists' });
   const id = uuidv4(); const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO products (id, sku, name, category, product_type, stock_tracking_mode,
@@ -122,6 +124,11 @@ router.post('/products', (req: Request, res: Response) => {
 
 router.put('/products/:id', (req: Request, res: Response) => {
   const now = new Date().toISOString();
+  if (req.body.sku !== undefined) {
+    const existing = db.prepare("SELECT id FROM products WHERE sku = ? AND id != ? AND deleted_at IS NULL")
+      .get(req.body.sku, req.params.id);
+    if (existing) return res.status(400).json({ error: 'SKU already exists' });
+  }
   const updateFields = PRODUCT_UPDATE_FIELDS.filter((field) =>
     Object.prototype.hasOwnProperty.call(req.body, field)
   );
