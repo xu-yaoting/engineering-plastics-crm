@@ -5,6 +5,8 @@ import test from 'node:test';
 
 const serverTsconfig = readFileSync(new URL('../tsconfig.server.json', import.meta.url), 'utf8');
 const indexSource = readFileSync(new URL('../server/index.ts', import.meta.url), 'utf8');
+const packageSource = readFileSync(new URL('../package.json', import.meta.url), 'utf8');
+const lanStartSource = readFileSync(new URL('../start-crm-lan.sh', import.meta.url), 'utf8');
 
 test('server build uses Node ESM resolution', () => {
   const config = JSON.parse(serverTsconfig);
@@ -35,4 +37,13 @@ test('server source imports local modules with .js extensions', () => {
 test('local server binds to localhost by default', () => {
   assert.match(indexSource, /const HOST = process\.env\.HOST \|\| '127\.0\.0\.1'/);
   assert.match(indexSource, /app\.listen\(PORT, HOST,/);
+});
+
+test('LAN startup exposes only the frontend to internal users', () => {
+  const pkg = JSON.parse(packageSource);
+  assert.equal(pkg.scripts['dev:client:lan'], 'vite --host 0.0.0.0');
+  assert.match(lanStartSource, /npm run dev:server/);
+  assert.match(lanStartSource, /npm run dev:client:lan/);
+  assert.match(lanStartSource, /同事访问: http:\/\/\$LAN_IP:5173/);
+  assert.doesNotMatch(lanStartSource, /HOST=0\.0\.0\.0/);
 });

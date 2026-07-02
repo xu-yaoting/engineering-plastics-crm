@@ -28,6 +28,7 @@ curl http://127.0.0.1:3001/api/health
 npm run dev          # start API and frontend
 npm run dev:server   # start API only
 npm run dev:client   # start frontend only
+npm run dev:client:lan # start frontend for LAN access
 npm run test         # run lightweight safety checks
 npm run smoke:api    # build and run local write smoke checks
 npm run build        # build frontend and server
@@ -42,6 +43,22 @@ npm run backup       # create a local database backup
 ```
 
 The script stops old local CRM processes on ports `3001` and `5173`, starts the API and frontend, checks `/api/health`, then opens the app.
+
+## Internal LAN Start
+
+Use this only for the current 2-3 person internal trial:
+
+```bash
+./start-crm-lan.sh
+```
+
+The script keeps the API on this Mac, exposes the frontend to the local network, and prints the colleague access URL:
+
+```text
+同事访问: http://YOUR-LAN-IP:5173
+```
+
+Keep the terminal window open while colleagues are using the CRM. Do not use this for public internet access.
 
 ## Local Auth Notes
 
