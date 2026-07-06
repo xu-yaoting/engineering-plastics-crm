@@ -15,3 +15,9 @@ test('payments page shows backend errors instead of closing the payment form', (
   assert.match(paymentsSource, /if \(!res\.ok\)/);
   assert.match(paymentsSource, /Payment exceeds remaining balance/);
 });
+
+test('payments edit form checks update errors before closing', () => {
+  assert.match(paymentsSource, /const res = await fetch\(`\/api\/payments\/\$\{editTarget\.id\}`/);
+  assert.match(paymentsSource, /toast\.error\(await readError\(res, t\('page\.payments\.failedUpdateInvoice'\)\)\)/);
+  assert.match(paymentsSource, /setEditTarget\(null\);[\s\S]*load\(\);/);
+});

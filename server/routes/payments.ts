@@ -82,6 +82,45 @@ router.post('/', (req: Request, res: Response) => {
   res.status(201).json(db.prepare("SELECT * FROM invoices WHERE id = ?").get(id));
 });
 
+router.put('/:id', (req: Request, res: Response) => {
+  const invoice = db.prepare("SELECT * FROM invoices WHERE id = ? AND deleted_at IS NULL").get(req.params.id) as any;
+  if (!invoice) return res.status(404).json({ error: 'Not found' });
+
+  const total = req.body.total !== undefined ? Number(req.body.total) : Number(invoice.total);
+  if (!Number.isFinite(total) || total <= 0) {
+    return res.status(400).json({ error: 'Invoice total must be greater than 0' });
+  }
+
+  const amountPaid = Number(invoice.amount_paid ?? 0);
+  if (total < amountPaid) {
+    return res.status(400).json({ error: 'Invoice total cannot be less than amount already paid', amountPaid, total });
+  }
+
+  const dueDate = req.body.due_date !== undefined ? req.body.due_date : invoice.due_date;
+  if (!dueDate) return res.status(400).json({ error: 'Due date is required' });
+
+  const amountDue = Math.max(0, total - amountPaid);
+  const status = amountDue <= 0 ? 'paid' : amountPaid > 0 ? 'partial_paid' : 'issued';
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    UPDATE invoices
+    SET total = ?, amount_due = ?, status = ?, due_date = ?, notes = ?, fully_paid_at = ?, updated_at = ?
+    WHERE id = ? AND deleted_at IS NULL
+  `).run(
+    total,
+    amountDue,
+    status,
+    dueDate,
+    req.body.notes ?? invoice.notes ?? '',
+    status === 'paid' ? (invoice.fully_paid_at || now) : null,
+    now,
+    req.params.id,
+  );
+
+  res.json(db.prepare("SELECT * FROM invoices WHERE id = ?").get(req.params.id));
+});
+
 router.post('/:id/pay', (req: Request, res: Response) => {
   const now = new Date().toISOString();
   const paymentId = uuidv4();

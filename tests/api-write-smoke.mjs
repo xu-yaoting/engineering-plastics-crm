@@ -314,6 +314,20 @@ async function runSmoke() {
   created.invoiceId = invoice.id;
   assert.equal(invoice.order_id, created.orderId);
   assert.equal(invoice.amount_due, 100);
+  assert.equal(invoice.due_date, '2026-07-15');
+
+  const editedInvoice = await request(`/payments/${created.invoiceId}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      total: 120,
+      due_date: '2026-08-20',
+      notes: 'Updated local API smoke invoice',
+    }),
+  });
+  assert.equal(editedInvoice.total, 120);
+  assert.equal(editedInvoice.amount_due, 120);
+  assert.equal(editedInvoice.due_date, '2026-08-20');
+  assert.equal(editedInvoice.notes, 'Updated local API smoke invoice');
 
   await expectRequestFailure(`/payments/${created.invoiceId}/pay`, {
     method: 'POST',
@@ -334,12 +348,12 @@ async function runSmoke() {
   });
   assert.equal(partiallyPaidInvoice.status, 'partial_paid');
   assert.equal(partiallyPaidInvoice.amount_paid, 40);
-  assert.equal(partiallyPaidInvoice.amount_due, 60);
+  assert.equal(partiallyPaidInvoice.amount_due, 80);
 
   await expectRequestFailure(`/payments/${created.invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({
-      amount: 61,
+      amount: 81,
       payment_method: 'wire',
       reference_number: `OVER-${runId}`,
     }),
@@ -348,13 +362,13 @@ async function runSmoke() {
   const paidInvoice = await request(`/payments/${created.invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({
-      amount: 60,
+      amount: 80,
       payment_method: 'wire',
       reference_number: `BAL-${runId}`,
     }),
   });
   assert.equal(paidInvoice.status, 'paid');
-  assert.equal(paidInvoice.amount_paid, 100);
+  assert.equal(paidInvoice.amount_paid, 120);
   assert.equal(paidInvoice.amount_due, 0);
 
   await expectRequestFailure(`/payments/${created.invoiceId}/pay`, {

@@ -49,13 +49,20 @@ export default function Payments() {
   const saveEdit = async () => {
     if (!editTarget) return;
     try {
-      await fetch(`/api/payments/${editTarget.id}`, {
+      const res = await fetch(`/api/payments/${editTarget.id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm),
       });
+      if (!res.ok) {
+        toast.error(await readError(res, t('page.payments.failedUpdateInvoice')));
+        return;
+      }
       setEditTarget(null);
       load();
-    } catch (e) { console.error('Edit failed', e); }
+    } catch (e) {
+      console.error('Edit failed', e);
+      toast.error(t('page.payments.failedUpdateInvoice'));
+    }
   };
 
   const createInvoice = async () => {
