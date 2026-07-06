@@ -8,6 +8,7 @@ const router = Router();
 
 const ORDER_UPDATE_FIELDS = [
   'customer_po_number',
+  'order_number',
   'company_id',
   'contact_id',
   'quotation_id',

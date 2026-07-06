@@ -30,7 +30,7 @@ export default function OrderDetail() {
   const [editingShipQty, setEditingShipQty] = useState<Record<string, number>>({});
   const [editForm, setEditForm] = useState({
     customer_po_number: '', incoterm: '', payment_term: '', confirmed_delivery_date: '', shipping_address: '',
-    order_date: '',
+    order_date: '', order_number: '',
   });
 
   const load = () => {
@@ -124,6 +124,7 @@ export default function OrderDetail() {
             <button onClick={() => {
               setEditForm({
                 customer_po_number: order.customer_po_number || '',
+                order_number: order.order_number || '',
                 order_date: order.order_date?.slice(0, 10) || '',
                 incoterm: order.incoterm || '',
                 payment_term: order.payment_term || '',
@@ -193,6 +194,10 @@ export default function OrderDetail() {
                 <div>
                   <label className="label">{t('page.orderDetail.poNumber')}</label>
                   <input className="input" value={editForm.customer_po_number} onChange={e => setEditForm({...editForm, customer_po_number: e.target.value})} />
+                </div>
+                <div>
+                  <label className="label">{t('page.orderDetail.orderNumber')}</label>
+                  <input className="input font-mono" value={editForm.order_number} onChange={e => setEditForm({...editForm, order_number: e.target.value})} />
                 </div>
                 <div>
                   <label className="label">{t('page.orderDetail.incoterm')}</label>
