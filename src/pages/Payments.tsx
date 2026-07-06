@@ -38,6 +38,13 @@ export default function Payments() {
 
   useEffect(() => { load(); }, []);
 
+  // Re-fetch when window regains focus (e.g. after editing order number in another tab)
+  useEffect(() => {
+    const onFocus = () => load();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
   const remove = async (id: string) => {
     try {
       await fetch(`/api/payments/${id}`, { method: 'DELETE' });
