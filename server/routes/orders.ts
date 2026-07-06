@@ -100,7 +100,8 @@ router.post('/', (req: Request, res: Response) => {
 
   const id = uuidv4();
   const now = new Date().toISOString();
-  const order_number = nextOrderNumber(co.customer_code);
+  const orderDate = req.body.order_date || now.slice(0, 10);
+  const order_number = nextOrderNumber(co.customer_code, orderDate);
 
   const { incoterm, payment_term, tax_type, domestic_vat_rate, export_tax_rebate_rate, shipping_handling, discount_percent, discount_amount, tax_amount, line_items } = req.body;
 
@@ -116,7 +117,7 @@ router.post('/', (req: Request, res: Response) => {
     req.body.subtotal || 0, discount_percent || 0, discount_amount || 0,
     tax_type || null, domestic_vat_rate || 0, export_tax_rebate_rate || 0,
     tax_amount || 0, shipping_handling || 0,
-    req.body.total || 0, 'draft', now.slice(0, 10), now, now);
+    req.body.total || 0, 'draft', orderDate, now, now);
 
   // Copy line items from quotation into order
   if (line_items && line_items.length > 0) {

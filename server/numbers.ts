@@ -32,9 +32,9 @@ export function nextQuotationNumber(): string {
  * Generate {PREFIX}-{CUSTOMER_CODE}-{YYMM}-{SEQ2}
  * SEQ per customer+month, auto-incrementing.
  */
-export function nextOrderNumber(customerCode: string): string {
+export function nextOrderNumber(customerCode: string, date?: string): string {
   const prefix = getCompanyPrefix();
-  const yy = yymm();
+  const yy = yymm(date);
   const pattern = `${prefix}-${customerCode}-${yy}-`;
   const count = (db.prepare("SELECT COUNT(*) as c FROM orders WHERE order_number LIKE ?").get(`${pattern}%`) as any).c + 1;
   return `${pattern}${String(count).padStart(2, '0')}`;
