@@ -10,12 +10,14 @@ export default function Dashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [quotations, setQuotations] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
+  const [samples, setSamples] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/api/payments').then(r => r.json()).then(setInvoices).catch(() => {});
     fetch('/api/orders').then(r => r.json()).then(setOrders).catch(() => {});
     fetch('/api/quotations').then(r => r.json()).then(setQuotations).catch(() => {});
     fetch('/api/inquiries').then(r => r.json()).then(setInquiries).catch(() => {});
+    fetch('/api/sample-requests').then(r => r.json()).then(setSamples).catch(() => {});
   }, []);
 
   const now = new Date();
@@ -52,36 +54,56 @@ export default function Dashboard() {
   };
 
   // Sales Pipeline
+  const activeSamples = samples.filter((s: any) => ['approved', 'dispatched', 'delivered', 'testing_in_progress'].includes(s.status));
   const pipeline = [
     { labelKey: 'stageInquiry', count: inquiries.filter((i: any) => ['open', 'under_review'].includes(i.status)).length, link: '/inquiries', icon: Inbox },
     { labelKey: 'stageQuotation', count: openQuotes.length, link: '/quotations', icon: FileText },
-    { labelKey: 'stageSample', count: 0, link: '/samples', icon: FlaskConical },
+    { labelKey: 'stageSample', count: activeSamples.length, link: '/samples', icon: FlaskConical },
     { labelKey: 'stageConfirmed', count: orders.filter((o: any) => o.status === 'confirmed').length, link: '/orders', icon: BadgeCheck },
     { labelKey: 'stageProduction', count: orders.filter((o: any) => ['in_production', 'quality_check'].includes(o.status)).length, link: '/orders', icon: Factory },
     { labelKey: 'stageShipment', count: orders.filter((o: any) => ['ready_to_ship', 'shipped'].includes(o.status)).length, link: '/orders', icon: Truck },
     { labelKey: 'stagePayment', count: invoices.filter((i: any) => i.status !== 'paid' && i.status !== 'cancelled').length, link: '/payments', icon: Wallet },
   ];
 
-  // Monthly Performance
+  // Monthly Performance — accepted quotations + active orders
   const thisMonthQuotes = quotations.filter((q: any) => {
     if (q.status !== 'accepted') return false;
     const d = new Date(q.accepted_at || q.updated_at);
     return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
   });
-  const actualUSD = thisMonthQuotes.filter((q: any) => !q.currency || q.currency === 'USD')
-    .reduce((s: number, q: any) => s + (q.total || 0), 0);
-  const actualCNY = thisMonthQuotes.filter((q: any) => q.currency === 'CNY')
-    .reduce((s: number, q: any) => s + (q.total || 0), 0);
+  const thisMonthOrders = orders.filter((o: any) => {
+    if (o.status === 'draft' || o.status === 'cancelled') return false;
+    const d = new Date(o.created_at);
+    return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+  });
+
+  // Combine: use orders first (higher authority), skip quotes that already became orders
+  const quoteOrderIds = new Set(thisMonthOrders.filter((o: any) => o.quotation_id).map((o: any) => o.quotation_id));
+  const standaloneQuotes = thisMonthQuotes.filter((q: any) => !quoteOrderIds.has(q.id));
+
+  const combinedDeals = [
+    ...thisMonthOrders.map((o: any) => ({
+      company_name: o.company_name, currency: o.currency || 'USD', total: o.total || 0,
+    })),
+    ...standaloneQuotes.map((q: any) => ({
+      company_name: q.company_name, currency: q.currency || 'USD', total: q.total || 0,
+    })),
+  ];
+
+  const actualUSD = combinedDeals.filter((d: any) => !d.currency || d.currency === 'USD')
+    .reduce((s: number, d: any) => s + d.total, 0);
+  const actualCNY = combinedDeals.filter((d: any) => d.currency === 'CNY')
+    .reduce((s: number, d: any) => s + d.total, 0);
   const targetUSD = 50000;
   const targetCNY = 500000;
   const pctUSD = targetUSD > 0 ? Math.round((actualUSD / targetUSD) * 100) : 0;
 
   // Top Customers
   const byCompany: Record<string, { total: number; currency: string; count: number; id: string }> = {};
-  thisMonthQuotes.forEach((q: any) => {
-    const key = q.company_name || q.company_id || t('page.dashboard.unknownCustomer');
-    if (!byCompany[key]) byCompany[key] = { total: 0, currency: q.currency || 'USD', count: 0, id: key };
-    byCompany[key].total += (q.total || 0);
+  combinedDeals.forEach((d: any) => {
+    const key = d.company_name || t('page.dashboard.unknownCustomer');
+    if (!byCompany[key]) byCompany[key] = { total: 0, currency: d.currency || 'USD', count: 0, id: key };
+    byCompany[key].total += d.total;
     byCompany[key].count += 1;
   });
   const topCustomers = Object.entries(byCompany).map(([name, data]) => ({ name, ...data }))

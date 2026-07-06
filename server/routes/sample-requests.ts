@@ -4,6 +4,17 @@ import db from '../db.js';
 
 const router = Router();
 
+router.get('/', (_req: Request, res: Response) => {
+  const rows = db.prepare(`
+    SELECT s.*, c.name as company_name
+    FROM sample_requests s
+    LEFT JOIN companies c ON s.company_id = c.id
+    WHERE s.deleted_at IS NULL
+    ORDER BY s.created_at DESC
+  `).all();
+  res.json(rows);
+});
+
 router.post('/', (req: Request, res: Response) => {
   const id = uuidv4();
   const now = new Date().toISOString();
