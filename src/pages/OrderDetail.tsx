@@ -309,7 +309,33 @@ export default function OrderDetail() {
                           onChange={e => setEditingShipQty(prev => ({...prev, [item.id]: parseFloat(e.target.value) || 0}))}
                         />
                       </td>
-                      <td className="table-cell text-xs text-gray-500">{item.unit_of_measure}</td>
+                      <td className="table-cell">
+                        <select
+                          className="input text-xs h-7 py-0 px-1.5"
+                          value={item.unit_of_measure || ''}
+                          onChange={async (e) => {
+                            const newUnit = e.target.value;
+                            try {
+                              const res = await fetch(`/api/orders/line-items/${item.id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ unit_of_measure: newUnit }),
+                              });
+                              if (!res.ok) throw new Error('Failed');
+                              toast.success(t('page.orderDetail.unitUpdated'));
+                              load();
+                            } catch {
+                              toast.error(t('page.orderDetail.unitUpdateFailed'));
+                            }
+                          }}
+                        >
+                          <option value="kg">kg</option>
+                          <option value="lb">lb</option>
+                          <option value="m">m</option>
+                          <option value="sheet">sheet</option>
+                          <option value="pc">pc</option>
+                        </select>
+                      </td>
                       <td className="table-cell text-right font-mono text-sm">{sym}{(item.unit_price || 0).toFixed(2)}</td>
                       <td className="table-cell text-right font-mono text-sm font-medium">{sym}{(item.line_total || 0).toFixed(2)}</td>
                       <td className="table-cell text-right font-mono text-sm font-medium text-blue-600">{sym}{shippedTotal.toFixed(2)}</td>
