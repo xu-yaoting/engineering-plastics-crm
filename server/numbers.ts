@@ -59,12 +59,35 @@ export function nextOrderNumber(customerCode: string, date?: string): string {
   return `${customerPattern}${yy}-${String(nextSequence).padStart(2, '0')}`;
 }
 
+function shipmentBaseFromOrderNumber(orderNumber: string): string {
+  const parts = orderNumber.split('-').filter(Boolean);
+  if (parts.length >= 4) return parts.slice(-2).join('-');
+  return orderNumber;
+}
+
 /**
- * Generate {ORDER_NUMBER}-S{SEQ} for multiple shipments
+ * Generate {YYMM}-{ORDER_SEQ}-S{SEQ} for multiple shipments.
+ * Also counts old {ORDER_NUMBER}-S{SEQ} records so existing shipments do not reset.
  */
 export function nextShipmentNumber(orderNumber: string): string {
-  const count = (db.prepare("SELECT COUNT(*) as c FROM shipments WHERE shipment_number LIKE ?").get(`${orderNumber}-S%`) as any).c + 1;
-  return `${orderNumber}-S${count}`;
+  const shortBase = shipmentBaseFromOrderNumber(orderNumber);
+  const rows = db.prepare(`
+    SELECT shipment_number FROM shipments
+    WHERE deleted_at IS NULL
+      AND (
+        shipment_number LIKE ? ESCAPE '\\'
+        OR shipment_number LIKE ? ESCAPE '\\'
+      )
+  `).all(`${escapeLike(shortBase)}-S%`, `${escapeLike(orderNumber)}-S%`) as Array<{ shipment_number: string }>;
+  const shipmentPattern = new RegExp(`^(?:${escapeRegExp(shortBase)}|${escapeRegExp(orderNumber)})-S(\\d+)$`);
+  const maxSequence = rows.reduce((max, row) => {
+    const match = row.shipment_number.match(shipmentPattern);
+    if (!match) return max;
+    const sequence = Number(match[1]);
+    return Number.isFinite(sequence) ? Math.max(max, sequence) : max;
+  }, 0);
+  const nextSequence = maxSequence + 1;
+  return `${shortBase}-S${nextSequence}`;
 }
 
 /**

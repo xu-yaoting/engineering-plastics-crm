@@ -394,6 +394,7 @@ async function runSmoke() {
   });
   created.shipmentId = shipment.id;
   assert.equal(shipment.order_id, created.orderId);
+  assert.match(shipment.shipment_number, /^\d{4}-\d{2}-S1$/);
 
   const updatedShipment = await request(`/shipments/${created.shipmentId}`, {
     method: 'PUT',
