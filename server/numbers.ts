@@ -12,6 +12,14 @@ function yymm(d?: string): string {
   return s.slice(2, 4) + s.slice(5, 7);
 }
 
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /** Generate INQ-YYMM-0001 */
 export function nextInquiryNumber(): string {
   const yy = yymm();
@@ -30,14 +38,25 @@ export function nextQuotationNumber(): string {
 
 /**
  * Generate {PREFIX}-{CUSTOMER_CODE}-{YYMM}-{SEQ2}
- * SEQ per customer+month, auto-incrementing.
+ * SEQ is per customer code, not per month.
  */
 export function nextOrderNumber(customerCode: string, date?: string): string {
   const prefix = getCompanyPrefix();
   const yy = yymm(date);
-  const pattern = `${prefix}-${customerCode}-${yy}-`;
-  const count = (db.prepare("SELECT COUNT(*) as c FROM orders WHERE order_number LIKE ?").get(`${pattern}%`) as any).c + 1;
-  return `${pattern}${String(count).padStart(2, '0')}`;
+  const customerPattern = `${prefix}-${customerCode}-`;
+  const rows = db.prepare(`
+    SELECT order_number FROM orders
+    WHERE deleted_at IS NULL AND order_number LIKE ? ESCAPE '\\'
+  `).all(`${escapeLike(customerPattern)}%`) as Array<{ order_number: string }>;
+  const orderNumberPattern = new RegExp(`^${escapeRegExp(customerPattern)}\\d{4}-(\\d+)$`);
+  const maxSequence = rows.reduce((max, row) => {
+    const match = row.order_number.match(orderNumberPattern);
+    if (!match) return max;
+    const sequence = Number(match[1]);
+    return Number.isFinite(sequence) ? Math.max(max, sequence) : max;
+  }, 0);
+  const nextSequence = maxSequence + 1;
+  return `${customerPattern}${yy}-${String(nextSequence).padStart(2, '0')}`;
 }
 
 /**
