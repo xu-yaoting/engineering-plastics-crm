@@ -68,7 +68,7 @@ router.post('/', (req: Request, res: Response) => {
 
   const id = uuidv4();
   const now = new Date().toISOString();
-  const shipment_number = nextShipmentNumber(ord.order_number);
+  const shipment_number = nextShipmentNumber();
 
   const {
     order_id, shipping_type, carrier, tracking_number, shipping_address, notes, status,

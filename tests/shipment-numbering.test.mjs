@@ -5,12 +5,14 @@ import test from 'node:test';
 const numbersSource = readFileSync(new URL('../server/numbers.ts', import.meta.url), 'utf8');
 const smokeSource = readFileSync(new URL('../tests/api-write-smoke.mjs', import.meta.url), 'utf8');
 
-test('shipment numbers use the short order suffix plus shipment sequence', () => {
-  assert.match(numbersSource, /function shipmentBaseFromOrderNumber\(orderNumber: string\): string/);
-  assert.match(numbersSource, /return parts\.slice\(-2\)\.join\('-'\)/);
-  assert.match(numbersSource, /return `\$\{shortBase\}-S\$\{nextSequence\}`/);
+test('shipment numbers follow the invoice-style yearly global sequence', () => {
+  assert.match(numbersSource, /export function nextShipmentNumber\(\): string/);
+  assert.match(numbersSource, /SELECT COUNT\(\*\) as c FROM shipments/);
+  assert.match(numbersSource, /return `SHP-\$\{now\.slice\(2, 4\)\}-\$\{String\(count\)\.padStart\(4, '0'\)\}`/);
+  assert.doesNotMatch(numbersSource, /shipmentBaseFromOrderNumber/);
+  assert.doesNotMatch(numbersSource, /orderNumber.*-S/);
 });
 
-test('shipment smoke check rejects full company-prefixed shipment numbers', () => {
-  assert.match(smokeSource, /assert\.match\(shipment\.shipment_number, \/\^\\d\{4\}-\\d\{2\}-S1\$\//);
+test('shipment smoke check requires the invoice-style shipment number format', () => {
+  assert.match(smokeSource, /assert\.match\(shipment\.shipment_number, \/\^SHP-\\d\{2\}-\\d\{4\}\$\//);
 });
