@@ -14,6 +14,7 @@ export default function Quotations() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [sortBy, setSortBy] = useState('quotation_date_desc');
 
   useEffect(() => {
     quotations.list().then(setList).finally(() => setLoading(false));
@@ -25,9 +26,13 @@ export default function Quotations() {
      q.company_name?.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const recent = [...filtered].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-
+  const dateValue = (value: string | undefined | null) => value ? new Date(value).getTime() || 0 : 0;
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === 'quotation_date_asc') return dateValue(a.quotation_date || a.created_at) - dateValue(b.quotation_date || b.created_at);
+    if (sortBy === 'total_desc') return Number(b.total || 0) - Number(a.total || 0);
+    if (sortBy === 'total_asc') return Number(a.total || 0) - Number(b.total || 0);
+    return dateValue(b.quotation_date || b.created_at) - dateValue(a.quotation_date || a.created_at);
+  });
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -52,6 +57,12 @@ export default function Quotations() {
           <option value="rejected">{t('status.rejected')}</option>
           <option value="expired">{t('status.expired')}</option>
         </select>
+        <select className="input max-w-[220px]" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="quotation_date_desc">{t('page.quotations.quotationDateNewest')}</option>
+          <option value="quotation_date_asc">{t('page.quotations.quotationDateOldest')}</option>
+          <option value="total_desc">{t('page.quotations.totalHighToLow')}</option>
+          <option value="total_asc">{t('page.quotations.totalLowToHigh')}</option>
+        </select>
       </div>
 
       {loading ? (
@@ -72,7 +83,7 @@ export default function Quotations() {
               </tr>
             </thead>
             <tbody>
-              {recent.map(q => (
+              {sorted.map(q => (
                 <tr key={q.id} className="table-row" onClick={() => navigate(`/quotations/${q.id}`)}>
                   <td className="table-cell font-medium text-blue-600">{q.quotation_number}</td>
                   <td className="table-cell text-xs text-gray-500">{q.quotation_date || q.created_at?.slice(0, 10) || '—'}</td>
@@ -86,7 +97,7 @@ export default function Quotations() {
               ))}
             </tbody>
           </table>
-          {recent.length === 0 && (
+          {sorted.length === 0 && (
             <div className="text-center py-12 text-gray-400 text-sm">{t('noData.quotations')}</div>
           )}
         </div>

@@ -187,6 +187,10 @@ const en = {
       number: 'Number', date: 'Date', company: 'Company', status: 'Status', total: 'Total',
       currency: 'Currency', validUntil: 'Valid Until', version: 'Version',
       all: 'All', rev: 'Rev',
+      quotationDateNewest: 'Quotation date: newest first',
+      quotationDateOldest: 'Quotation date: oldest first',
+      totalHighToLow: 'Total: high to low',
+      totalLowToHigh: 'Total: low to high',
     },
     orders: {
       order: 'Order', orderNumber: 'Order #', company: 'Company',
@@ -699,6 +703,10 @@ const zh: typeof en = {
       number: '编号', date: '日期', company: '公司', status: '状态', total: '总额',
       currency: '币种', validUntil: '有效期至', version: '版本',
       all: '全部', rev: '版本',
+      quotationDateNewest: '报价日期：最新优先',
+      quotationDateOldest: '报价日期：最早优先',
+      totalHighToLow: '金额：从高到低',
+      totalLowToHigh: '金额：从低到高',
     },
     quotationDetail: {
       back: '返回', edit: '编辑', email: '邮件', createOrder: '创建订单',

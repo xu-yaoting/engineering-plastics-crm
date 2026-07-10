@@ -13,6 +13,7 @@ const source = files
   .join('\n');
 
 const dictionarySource = readFileSync(new URL('../src/lib/i18n.tsx', import.meta.url), 'utf8');
+const quotationsSource = readFileSync(new URL('../src/pages/Quotations.tsx', import.meta.url), 'utf8');
 
 test('inquiry and quotation batch no longer renders obvious hard-coded English UI labels', () => {
   const forbidden = [
@@ -69,6 +70,10 @@ test('inquiry and quotation batch no longer renders obvious hard-coded English U
     />Valid Until</,
     />Version</,
     />Rev /,
+    /Quotation date: newest first/,
+    /Quotation date: oldest first/,
+    /Total: high to low/,
+    /Total: low to high/,
   ];
 
   for (const pattern of forbidden) {
@@ -91,6 +96,10 @@ test('second localization batch has dictionary entries for inquiry and quotation
     'noDescription',
     'editInquiry',
     'rev',
+    'quotationDateNewest',
+    'quotationDateOldest',
+    'totalHighToLow',
+    'totalLowToHigh',
     'pendingApproval',
     'approved',
   ];
@@ -98,4 +107,15 @@ test('second localization batch has dictionary entries for inquiry and quotation
   for (const key of requiredKeys) {
     assert.match(dictionarySource, new RegExp(`${key}:`), `Missing i18n key: ${key}`);
   }
+});
+
+test('quotations list defaults to quotation date sorting and exposes sort options', () => {
+  assert.match(quotationsSource, /useState\('quotation_date_desc'\)/);
+  assert.match(quotationsSource, /dateValue\(b\.quotation_date \|\| b\.created_at\) - dateValue\(a\.quotation_date \|\| a\.created_at\)/);
+  assert.match(quotationsSource, /value=\{sortBy\}/);
+  assert.match(quotationsSource, /setSortBy\(e\.target\.value\)/);
+  assert.match(quotationsSource, /value="quotation_date_desc"/);
+  assert.match(quotationsSource, /value="quotation_date_asc"/);
+  assert.match(quotationsSource, /value="total_desc"/);
+  assert.match(quotationsSource, /value="total_asc"/);
 });
