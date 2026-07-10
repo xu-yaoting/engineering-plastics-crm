@@ -73,8 +73,8 @@ test('dashboard localization dictionary contains the batch keys', () => {
     'accountsReceivableAlert', 'customer', 'invoice', 'amount',
     'currencyShort', 'dueDate', 'overdue', 'dueToday', 'dueSoon',
     'normal', 'allInvoicesPaid', 'salesPipeline',
-    'stageInquiry', 'stageQuotation', 'stageSample', 'stageConfirmed',
-    'stageProduction', 'stageShipment', 'stagePayment',
+    'stageInquiry', 'stageQuotation', 'stageSample',
+    'stageShipment', 'stagePayment',
     'noActiveDeals', 'recentInquiries', 'noInquiries',
     'thisMonthSales', 'currency', 'target', 'actual',
     'noClosedSalesThisMonth', 'topCustomersThisMonth', 'deals',
@@ -86,4 +86,18 @@ test('dashboard localization dictionary contains the batch keys', () => {
   for (const key of requiredKeys) {
     assert.match(dictionarySource, new RegExp(`${key}:`));
   }
+});
+
+test('dashboard sales pipeline uses real module counts without unused stages', () => {
+  assert.match(source, /fetch\('\/api\/shipments'\)/);
+  assert.match(source, /count: inquiries\.length/);
+  assert.match(source, /count: quotations\.length/);
+  assert.match(source, /count: samples\.length/);
+  assert.match(source, /count: shipments\.length/);
+  assert.match(source, /count: invoices\.length/);
+  assert.match(source, /link: '\/shipments'/);
+  assert.doesNotMatch(source, /stageConfirmed/);
+  assert.doesNotMatch(source, /stageProduction/);
+  assert.doesNotMatch(source, /BadgeCheck/);
+  assert.doesNotMatch(source, /Factory/);
 });

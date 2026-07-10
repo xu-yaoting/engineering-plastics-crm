@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, AlertTriangle, Award, CheckCircle, FileText, ReceiptText, Workflow, TrendingUp, CalendarClock, Inbox, FlaskConical, BadgeCheck, Factory, Truck, Wallet } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Award, CheckCircle, FileText, ReceiptText, Workflow, TrendingUp, CalendarClock, Inbox, FlaskConical, Truck, Wallet } from 'lucide-react';
 import { formatCurrency } from '../lib/currency';
 import { useTranslation } from 'react-i18next';
 
@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [quotations, setQuotations] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [samples, setSamples] = useState<any[]>([]);
+  const [shipments, setShipments] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/api/payments').then(r => r.json()).then(setInvoices).catch(() => {});
@@ -18,6 +19,7 @@ export default function Dashboard() {
     fetch('/api/quotations').then(r => r.json()).then(setQuotations).catch(() => {});
     fetch('/api/inquiries').then(r => r.json()).then(setInquiries).catch(() => {});
     fetch('/api/sample-requests').then(r => r.json()).then(setSamples).catch(() => {});
+    fetch('/api/shipments').then(r => r.json()).then(setShipments).catch(() => {});
   }, []);
 
   const now = new Date();
@@ -54,15 +56,12 @@ export default function Dashboard() {
   };
 
   // Sales Pipeline
-  const activeSamples = samples.filter((s: any) => ['approved', 'dispatched', 'delivered', 'testing_in_progress'].includes(s.status));
   const pipeline = [
-    { labelKey: 'stageInquiry', count: inquiries.filter((i: any) => ['open', 'under_review'].includes(i.status)).length, link: '/inquiries', icon: Inbox },
-    { labelKey: 'stageQuotation', count: openQuotes.length, link: '/quotations', icon: FileText },
-    { labelKey: 'stageSample', count: activeSamples.length, link: '/samples', icon: FlaskConical },
-    { labelKey: 'stageConfirmed', count: orders.filter((o: any) => o.status === 'confirmed').length, link: '/orders', icon: BadgeCheck },
-    { labelKey: 'stageProduction', count: orders.filter((o: any) => ['in_production', 'quality_check'].includes(o.status)).length, link: '/orders', icon: Factory },
-    { labelKey: 'stageShipment', count: orders.filter((o: any) => ['ready_to_ship', 'shipped'].includes(o.status)).length, link: '/orders', icon: Truck },
-    { labelKey: 'stagePayment', count: invoices.filter((i: any) => i.status !== 'paid' && i.status !== 'cancelled').length, link: '/payments', icon: Wallet },
+    { labelKey: 'stageInquiry', count: inquiries.length, link: '/inquiries', icon: Inbox },
+    { labelKey: 'stageQuotation', count: quotations.length, link: '/quotations', icon: FileText },
+    { labelKey: 'stageSample', count: samples.length, link: '/samples', icon: FlaskConical },
+    { labelKey: 'stageShipment', count: shipments.length, link: '/shipments', icon: Truck },
+    { labelKey: 'stagePayment', count: invoices.length, link: '/payments', icon: Wallet },
   ];
 
   // Monthly Performance — accepted quotations + active orders
