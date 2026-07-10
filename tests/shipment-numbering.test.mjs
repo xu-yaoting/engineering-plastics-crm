@@ -7,8 +7,10 @@ const smokeSource = readFileSync(new URL('../tests/api-write-smoke.mjs', import.
 
 test('shipment numbers follow the invoice-style yearly global sequence', () => {
   assert.match(numbersSource, /export function nextShipmentNumber\(\): string/);
-  assert.match(numbersSource, /SELECT COUNT\(\*\) as c FROM shipments/);
-  assert.match(numbersSource, /return `SHP-\$\{now\.slice\(2, 4\)\}-\$\{String\(count\)\.padStart\(4, '0'\)\}`/);
+  assert.match(numbersSource, /SELECT COUNT\(\*\) as c FROM shipments WHERE deleted_at IS NULL/);
+  assert.match(numbersSource, /SELECT id FROM shipments WHERE shipment_number = \?/);
+  assert.match(numbersSource, /while \(db\.prepare/);
+  assert.match(numbersSource, /return shipmentNumber/);
   assert.doesNotMatch(numbersSource, /shipmentBaseFromOrderNumber/);
   assert.doesNotMatch(numbersSource, /orderNumber.*-S/);
 });

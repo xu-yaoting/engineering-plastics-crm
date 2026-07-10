@@ -89,6 +89,9 @@ async function cleanup() {
   }
   if (created.shipmentId) {
     await request(`/shipments/${created.shipmentId}`, { method: 'DELETE' }).catch(() => {});
+    const db = new Database(new URL('../crm.db', import.meta.url).pathname);
+    db.prepare("DELETE FROM shipments WHERE id = ?").run(created.shipmentId);
+    db.close();
   }
   if (created.invoiceId) {
     await request(`/payments/${created.invoiceId}`, { method: 'DELETE' }).catch(() => {});

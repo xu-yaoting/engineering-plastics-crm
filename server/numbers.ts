@@ -62,8 +62,16 @@ export function nextOrderNumber(customerCode: string, date?: string): string {
 /** Generate SHP-YY-0001, matching the invoice numbering style */
 export function nextShipmentNumber(): string {
   const now = new Date().toISOString();
-  const count = (db.prepare("SELECT COUNT(*) as c FROM shipments").get() as any).c + 1;
-  return `SHP-${now.slice(2, 4)}-${String(count).padStart(4, '0')}`;
+  const yy = now.slice(2, 4);
+  let sequence = (db.prepare("SELECT COUNT(*) as c FROM shipments WHERE deleted_at IS NULL").get() as any).c + 1;
+  let shipmentNumber = `SHP-${yy}-${String(sequence).padStart(4, '0')}`;
+
+  while (db.prepare("SELECT id FROM shipments WHERE shipment_number = ?").get(shipmentNumber)) {
+    sequence += 1;
+    shipmentNumber = `SHP-${yy}-${String(sequence).padStart(4, '0')}`;
+  }
+
+  return shipmentNumber;
 }
 
 /**
