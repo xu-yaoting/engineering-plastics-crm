@@ -192,6 +192,10 @@ const en = {
       order: 'Order', orderNumber: 'Order #', company: 'Company',
       status: 'Status', payment: 'Payment', total: 'Total', date: 'Date',
       searchOrders: 'Search orders...',
+      orderDateNewest: 'Order date: newest first',
+      orderDateOldest: 'Order date: oldest first',
+      totalHighToLow: 'Total: high to low',
+      totalLowToHigh: 'Total: low to high',
     },
     inventory: {
       dashboardTab: 'Dashboard', productsTab: 'Products', ledgerTab: 'Ledger',
@@ -747,6 +751,10 @@ const zh: typeof en = {
       order: '订单', orderNumber: '订单号', company: '公司',
       status: '状态', payment: '付款', total: '总额', date: '日期',
       searchOrders: '搜索订单...',
+      orderDateNewest: '订单日期：最新优先',
+      orderDateOldest: '订单日期：最早优先',
+      totalHighToLow: '金额：从高到低',
+      totalLowToHigh: '金额：从低到高',
     },
     inventory: {
       dashboardTab: '概览', productsTab: '产品', ledgerTab: '流水',

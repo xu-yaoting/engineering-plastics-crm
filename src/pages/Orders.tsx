@@ -12,6 +12,7 @@ export default function Orders() {
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('order_date_desc');
 
   useEffect(() => {
     fetch('/api/orders')
@@ -27,6 +28,14 @@ export default function Orders() {
     o.customer_po_number?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const dateValue = (value: string | undefined | null) => value ? new Date(value).getTime() || 0 : 0;
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === 'order_date_asc') return dateValue(a.order_date || a.created_at) - dateValue(b.order_date || b.created_at);
+    if (sortBy === 'total_desc') return Number(b.total || 0) - Number(a.total || 0);
+    if (sortBy === 'total_asc') return Number(a.total || 0) - Number(b.total || 0);
+    return dateValue(b.order_date || b.created_at) - dateValue(a.order_date || a.created_at);
+  });
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -39,6 +48,12 @@ export default function Orders() {
 
       <div className="flex items-center gap-3 mb-4">
         <input className="input max-w-sm" placeholder={t('common.searchOrders')} value={search} onChange={e => setSearch(e.target.value)} />
+        <select className="input max-w-[220px]" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="order_date_desc">{t('page.orders.orderDateNewest')}</option>
+          <option value="order_date_asc">{t('page.orders.orderDateOldest')}</option>
+          <option value="total_desc">{t('page.orders.totalHighToLow')}</option>
+          <option value="total_asc">{t('page.orders.totalLowToHigh')}</option>
+        </select>
       </div>
 
       {loading ? (
@@ -57,7 +72,7 @@ export default function Orders() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((o: any) => (
+              {sorted.map((o: any) => (
                 <tr key={o.id} className="table-row" onClick={() => navigate(`/orders/${o.id}`)}>
                   <td className="table-cell font-medium text-blue-600">{o.order_number}</td>
                   <td className="table-cell text-gray-900">{o.company_name || '—'}</td>
@@ -67,7 +82,7 @@ export default function Orders() {
                   <td className="table-cell text-xs text-gray-400">{o.order_date?.slice(0, 10)}</td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {sorted.length === 0 && (
                 <tr><td colSpan={6} className="text-center py-12 text-gray-400 text-sm">{t('noData.orders')}</td></tr>
               )}
             </tbody>
