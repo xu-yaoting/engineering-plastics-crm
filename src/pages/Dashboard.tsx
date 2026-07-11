@@ -207,8 +207,8 @@ export default function Dashboard() {
                 return (
                   <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="px-3 py-2 text-xs text-gray-700 max-w-[120px] truncate">{inv.company_name || '—'}</td>
-                    <td className="px-3 py-2 text-xs font-mono text-blue-600">{inv.order_number || '—'}</td>
-                    <td className="px-3 py-2 text-xs font-mono text-right">{formatCurrency(inv.amount_due || inv.total, inv.currency)}</td>
+                    <td className="px-3 py-2 text-xs tabular-nums text-blue-600">{inv.order_number || '—'}</td>
+                    <td className="px-3 py-2 text-xs tabular-nums text-right">{formatCurrency(inv.amount_due || inv.total, inv.currency)}</td>
                     <td className="px-3 py-2 text-2xs text-center text-gray-400">{inv.currency || 'USD'}</td>
                     <td className="px-3 py-2 text-xs text-gray-600">{inv.due_date?.slice(0, 10)}</td>
                     <td className="px-3 py-2 text-center">
@@ -307,7 +307,7 @@ export default function Dashboard() {
             {actualUSD > 0 && (
               <div className="flex items-center justify-between py-1.5 border-b border-gray-50">
                 <span className="text-xs font-medium text-gray-600">USD</span>
-                <span className="text-xs font-mono text-gray-500">{formatCurrency(targetUSD, 'USD')}</span>
+                <span className="text-xs tabular-nums text-gray-500">{formatCurrency(targetUSD, 'USD')}</span>
                 <span className="text-sm font-semibold text-gray-900">{formatCurrency(actualUSD, 'USD')}</span>
                 <span className={`text-xs font-semibold ${pctUSD >= 100 ? 'text-green-600' : pctUSD >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>{pctUSD}%</span>
               </div>
@@ -315,7 +315,7 @@ export default function Dashboard() {
             {actualCNY > 0 && (
               <div className="flex items-center justify-between py-1.5 border-b border-gray-50">
                 <span className="text-xs font-medium text-gray-600">CNY</span>
-                <span className="text-xs font-mono text-gray-500">{formatCurrency(targetCNY, 'CNY')}</span>
+                <span className="text-xs tabular-nums text-gray-500">{formatCurrency(targetCNY, 'CNY')}</span>
                 <span className="text-sm font-semibold text-gray-900">{formatCurrency(actualCNY, 'CNY')}</span>
                 <span className="text-xs font-semibold">{Math.round((actualCNY / targetCNY) * 100)}%</span>
               </div>
@@ -347,7 +347,7 @@ export default function Dashboard() {
                      <span className="w-6 h-6 flex items-center justify-center text-xs font-medium text-gray-300">{idx + 1}</span>}
                     <span className="flex-1 text-sm text-gray-700 truncate">{c.name}</span>
                     <span className="text-xs text-gray-400">{t('page.dashboard.deals', { count: c.count })}</span>
-                    <span className="text-sm font-mono font-semibold text-gray-900">{formatCurrency(c.total, c.currency)}</span>
+                    <span className="text-sm tabular-nums font-semibold text-gray-900">{formatCurrency(c.total, c.currency)}</span>
                   </div>
                 ))}
               </div>
@@ -368,7 +368,7 @@ export default function Dashboard() {
             <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3">
                 <p className="text-2xs font-450 uppercase tracking-[0.08em] text-gray-400">{t('page.dashboard.outstandingReceivables')}</p>
-                <p className="mt-1 text-sm font-mono font-semibold text-gray-900">{formatWithCurrency(outstandingUSD, outstandingCNY)}</p>
+                <p className="mt-1 text-sm tabular-nums font-semibold text-gray-900">{formatWithCurrency(outstandingUSD, outstandingCNY)}</p>
               </div>
               <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3">
                 <p className="text-2xs font-450 uppercase tracking-[0.08em] text-gray-400">{t('page.dashboard.overdue')}</p>
@@ -391,8 +391,8 @@ export default function Dashboard() {
                       <p className="mt-0.5 text-2xs text-gray-400">{t('page.dashboard.agingBucketInvoices', { count: b.items.length })}</p>
                     </div>
                     <div className="text-right">
-                      {b.usdTotal > 0 && <p className="text-xs font-mono font-semibold text-gray-900">{formatCurrency(b.usdTotal, 'USD')}</p>}
-                      {b.cnyTotal > 0 && <p className="text-xs font-mono font-semibold text-gray-900">{formatCurrency(b.cnyTotal, 'CNY')}</p>}
+                      {b.usdTotal > 0 && <p className="text-xs tabular-nums font-semibold text-gray-900">{formatCurrency(b.usdTotal, 'USD')}</p>}
+                      {b.cnyTotal > 0 && <p className="text-xs tabular-nums font-semibold text-gray-900">{formatCurrency(b.cnyTotal, 'CNY')}</p>}
                       {b.usdTotal === 0 && b.cnyTotal === 0 && <p className="text-xs text-gray-300">—</p>}
                     </div>
                   </div>
@@ -404,7 +404,7 @@ export default function Dashboard() {
                       {b.items.slice(0, 4).map((inv: any) => (
                         <div key={inv.id} className="flex items-center justify-between gap-3 text-2xs text-gray-500">
                           <span className="min-w-0 truncate">{inv.company_name || inv.invoice_number}</span>
-                          <span className="flex-shrink-0 font-mono">{formatCurrency(inv.amount_due || inv.total, inv.currency)}</span>
+                          <span className="flex-shrink-0 tabular-nums">{formatCurrency(inv.amount_due || inv.total, inv.currency)}</span>
                         </div>
                       ))}
                       {b.items.length > 4 && <div className="text-2xs text-gray-400">{t('page.dashboard.more', { count: b.items.length - 4 })}</div>}

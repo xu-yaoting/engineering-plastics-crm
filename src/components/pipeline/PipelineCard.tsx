@@ -54,7 +54,7 @@ export default function PipelineCard({
       {/* Value + Urgency */}
       <div className="mb-2 flex items-center justify-between gap-2">
         {card.value > 0 ? (
-          <span className="text-xs font-mono font-medium text-gray-700">
+          <span className="text-xs tabular-nums font-medium text-gray-700">
             {card.currency === 'CNY' ? '¥' : '$'}{card.value.toLocaleString()}
           </span>
         ) : (

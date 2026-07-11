@@ -68,3 +68,13 @@ test('inventory SKUs and measurements use the interface font with aligned numera
   assert.doesNotMatch(inventorySource, /font-mono/);
   assert.match(inventorySource, /tabular-nums/);
 });
+
+test('workspace and pipeline cards use the interface font with aligned numerals', () => {
+  const workspaceSource = [
+    '../src/pages/Dashboard.tsx',
+    '../src/components/pipeline/PipelineCard.tsx',
+  ].map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
+
+  assert.doesNotMatch(workspaceSource, /font-mono/);
+  assert.match(workspaceSource, /tabular-nums/);
+});
