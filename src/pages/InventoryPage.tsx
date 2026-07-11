@@ -290,6 +290,7 @@ function ProductsTab() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [savingProduct, setSavingProduct] = useState(false);
   const [form, setForm] = useState<any>({
     sku: '', name: '', category: '',
     product_type: 'sheet', stock_tracking_mode: 'piece',
@@ -354,6 +355,7 @@ function ProductsTab() {
     : density && dims.length_mm ? calcPreviewWeight(dims, density) : null;
 
   const save = async () => {
+    if (savingProduct) return;
     const currentSku = form.sku?.trim();
     const currentName = form.name?.trim();
     if (!currentSku || !currentName) { toast.error(t('page.inventory.skuNameRequired')); return; }
@@ -366,6 +368,7 @@ function ProductsTab() {
     }
     const initialQty = parseInt(form.initial_qty) || 0;
     delete payload.initial_qty;
+    setSavingProduct(true);
     try {
       let productId: string | null = null;
       if (editId) {
@@ -402,6 +405,8 @@ function ProductsTab() {
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('page.inventory.saveFailed'));
+    } finally {
+      setSavingProduct(false);
     }
   };
 
@@ -550,8 +555,10 @@ function ProductsTab() {
           </div>
 
           <div className="flex gap-2 mt-4">
-            <button onClick={save} className="btn-primary btn-sm">{editId ? t('common.save') : t('common.create')}</button>
-            <button onClick={() => { setShowForm(false); setEditId(null); }} className="btn-secondary btn-sm">{t('common.cancel')}</button>
+            <button onClick={save} disabled={savingProduct} className="btn-primary btn-sm">
+              {savingProduct ? t('page.inventory.saving') : editId ? t('common.save') : t('common.create')}
+            </button>
+            <button onClick={() => { setShowForm(false); setEditId(null); }} disabled={savingProduct} className="btn-secondary btn-sm">{t('common.cancel')}</button>
           </div>
         </div>
       )}

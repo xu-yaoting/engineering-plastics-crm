@@ -30,6 +30,15 @@ test('inventory product save shows backend validation details', () => {
   assert.match(inventorySource, /data\?\.error \|\| data\?\.message/);
 });
 
+test('inventory product save locks form actions while saving', () => {
+  assert.match(inventorySource, /const \[savingProduct, setSavingProduct\] = useState\(false\)/);
+  assert.match(inventorySource, /if \(savingProduct\) return/);
+  assert.match(inventorySource, /setSavingProduct\(true\)/);
+  assert.match(inventorySource, /finally \{[\s\S]*setSavingProduct\(false\);[\s\S]*\}/);
+  assert.match(inventorySource, /disabled=\{savingProduct\}/);
+  assert.match(inventorySource, /savingProduct \? t\('page\.inventory\.saving'\)/);
+});
+
 test('profile save notifies the sidebar user menu to refresh immediately', () => {
   assert.match(profileSource, /window\.dispatchEvent\(new CustomEvent\('crm-profile-updated'/);
   assert.match(userMenuSource, /crm-profile-updated/);
