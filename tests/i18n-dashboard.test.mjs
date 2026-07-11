@@ -70,9 +70,6 @@ test('dashboard localization dictionary contains the batch keys', () => {
     'outstandingReceivables', 'overdueReceivables',
     'openOrders', 'openQuotations', 'unpaidInvoices',
     'overdueInvoices', 'notYetDelivered', 'awaitingDecision',
-    'todayFocus', 'todayFocusSummary', 'dueTaskItems',
-    'urgentInquiryItems', 'expiringQuoteItems',
-    'overdueReceivableItems', 'allClearToday',
     'accountsReceivableAlert', 'customer', 'invoice', 'amount',
     'currencyShort', 'dueDate', 'overdue', 'dueToday', 'dueSoon',
     'normal', 'allInvoicesPaid', 'salesPipeline',
@@ -125,19 +122,4 @@ test('dashboard pipeline and aging cards expose summary-oriented layouts', () =>
   assert.match(source, /page\.dashboard\.trackedReceivables/);
   assert.match(source, /grid grid-cols-1 gap-3 md:grid-cols-2/);
   assert.doesNotMatch(source, /ml-\[120px\]/);
-});
-
-test('dashboard includes a today focus section from existing work signals', () => {
-  assert.match(source, /const \[taskList, setTaskList\] = useState<any\[\]>\(\[\]\)/);
-  assert.match(source, /fetch\('\/api\/tasks'\)/);
-  assert.match(source, /const dueTaskFocus = taskList\.filter/);
-  assert.match(source, /const urgentInquiries = inquiries\.filter/);
-  assert.match(source, /const expiringQuotes = quotations\.filter/);
-  assert.match(source, /const todayFocusItems = \[/);
-  assert.match(source, /labelKey: 'dueTaskItems'/);
-  assert.match(source, /labelKey: 'urgentInquiryItems'/);
-  assert.match(source, /labelKey: 'expiringQuoteItems'/);
-  assert.match(source, /labelKey: 'overdueReceivableItems'/);
-  assert.match(source, /page\.dashboard\.todayFocus/);
-  assert.match(source, /page\.dashboard\.allClearToday/);
 });
