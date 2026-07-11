@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Filter, RefreshCw } from 'lucide-react';
 import PipelineColumn from '../components/pipeline/PipelineColumn';
 import { formatCurrency } from '../lib/currency';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +7,6 @@ import type { CardData } from '../types/pipeline';
 
 export default function Pipeline() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [cards, setCards] = useState<CardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterOwner, setFilterOwner] = useState('all');
@@ -36,10 +35,15 @@ export default function Pipeline() {
     ? cards
     : cards.filter(c => c.owner === filterOwner);
 
-  const grouped = COLUMNS.map(col => ({
-    ...col,
-    cards: filteredCards.filter(c => c.stage === col.key),
-  }));
+  const grouped = COLUMNS.map(col => {
+    const columnCards = filteredCards.filter(c => c.stage === col.key);
+    return {
+      ...col,
+      cards: columnCards,
+      usdTotal: columnCards.filter(c => c.currency !== 'CNY').reduce((sum, card) => sum + card.value, 0),
+      cnyTotal: columnCards.filter(c => c.currency === 'CNY').reduce((sum, card) => sum + card.value, 0),
+    };
+  });
 
   // Unique owners for filter
   const owners = [...new Set(cards.map(c => c.owner).filter(Boolean))];
@@ -99,30 +103,36 @@ export default function Pipeline() {
     }
   };
 
-  const usdTotal = cards.filter(c => c.currency !== 'CNY').reduce((s, c) => s + c.value, 0);
-  const cnyTotal = cards.filter(c => c.currency === 'CNY').reduce((s, c) => s + c.value, 0);
+  const usdTotal = filteredCards.filter(c => c.currency !== 'CNY').reduce((s, c) => s + c.value, 0);
+  const cnyTotal = filteredCards.filter(c => c.currency === 'CNY').reduce((s, c) => s + c.value, 0);
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 py-3 flex-shrink-0">
-        <div className="flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">{t('page.title.pipeline')}</h1>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {cards.length} {t('page.pipeline.deals')}{usdTotal > 0 ? ` · ${formatCurrency(usdTotal, 'USD')}` : ''}{cnyTotal > 0 ? ` · ${formatCurrency(cnyTotal, 'CNY')}` : ''}
+            <p className="text-xs text-gray-500 mt-1">
+              {filteredCards.length} {t('page.pipeline.deals')}{usdTotal > 0 ? ` · ${formatCurrency(usdTotal, 'USD')}` : ''}{cnyTotal > 0 ? ` · ${formatCurrency(cnyTotal, 'CNY')}` : ''}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <select
-              value={filterOwner}
-              onChange={e => setFilterOwner(e.target.value)}
-              className="input max-w-[160px] text-xs"
-            >
-              <option value="all">{t('page.pipeline.allOwners')}</option>
-              {owners.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-            <button onClick={load} className="btn-ghost btn-sm text-xs">↻ {t('page.pipeline.refresh')}</button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1">
+              <Filter size={14} strokeWidth={1.75} className="text-gray-400" />
+              <select
+                value={filterOwner}
+                onChange={e => setFilterOwner(e.target.value)}
+                className="h-7 border-0 bg-transparent px-1 text-xs font-450 text-gray-600 focus:outline-none focus:ring-0"
+              >
+                <option value="all">{t('page.pipeline.allOwners')}</option>
+                {owners.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <button onClick={load} className="btn-ghost btn-sm text-xs">
+              <RefreshCw size={14} strokeWidth={1.75} />
+              {t('page.pipeline.refresh')}
+            </button>
           </div>
         </div>
       </div>
@@ -132,13 +142,15 @@ export default function Pipeline() {
         {loading ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('page.pipeline.loading')}</div>
         ) : (
-          <div className="flex gap-3 h-full min-w-[1200px]">
+          <div className="flex h-full min-w-[1240px] gap-4">
             {grouped.map(col => (
               <PipelineColumn
                 key={col.key}
                 title={col.title}
                 stage={col.key}
                 cards={col.cards}
+                usdTotal={col.usdTotal}
+                cnyTotal={col.cnyTotal}
                 onDrop={handleDrop}
                 onDragStart={handleDragStart}
               />

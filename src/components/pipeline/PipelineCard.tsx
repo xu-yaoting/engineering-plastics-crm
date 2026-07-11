@@ -22,35 +22,37 @@ export default function PipelineCard({
   };
 
   const urgencyColor = (u?: string) => {
-    if (u === 'immediate') return 'text-red-500';
-    if (u === 'within_2_weeks') return 'text-yellow-600';
-    return 'text-gray-400';
+    if (u === 'immediate') return 'bg-red-500';
+    if (u === 'within_2_weeks') return 'bg-yellow-500';
+    return 'bg-gray-300';
   };
 
   return (
     <div
       draggable
       onDragStart={e => onDragStart(e, card)}
-      className={`kanban-card group ${isDragOver ? 'opacity-50' : ''}`}
+      className={`group cursor-grab rounded-lg border border-gray-200 bg-white p-3 shadow-[0_1px_1px_rgba(15,23,42,0.03)] transition hover:border-gray-300 hover:bg-gray-50/70 active:cursor-grabbing ${
+        isDragOver ? 'opacity-50' : ''
+      }`}
       onClick={handleClick}
     >
       {/* Material + Days */}
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-2xs font-450 text-blue-600 truncate max-w-[60%]">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <span className="max-w-[65%] truncate text-2xs font-450 text-blue-600">
           {card.material}
         </span>
-        <span className="text-2xs text-gray-400 flex-shrink-0">
+        <span className="flex-shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-2xs text-gray-400">
           {card.daysInStage}d
         </span>
       </div>
 
       {/* Company Name */}
-      <div className="text-sm font-semibold text-gray-900 truncate mb-1">
+      <div className="mb-1 truncate text-sm font-semibold text-gray-900">
         {card.companyName}
       </div>
 
       {/* Value + Urgency */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="mb-2 flex items-center justify-between gap-2">
         {card.value > 0 ? (
           <span className="text-xs font-mono font-medium text-gray-700">
             {card.currency === 'CNY' ? '¥' : '$'}{card.value.toLocaleString()}
@@ -59,22 +61,20 @@ export default function PipelineCard({
           <span className="text-xs text-gray-400">—</span>
         )}
         {card.urgency && (
-          <span className={`text-2xs ${urgencyColor(card.urgency)}`}>
-            {card.urgency === 'immediate' ? '' : card.urgency === 'within_2_weeks' ? '🟡' : ''}
-          </span>
+          <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${urgencyColor(card.urgency)}`} />
         )}
       </div>
 
       {/* Status + Owner */}
-      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+      <div className="flex items-center justify-between gap-2 border-t border-gray-100 pt-2">
         <StatusBadge status={card.status} />
-        <span className="text-2xs text-gray-400 truncate ml-1 max-w-[50%]">
+        <span className="ml-1 max-w-[50%] truncate text-2xs text-gray-400">
           {card.owner}
         </span>
       </div>
 
       {/* Next Action — shown on hover */}
-      <div className="mt-1.5 text-2xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity truncate">
+      <div className="mt-1.5 truncate text-2xs text-blue-600 opacity-0 transition-opacity group-hover:opacity-100">
         {card.nextAction}
       </div>
     </div>
