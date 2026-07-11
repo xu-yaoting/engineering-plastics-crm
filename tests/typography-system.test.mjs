@@ -8,6 +8,10 @@ const commercialListSource = [
   '../src/pages/Quotations.tsx',
   '../src/pages/Orders.tsx',
 ].map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
+const commercialDetailSource = [
+  '../src/pages/OrderDetail.tsx',
+  '../src/pages/Payments.tsx',
+].map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
 const appSource = [
   '../src/pages/InventoryPage.tsx',
   '../src/pages/Dashboard.tsx',
@@ -40,4 +44,9 @@ test('quotation and order lists use the interface font with aligned numerals', (
   assert.doesNotMatch(commercialListSource, /font-mono/);
   assert.equal((commercialListSource.match(/table-cell font-medium text-blue-600 tabular-nums/g) || []).length, 2);
   assert.equal((commercialListSource.match(/table-cell text-right tabular-nums text-sm font-medium/g) || []).length, 2);
+});
+
+test('order detail and payments use the interface font with aligned numerals', () => {
+  assert.doesNotMatch(commercialDetailSource, /font-mono/);
+  assert.match(commercialDetailSource, /tabular-nums/);
 });

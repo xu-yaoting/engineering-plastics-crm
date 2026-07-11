@@ -235,7 +235,7 @@ export default function Payments() {
             </div>
             <div>
               <label className="label">{t('page.payments.total')} *</label>
-              <input className="input font-mono" type="number" value={form.total || ''} onChange={e => setForm({...form, total: parseFloat(e.target.value) || 0})} />
+              <input className="input tabular-nums" type="number" value={form.total || ''} onChange={e => setForm({...form, total: parseFloat(e.target.value) || 0})} />
             </div>
             <div>
               <label className="label">{t('page.payments.dueDate')}</label>
@@ -259,7 +259,7 @@ export default function Payments() {
             <div className="space-y-4">
               <div>
                 <label className="label">{t('page.payments.total')} ({editTarget.currency || 'USD'})</label>
-                <input className="input font-mono" type="number" step="0.01" value={editForm.total}
+                <input className="input tabular-nums" type="number" step="0.01" value={editForm.total}
                   onChange={e => setEditForm({...editForm, total: parseFloat(e.target.value) || 0})} />
               </div>
               <div>
@@ -290,7 +290,7 @@ export default function Payments() {
             <div className="space-y-3 mb-4">
               <div>
                 <label className="label">{t('page.payments.amount')} ($)</label>
-                <input className="input font-mono" type="number" value={payForm.amount || ''} onChange={e => setPayForm({...payForm, amount: parseFloat(e.target.value) || 0})} autoFocus />
+                <input className="input tabular-nums" type="number" value={payForm.amount || ''} onChange={e => setPayForm({...payForm, amount: parseFloat(e.target.value) || 0})} autoFocus />
               </div>
               <div>
                 <label className="label">{t('page.payments.method')}</label>
@@ -353,9 +353,9 @@ export default function Payments() {
                   <td className="table-cell text-xs">{inv.order_number || '—'}</td>
                   <td className="table-cell text-xs">{inv.company_name || '—'}</td>
                   <td className="table-cell"><StatusBadge status={inv.status} /></td>
-                  <td className="table-cell text-right font-mono text-sm">{formatCurrency(inv.total, inv.currency)}</td>
-                  <td className="table-cell text-right font-mono text-xs text-green-600">{formatCurrency(inv.amount_paid, inv.currency)}</td>
-                  <td className={`table-cell text-right font-mono text-sm ${isOverdue(inv) ? 'text-red-600 font-semibold' : 'text-gray-700'}`}>
+                  <td className="table-cell text-right tabular-nums text-sm">{formatCurrency(inv.total, inv.currency)}</td>
+                  <td className="table-cell text-right tabular-nums text-xs text-green-600">{formatCurrency(inv.amount_paid, inv.currency)}</td>
+                  <td className={`table-cell text-right tabular-nums text-sm ${isOverdue(inv) ? 'text-red-600 font-semibold' : 'text-gray-700'}`}>
                     {formatCurrency(inv.amount_due ?? inv.total, inv.currency)}
                   </td>
                   <td className="table-cell">

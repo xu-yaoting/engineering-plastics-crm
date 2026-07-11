@@ -213,7 +213,7 @@ export default function OrderDetail() {
                 </div>
                 <div>
                   <label className="label">{t('page.orderDetail.orderNumber')}</label>
-                  <input className="input font-mono" value={editForm.order_number} onChange={e => setEditForm({...editForm, order_number: e.target.value})} />
+                  <input className="input tabular-nums" value={editForm.order_number} onChange={e => setEditForm({...editForm, order_number: e.target.value})} />
                 </div>
                 <div>
                   <label className="label">{t('page.orderDetail.incoterm')}</label>
@@ -288,7 +288,7 @@ export default function OrderDetail() {
               <SummaryField label={t('page.quotationDetail.currency')} value={order.currency || 'USD'} />
               <SummaryField label={t('page.orderDetail.paymentTerms')} value={order.payment_term || '—'} />
               <SummaryField label={t('page.orderDetail.deliveryDate')} value={order.confirmed_delivery_date || '—'} />
-              <SummaryField label={t('page.orderDetail.totalAmount')} value={<span className="text-lg font-semibold text-gray-900 font-mono">{sym}{(order.total || subtotal).toLocaleString()}</span>} />
+              <SummaryField label={t('page.orderDetail.totalAmount')} value={<span className="text-lg font-semibold text-gray-900 tabular-nums">{sym}{(order.total || subtotal).toLocaleString()}</span>} />
               <SummaryField label={t('page.orderDetail.source')} value={
                 order.quotation_id
                   ? <Link to={`/quotations/${order.quotation_id}`} className="text-blue-600 hover:underline">{t('page.orderDetail.viewOriginalQuotation')}</Link>
@@ -323,10 +323,10 @@ export default function OrderDetail() {
                     <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="table-cell text-xs text-gray-400">{item.line_number}</td>
                       <td className="table-cell text-sm text-gray-900">{item.product_grade_snapshot || '—'}</td>
-                      <td className="table-cell text-right font-mono text-sm">{item.quantity_ordered}</td>
+                      <td className="table-cell text-right tabular-nums text-sm">{item.quantity_ordered}</td>
                       <td className="table-cell text-right">
                         <input
-                          className="input text-right font-mono text-sm w-20 h-7"
+                          className="input text-right tabular-nums text-sm w-20 h-7"
                           type="number" min="0"
                           value={sq}
                           onChange={e => setEditingShipQty(prev => ({...prev, [item.id]: parseFloat(e.target.value) || 0}))}
@@ -359,9 +359,9 @@ export default function OrderDetail() {
                           <option value="pc">pc</option>
                         </select>
                       </td>
-                      <td className="table-cell text-right font-mono text-sm">{sym}{(item.unit_price || 0).toFixed(2)}</td>
-                      <td className="table-cell text-right font-mono text-sm font-medium">{sym}{(item.line_total || 0).toFixed(2)}</td>
-                      <td className="table-cell text-right font-mono text-sm font-medium text-blue-600">{sym}{shippedTotal.toFixed(2)}</td>
+                      <td className="table-cell text-right tabular-nums text-sm">{sym}{(item.unit_price || 0).toFixed(2)}</td>
+                      <td className="table-cell text-right tabular-nums text-sm font-medium">{sym}{(item.line_total || 0).toFixed(2)}</td>
+                      <td className="table-cell text-right tabular-nums text-sm font-medium text-blue-600">{sym}{shippedTotal.toFixed(2)}</td>
                     </tr>
                   );
                 })}
@@ -392,17 +392,17 @@ export default function OrderDetail() {
               <div className="w-48 space-y-1">
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>{t('page.orderDetail.subtotal')}</span>
-                  <span className="font-mono">{sym}{(order.subtotal || subtotal).toFixed(2)}</span>
+                  <span className="tabular-nums">{sym}{(order.subtotal || subtotal).toFixed(2)}</span>
                 </div>
                 {order.discount_percent > 0 && (
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>{t('page.quotationDetail.discount')} ({order.discount_percent}%)</span>
-                    <span className="font-mono">-{sym}{(order.discount_amount || 0).toFixed(2)}</span>
+                    <span className="tabular-nums">-{sym}{(order.discount_amount || 0).toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-semibold text-gray-900 pt-1 border-t border-gray-200">
                   <span>{t('page.orderDetail.total')}</span>
-                  <span className="font-mono text-base">{sym}{(order.total || subtotal).toFixed(2)}</span>
+                  <span className="tabular-nums text-base">{sym}{(order.total || subtotal).toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -447,7 +447,7 @@ export default function OrderDetail() {
                   <div key={inv.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
                     <div><span className="text-xs font-medium text-gray-900">{inv.invoice_number}</span><span className="text-2xs text-gray-400 ml-2">{t('page.payments.due')}: {inv.due_date?.slice(0, 10)}</span></div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-mono ${(inv.amount_due || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>{(inv.amount_due || 0).toFixed(2)}</span>
+                      <span className={`text-xs tabular-nums ${(inv.amount_due || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>{(inv.amount_due || 0).toFixed(2)}</span>
                       <StatusBadge status={inv.status} />
                     </div>
                   </div>
@@ -465,7 +465,7 @@ function SummaryField({ label, value, mono }: { label: string; value: React.Reac
   return (
     <div>
       <div className="text-2xs text-gray-400 mb-0.5">{label}</div>
-      <div className={`text-sm text-gray-900 ${mono ? 'font-mono' : ''}`}>{value}</div>
+      <div className={`text-sm text-gray-900 ${mono ? 'tabular-nums' : ''}`}>{value}</div>
     </div>
   );
 }
@@ -496,7 +496,7 @@ function ShipmentFieldsDisplay({ shipment }: { shipment: any }) {
   const f = (k: string) => shipment[k] || '—';
 
   const Field = ({ k, mono }: { k: string; mono?: boolean }) => (
-    <div><span className="text-gray-400">{label[k] || k}</span><br /><span className={mono ? 'font-mono' : ''}>{f(k)}</span></div>
+    <div><span className="text-gray-400">{label[k] || k}</span><br /><span className={mono ? 'tabular-nums' : ''}>{f(k)}</span></div>
   );
 
   const commonFields = (
