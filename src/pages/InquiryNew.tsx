@@ -40,7 +40,7 @@ export default function InquiryNew() {
       toast.success(t('page.inquiries.inquiryCreated'));
       navigate(`/inquiries/${inq.id}`);
     } catch (e) {
-      toast.error(t('page.inquiries.inquiryCreateFailed'));
+      toast.error(e instanceof Error ? e.message : t('page.inquiries.inquiryCreateFailed'));
     } finally {
       setSaving(false);
     }
@@ -139,7 +139,7 @@ export default function InquiryNew() {
           >
             {saving ? t('page.inquiryNew.creating') : t('page.inquiryNew.createInquiry')}
           </button>
-          <button onClick={() => navigate(-1)} className="btn-secondary">{t('common.cancel')}</button>
+          <button onClick={() => navigate(-1)} disabled={saving} className="btn-secondary">{t('common.cancel')}</button>
         </div>
       </div>
     </div>

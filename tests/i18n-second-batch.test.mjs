@@ -124,6 +124,14 @@ test('inquiry edit save checks backend errors before closing the modal', () => {
   assert.match(inquiryDetailSource, /disabled=\{savingEdit\}/);
 });
 
+test('new inquiry create surfaces backend errors and locks cancel while saving', () => {
+  const inquiryNewSource = readFileSync(new URL('../src/pages/InquiryNew.tsx', import.meta.url), 'utf8');
+
+  assert.match(inquiryNewSource, /toast\.error\(e instanceof Error \? e\.message : t\('page\.inquiries\.inquiryCreateFailed'\)\)/);
+  assert.match(inquiryNewSource, /disabled=\{saving \|\| !form\.company_id \|\| !form\.application_description\}/);
+  assert.match(inquiryNewSource, /<button onClick=\{\(\) => navigate\(-1\)\} disabled=\{saving\} className="btn-secondary">/);
+});
+
 test('quotations list defaults to quotation date sorting and exposes sort options', () => {
   assert.match(quotationsSource, /useState\('quotation_date_desc'\)/);
   assert.match(quotationsSource, /dateValue\(b\.quotation_date \|\| b\.created_at\) - dateValue\(a\.quotation_date \|\| a\.created_at\)/);
