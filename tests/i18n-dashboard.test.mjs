@@ -75,11 +75,13 @@ test('dashboard localization dictionary contains the batch keys', () => {
     'normal', 'allInvoicesPaid', 'salesPipeline',
     'stageInquiry', 'stageQuotation', 'stageSample',
     'stageShipment', 'stagePayment',
+    'totalPipelineItems', 'pipelineShare',
     'noActiveDeals', 'recentInquiries', 'noInquiries',
     'thisMonthSales', 'currency', 'target', 'actual',
     'noClosedSalesThisMonth', 'topCustomersThisMonth', 'deals',
     'receivableAging', 'days0to30', 'days31to60', 'days61to90',
-    'days90Plus', 'more', 'noOutstandingReceivables',
+    'days90Plus', 'more', 'trackedReceivables',
+    'agingBucketInvoices', 'agingNoInvoices', 'noOutstandingReceivables',
     'recentQuotations', 'noQuotations',
   ];
 
@@ -108,4 +110,16 @@ test('dashboard uses shared workspace card layout classes', () => {
   assert.match(source, /const WORKSPACE_CARD_TITLE = 'text-base font-semibold text-gray-700 flex items-center gap-2'/);
   assert.match(source, /const WORKSPACE_CARD_BODY = 'p-4'/);
   assert.match(source, /const KPI_CARD = 'card p-4 border-gray-200 hover:border-gray-300 transition-colors min-h-\[120px\] flex flex-col justify-between'/);
+});
+
+test('dashboard pipeline and aging cards expose summary-oriented layouts', () => {
+  assert.match(source, /const pipelineTotal = pipeline\.reduce/);
+  assert.match(source, /const pipelineMax = Math\.max/);
+  assert.match(source, /page\.dashboard\.totalPipelineItems/);
+  assert.match(source, /page\.dashboard\.pipelineShare/);
+  assert.match(source, /const unpaidWithDueDate = invoices\.filter/);
+  assert.match(source, /const maxAgingCount = Math\.max/);
+  assert.match(source, /page\.dashboard\.trackedReceivables/);
+  assert.match(source, /grid grid-cols-1 gap-3 md:grid-cols-2/);
+  assert.doesNotMatch(source, /ml-\[120px\]/);
 });

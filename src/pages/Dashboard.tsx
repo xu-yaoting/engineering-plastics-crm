@@ -63,12 +63,14 @@ export default function Dashboard() {
 
   // Sales Pipeline
   const pipeline = [
-    { labelKey: 'stageInquiry', count: inquiries.length, link: '/inquiries', icon: Inbox },
-    { labelKey: 'stageQuotation', count: quotations.length, link: '/quotations', icon: FileText },
-    { labelKey: 'stageSample', count: samples.length, link: '/samples', icon: FlaskConical },
-    { labelKey: 'stageShipment', count: shipments.length, link: '/shipments', icon: Truck },
-    { labelKey: 'stagePayment', count: invoices.length, link: '/payments', icon: Wallet },
+    { labelKey: 'stageInquiry', count: inquiries.length, link: '/inquiries', icon: Inbox, bar: 'bg-slate-400', tone: 'bg-slate-50 text-slate-500' },
+    { labelKey: 'stageQuotation', count: quotations.length, link: '/quotations', icon: FileText, bar: 'bg-blue-500', tone: 'bg-blue-50 text-blue-600' },
+    { labelKey: 'stageSample', count: samples.length, link: '/samples', icon: FlaskConical, bar: 'bg-violet-500', tone: 'bg-violet-50 text-violet-600' },
+    { labelKey: 'stageShipment', count: shipments.length, link: '/shipments', icon: Truck, bar: 'bg-emerald-500', tone: 'bg-emerald-50 text-emerald-600' },
+    { labelKey: 'stagePayment', count: invoices.length, link: '/payments', icon: Wallet, bar: 'bg-red-500', tone: 'bg-red-50 text-red-600' },
   ];
+  const pipelineTotal = pipeline.reduce((sum, stage) => sum + stage.count, 0);
+  const pipelineMax = Math.max(...pipeline.map(stage => stage.count), 1);
 
   // Monthly Performance — accepted quotations + active orders
   const thisMonthQuotes = quotations.filter((q: any) => {
@@ -113,6 +115,25 @@ export default function Dashboard() {
   });
   const topCustomers = Object.entries(byCompany).map(([name, data]) => ({ name, ...data }))
     .sort((a, b) => b.total - a.total).slice(0, 5);
+
+  const agingBuckets = [
+    { label: t('page.dashboard.days0to30'), min: 0, max: 30, bar: 'bg-green-500' },
+    { label: t('page.dashboard.days31to60'), min: 31, max: 60, bar: 'bg-yellow-500' },
+    { label: t('page.dashboard.days61to90'), min: 61, max: 90, bar: 'bg-orange-500' },
+    { label: t('page.dashboard.days90Plus'), min: 91, max: Infinity, bar: 'bg-red-500' },
+  ];
+  const unpaidWithDueDate = invoices.filter((i: any) => i.status !== 'paid' && i.status !== 'cancelled' && i.due_date);
+  const aging = agingBuckets.map(bucket => {
+    const items = unpaidWithDueDate.filter((inv: any) => {
+      const days = Math.floor((now.getTime() - new Date(inv.due_date).getTime()) / 86400000);
+      return days >= bucket.min && days <= bucket.max;
+    });
+    return { ...bucket, items,
+      usdTotal: items.filter((i: any) => !i.currency || i.currency === 'USD').reduce((s: number, i: any) => s + (i.amount_due || i.total || 0), 0),
+      cnyTotal: items.filter((i: any) => i.currency === 'CNY').reduce((s: number, i: any) => s + (i.amount_due || i.total || 0), 0),
+    };
+  });
+  const maxAgingCount = Math.max(...aging.map(bucket => bucket.items.length), 1);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -207,27 +228,40 @@ export default function Dashboard() {
         <div className={WORKSPACE_CARD}>
           <div className={WORKSPACE_CARD_HEADER}>
             <h2 className={WORKSPACE_CARD_TITLE}><Workflow size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.salesPipeline')}</h2>
+            <span className="rounded bg-white px-2 py-1 text-2xs font-450 text-gray-500 ring-1 ring-gray-200">
+              {t('page.dashboard.totalPipelineItems', { count: pipelineTotal })}
+            </span>
           </div>
           <div className={WORKSPACE_CARD_BODY}>
-            <div className="space-y-2">
-              {pipeline.map(stage => (
-                <Link key={stage.labelKey} to={stage.link} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
-                  <stage.icon size={18} strokeWidth={1.75} className="opacity-75 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-gray-700">{t(`page.dashboard.${stage.labelKey}`)}</span>
-                      <span className={`text-sm font-semibold ${stage.labelKey === 'stagePayment' && stage.count > 0 ? 'text-red-600' : 'text-gray-700'}`}>{stage.count}</span>
+            <div className="space-y-2.5">
+              {pipeline.map(stage => {
+                const share = pipelineTotal > 0 ? Math.round((stage.count / pipelineTotal) * 100) : 0;
+                const width = stage.count > 0 ? Math.max(4, Math.round((stage.count / pipelineMax) * 100)) : 0;
+                return (
+                  <Link key={stage.labelKey} to={stage.link} className="group block rounded-lg border border-gray-100 bg-white px-3 py-2.5 transition-colors hover:border-gray-200 hover:bg-gray-50/70">
+                    <div className="flex items-center gap-3">
+                      <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded ${stage.tone}`}>
+                        <stage.icon size={17} strokeWidth={1.75} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1.5 flex items-center justify-between gap-3">
+                          <span className="truncate text-xs font-medium text-gray-700">{t(`page.dashboard.${stage.labelKey}`)}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xs font-450 text-gray-400">{t('page.dashboard.pipelineShare', { percent: share })}</span>
+                            <span className={`min-w-7 text-right text-sm font-semibold ${stage.labelKey === 'stagePayment' && stage.count > 0 ? 'text-red-600' : 'text-gray-700'}`}>{stage.count}</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                          <div className={`h-full rounded-full transition-all ${stage.bar}`} style={{ width: `${width}%` }} />
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-300 transition-colors group-hover:text-gray-500">→</span>
                     </div>
-                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${"bg-gray-300"}`}
-                        style={{ width: `${Math.min(100, Math.max(3, Math.round(pipeline.reduce((s, p) => s + p.count, 0) > 0 ? (stage.count / Math.max(...pipeline.map(p => p.count))) * 100 : 3)))}%` }} />
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-300 group-hover:text-gray-500 transition-colors">→</span>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
-            {pipeline.reduce((s, p) => s + p.count, 0) === 0 && <p className="text-sm text-gray-400 text-center py-6">{t('page.dashboard.noActiveDeals')}</p>}
+            {pipelineTotal === 0 && <p className="text-sm text-gray-400 text-center py-6">{t('page.dashboard.noActiveDeals')}</p>}
           </div>
         </div>
 
@@ -330,58 +364,61 @@ export default function Dashboard() {
           <h2 className={WORKSPACE_CARD_TITLE}><CalendarClock size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.receivableAging')}</h2>
         </div>
         <div className={WORKSPACE_CARD_BODY}>
-          {(() => {
-            const buckets = [
-              { label: t('page.dashboard.days0to30'), min: 0, max: 30, bar: 'bg-green-500' },
-              { label: t('page.dashboard.days31to60'), min: 31, max: 60, bar: 'bg-yellow-500' },
-              { label: t('page.dashboard.days61to90'), min: 61, max: 90, bar: 'bg-orange-500' },
-              { label: t('page.dashboard.days90Plus'), min: 91, max: Infinity, bar: 'bg-red-500' },
-            ];
-            const unpaid2 = invoices.filter((i: any) => i.status !== 'paid' && i.status !== 'cancelled' && i.due_date);
-            const aging = buckets.map(b => {
-              const items = unpaid2.filter((inv: any) => {
-                const days = Math.floor((now.getTime() - new Date(inv.due_date).getTime()) / 86400000);
-                return days >= b.min && days <= b.max;
-              });
-              return { ...b, items,
-                usdTotal: items.filter((i: any) => !i.currency || i.currency === 'USD').reduce((s: number, i: any) => s + (i.amount_due || i.total || 0), 0),
-                cnyTotal: items.filter((i: any) => i.currency === 'CNY').reduce((s: number, i: any) => s + (i.amount_due || i.total || 0), 0),
-              };
-            });
-            const maxTotal = Math.max(...aging.map(a => a.usdTotal + a.cnyTotal), 1);
-            return aging.map(b => {
-              const total = b.usdTotal + b.cnyTotal;
+          {unpaid.length > 0 && (
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                <p className="text-2xs font-450 uppercase tracking-[0.08em] text-gray-400">{t('page.dashboard.outstandingReceivables')}</p>
+                <p className="mt-1 text-sm font-mono font-semibold text-gray-900">{formatWithCurrency(outstandingUSD, outstandingCNY)}</p>
+              </div>
+              <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                <p className="text-2xs font-450 uppercase tracking-[0.08em] text-gray-400">{t('page.dashboard.overdue')}</p>
+                <p className="mt-1 text-sm font-semibold text-red-600">{t('page.dashboard.overdueInvoices', { count: overdue.length })}</p>
+              </div>
+              <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                <p className="text-2xs font-450 uppercase tracking-[0.08em] text-gray-400">{t('page.dashboard.status')}</p>
+                <p className="mt-1 text-sm font-semibold text-gray-700">{t('page.dashboard.trackedReceivables', { count: unpaidWithDueDate.length })}</p>
+              </div>
+            </div>
+          )}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {aging.map(b => {
+              const width = b.items.length > 0 ? Math.max(4, Math.round((b.items.length / maxAgingCount) * 100)) : 0;
               return (
-                <div key={b.label} className="mb-3 last:mb-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2 flex-1">
-                      <span className="text-xs font-semibold text-gray-700 w-24">{b.label}</span>
-                      <div className="flex-1 max-w-[300px] h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${b.bar}`} style={{ width: `${Math.max(3, (total / maxTotal) * 100)}%` }} />
-                      </div>
+                <div key={b.label} className="rounded-lg border border-gray-100 bg-white p-3">
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700">{b.label}</p>
+                      <p className="mt-0.5 text-2xs text-gray-400">{t('page.dashboard.agingBucketInvoices', { count: b.items.length })}</p>
                     </div>
-                    <div className="flex items-center gap-3 ml-3">
-                      {b.usdTotal > 0 && <span className="text-xs font-mono font-semibold text-gray-900">{formatCurrency(b.usdTotal, 'USD')}</span>}
-                      {b.cnyTotal > 0 && <span className="text-xs font-mono font-semibold text-gray-900">{formatCurrency(b.cnyTotal, 'CNY')}</span>}
-                      <span className="text-xs text-gray-400">({b.items.length})</span>
+                    <div className="text-right">
+                      {b.usdTotal > 0 && <p className="text-xs font-mono font-semibold text-gray-900">{formatCurrency(b.usdTotal, 'USD')}</p>}
+                      {b.cnyTotal > 0 && <p className="text-xs font-mono font-semibold text-gray-900">{formatCurrency(b.cnyTotal, 'CNY')}</p>}
+                      {b.usdTotal === 0 && b.cnyTotal === 0 && <p className="text-xs text-gray-300">—</p>}
                     </div>
                   </div>
-                  {b.items.length > 0 && (
-                    <div className="ml-[120px] space-y-0.5 mb-2">
+                  <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
+                    <div className={`h-full rounded-full ${b.bar}`} style={{ width: `${width}%` }} />
+                  </div>
+                  {b.items.length > 0 ? (
+                    <div className="space-y-1">
                       {b.items.slice(0, 4).map((inv: any) => (
-                        <div key={inv.id} className="flex items-center justify-between text-2xs text-gray-500">
-                          <span className="truncate max-w-[250px]">{inv.company_name || inv.invoice_number}</span>
-                          <span className="font-mono">{formatCurrency(inv.amount_due || inv.total, inv.currency)}</span>
+                        <div key={inv.id} className="flex items-center justify-between gap-3 text-2xs text-gray-500">
+                          <span className="min-w-0 truncate">{inv.company_name || inv.invoice_number}</span>
+                          <span className="flex-shrink-0 font-mono">{formatCurrency(inv.amount_due || inv.total, inv.currency)}</span>
                         </div>
                       ))}
                       {b.items.length > 4 && <div className="text-2xs text-gray-400">{t('page.dashboard.more', { count: b.items.length - 4 })}</div>}
                     </div>
+                  ) : (
+                    <p className="text-2xs text-gray-400">{t('page.dashboard.agingNoInvoices')}</p>
                   )}
                 </div>
               );
-            });
-          })()}
-          {unpaid.length === 0 && <p className="text-sm text-gray-400 text-center py-6">{t('page.dashboard.noOutstandingReceivables')}</p>}
+            })}
+          </div>
+          {unpaid.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-6">{t('page.dashboard.noOutstandingReceivables')}</p>
+          )}
         </div>
       </div>
 
