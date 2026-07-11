@@ -10,6 +10,16 @@ const WORKSPACE_CARD_TITLE = 'text-base font-semibold text-gray-700 flex items-c
 const WORKSPACE_CARD_BODY = 'p-4';
 const KPI_CARD = 'card p-4 border-gray-200 hover:border-gray-300 transition-colors min-h-[120px] flex flex-col justify-between';
 
+function toDateKey(value: Date | string | undefined): string {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function Dashboard() {
   const { t } = useTranslation();
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -18,6 +28,7 @@ export default function Dashboard() {
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [samples, setSamples] = useState<any[]>([]);
   const [shipments, setShipments] = useState<any[]>([]);
+  const [taskList, setTaskList] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/api/payments').then(r => r.json()).then(setInvoices).catch(() => {});
@@ -26,6 +37,7 @@ export default function Dashboard() {
     fetch('/api/inquiries').then(r => r.json()).then(setInquiries).catch(() => {});
     fetch('/api/sample-requests').then(r => r.json()).then(setSamples).catch(() => {});
     fetch('/api/shipments').then(r => r.json()).then(setShipments).catch(() => {});
+    fetch('/api/tasks').then(r => r.json()).then(setTaskList).catch(() => {});
   }, []);
 
   const now = new Date();
@@ -53,6 +65,18 @@ export default function Dashboard() {
   const openQuotes = quotations.filter((q: any) =>
     ['draft', 'sent', 'negotiating', 'pending_approval'].includes(q.status)
   );
+  const todayKey = toDateKey(now);
+  const dueTaskFocus = taskList.filter((task: any) =>
+    task.status !== 'completed' && task.due_date && toDateKey(task.due_date) <= todayKey
+  );
+  const urgentInquiries = inquiries.filter((inq: any) =>
+    inq.urgency === 'immediate' && inq.status !== 'closed' && inq.status !== 'cancelled'
+  );
+  const expiringQuotes = quotations.filter((quote: any) => {
+    if (!quote.valid_until || quote.status === 'accepted' || quote.status === 'rejected') return false;
+    const days = Math.ceil((new Date(quote.valid_until).getTime() - now.getTime()) / 86400000);
+    return days >= 0 && days <= 7;
+  });
 
   const formatWithCurrency = (usd: number, cny: number) => {
     const parts: string[] = [];
@@ -134,6 +158,13 @@ export default function Dashboard() {
     };
   });
   const maxAgingCount = Math.max(...aging.map(bucket => bucket.items.length), 1);
+  const todayFocusItems = [
+    { labelKey: 'dueTaskItems', count: dueTaskFocus.length, link: '/tasks', icon: CheckCircle, tone: 'bg-blue-50 text-blue-600' },
+    { labelKey: 'urgentInquiryItems', count: urgentInquiries.length, link: '/inquiries', icon: Inbox, tone: 'bg-red-50 text-red-600' },
+    { labelKey: 'expiringQuoteItems', count: expiringQuotes.length, link: '/quotations', icon: FileText, tone: 'bg-yellow-50 text-yellow-600' },
+    { labelKey: 'overdueReceivableItems', count: overdue.length, link: '/payments', icon: ReceiptText, tone: 'bg-rose-50 text-rose-600' },
+  ];
+  const todayFocusTotal = todayFocusItems.reduce((sum, item) => sum + item.count, 0);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -175,6 +206,36 @@ export default function Dashboard() {
           <div className="text-3xl font-semibold text-yellow-600">{openQuotes.length}</div>
           <div className="text-2xs text-gray-400 mt-1">{t('page.dashboard.awaitingDecision')}</div>
         </Link>
+      </div>
+
+      {/* Today Focus */}
+      <div className={WORKSPACE_CARD}>
+        <div className={WORKSPACE_CARD_HEADER}>
+          <h2 className={WORKSPACE_CARD_TITLE}><CalendarClock size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.todayFocus')}</h2>
+          <span className="rounded bg-white px-2 py-1 text-2xs font-450 text-gray-500 ring-1 ring-gray-200">
+            {t('page.dashboard.todayFocusSummary', { count: todayFocusTotal })}
+          </span>
+        </div>
+        <div className={WORKSPACE_CARD_BODY}>
+          {todayFocusTotal > 0 ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {todayFocusItems.map(item => (
+                <Link key={item.labelKey} to={item.link} className="group rounded-lg border border-gray-100 bg-white p-3 transition-colors hover:border-gray-200 hover:bg-gray-50/70">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className={`flex h-8 w-8 items-center justify-center rounded ${item.tone}`}>
+                      <item.icon size={17} strokeWidth={1.75} />
+                    </span>
+                    <span className="text-xs text-gray-300 transition-colors group-hover:text-gray-500">→</span>
+                  </div>
+                  <p className="text-2xs font-450 text-gray-400">{t(`page.dashboard.${item.labelKey}`, { count: item.count })}</p>
+                  <p className={`mt-1 text-2xl font-semibold ${item.count > 0 ? 'text-gray-900' : 'text-gray-300'}`}>{item.count}</p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-6">{t('page.dashboard.allClearToday')}</p>
+          )}
+        </div>
       </div>
 
       {/* 2. Accounts Receivable Alert */}
