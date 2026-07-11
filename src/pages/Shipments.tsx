@@ -49,6 +49,7 @@ export default function Shipments() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [presetOrder, setPresetOrder] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
   const [searchParams] = useSearchParams();
   const presetOrderId = searchParams.get('order');
 
@@ -71,6 +72,11 @@ export default function Shipments() {
 
   const set = (k: string, v: any) => setForm(prev => ({ ...prev, [k]: v }));
 
+  const readError = async (res: Response, fallback: string) => {
+    const data = await res.json().catch(() => null);
+    return data?.error || data?.message || fallback;
+  };
+
   const remove = async (id: string) => {
     try {
       await fetch(`/api/shipments/${id}`, { method: 'DELETE' });
@@ -81,20 +87,26 @@ export default function Shipments() {
   };
 
   const save = async () => {
-    if (!form.order_id) return;
+    if (!form.order_id || saving) return;
+    setSaving(true);
     try {
+      let res: Response;
       if (editId) {
-        await fetch(`/api/shipments/${editId}`, {
+        res = await fetch(`/api/shipments/${editId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(form),
         });
       } else {
-        await fetch('/api/shipments', {
+        res = await fetch('/api/shipments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(form),
         });
+      }
+      if (!res.ok) {
+        toast.error(await readError(res, t('page.shipments.shipmentSaveFailed')));
+        return;
       }
       setShowForm(false);
       setEditId(null);
@@ -103,6 +115,8 @@ export default function Shipments() {
       fetch('/api/shipments').then(r => r.json()).then(setList);
     } catch (e) {
       toast.error(t('page.shipments.shipmentSaveFailed'));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -236,10 +250,10 @@ export default function Shipments() {
             </div>
 
             <div className="flex gap-2 pt-2">
-              <button onClick={save} disabled={!form.order_id} className="btn-primary btn-sm flex-1">
-                {editId ? t('page.shipments.saveChanges') : t('page.shipments.createShipment')}
+              <button onClick={save} disabled={!form.order_id || saving} className="btn-primary btn-sm flex-1">
+                {saving ? t('page.shipments.saving') : editId ? t('page.shipments.saveChanges') : t('page.shipments.createShipment')}
               </button>
-              <button onClick={() => { setShowForm(false); setEditId(null); }} className="btn-secondary btn-sm">{t('common.cancel')}</button>
+              <button onClick={() => { setShowForm(false); setEditId(null); }} disabled={saving} className="btn-secondary btn-sm">{t('common.cancel')}</button>
             </div>
           </div>
         </div>

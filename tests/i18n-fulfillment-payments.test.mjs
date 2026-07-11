@@ -64,7 +64,7 @@ test('payments and shipment dictionary contains the batch keys', () => {
     'dueThisMonth', 'collectedThisMonth', 'invoicesDue', 'invoicesPaid',
     'editInvoice', 'transactionId',
     'editShipment', 'shipmentSaved', 'shipmentDeleted', 'shipmentSaveFailed',
-    'shipmentNumber', 'carrierVessel', 'items', 'selectOrder',
+    'saving', 'shipmentNumber', 'carrierVessel', 'items', 'selectOrder',
     'createShipment', 'noShipmentsMatchSearch', 'trackingStatus',
     'trackingDetails', 'shippingMethod', 'estDelivery',
   ];
@@ -72,4 +72,16 @@ test('payments and shipment dictionary contains the batch keys', () => {
   for (const key of requiredKeys) {
     assert.match(dictionarySource, new RegExp(`${key}:`));
   }
+});
+
+test('shipments save keeps the form open on backend errors and shows saving state', () => {
+  assert.match(source, /const \[saving, setSaving\] = useState\(false\)/);
+  assert.match(source, /const readError = async \(res: Response, fallback: string\)/);
+  assert.match(source, /setSaving\(true\)/);
+  assert.match(source, /if \(!res\.ok\) \{/);
+  assert.match(source, /toast\.error\(await readError\(res, t\('page\.shipments\.shipmentSaveFailed'\)\)\)/);
+  assert.match(source, /setShowForm\(false\);[\s\S]*toast\.success\(t\('page\.shipments\.shipmentSaved'\)\)/);
+  assert.match(source, /finally \{[\s\S]*setSaving\(false\);[\s\S]*\}/);
+  assert.match(source, /saving \? t\('page\.shipments\.saving'\)/);
+  assert.match(source, /disabled=\{!form\.order_id \|\| saving\}/);
 });
