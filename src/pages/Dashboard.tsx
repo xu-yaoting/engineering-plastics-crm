@@ -188,7 +188,7 @@ export default function Dashboard() {
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="text-left text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] px-3 py-2">{t('page.dashboard.customer')}</th>
-                <th className="text-left text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] px-3 py-2">{t('page.dashboard.invoice')}</th>
+                <th className="text-left text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] px-3 py-2">{t('page.dashboard.order')}</th>
                 <th className="text-right text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] px-3 py-2">{t('page.dashboard.amount')}</th>
                 <th className="text-center text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] px-3 py-2">{t('page.dashboard.currencyShort')}</th>
                 <th className="text-left text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] px-3 py-2">{t('page.dashboard.dueDate')}</th>
@@ -207,7 +207,7 @@ export default function Dashboard() {
                 return (
                   <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="px-3 py-2 text-xs text-gray-700 max-w-[120px] truncate">{inv.company_name || '—'}</td>
-                    <td className="px-3 py-2 text-xs font-mono text-blue-600">{inv.invoice_number}</td>
+                    <td className="px-3 py-2 text-xs font-mono text-blue-600">{inv.order_number || '—'}</td>
                     <td className="px-3 py-2 text-xs font-mono text-right">{formatCurrency(inv.amount_due || inv.total, inv.currency)}</td>
                     <td className="px-3 py-2 text-2xs text-center text-gray-400">{inv.currency || 'USD'}</td>
                     <td className="px-3 py-2 text-xs text-gray-600">{inv.due_date?.slice(0, 10)}</td>

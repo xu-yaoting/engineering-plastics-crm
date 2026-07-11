@@ -70,7 +70,7 @@ test('dashboard localization dictionary contains the batch keys', () => {
     'outstandingReceivables', 'overdueReceivables',
     'openOrders', 'openQuotations', 'unpaidInvoices',
     'overdueInvoices', 'notYetDelivered', 'awaitingDecision',
-    'accountsReceivableAlert', 'customer', 'invoice', 'amount',
+    'accountsReceivableAlert', 'customer', 'invoice', 'order', 'amount',
     'currencyShort', 'dueDate', 'overdue', 'dueToday', 'dueSoon',
     'normal', 'allInvoicesPaid', 'salesPipeline',
     'stageInquiry', 'stageQuotation', 'stageSample',
@@ -122,4 +122,10 @@ test('dashboard pipeline and aging cards expose summary-oriented layouts', () =>
   assert.match(source, /page\.dashboard\.trackedReceivables/);
   assert.match(source, /grid grid-cols-1 gap-3 md:grid-cols-2/);
   assert.doesNotMatch(source, /ml-\[120px\]/);
+});
+
+test('dashboard receivable alert shows order numbers instead of invoice numbers', () => {
+  assert.match(source, /page\.dashboard\.order/);
+  assert.match(source, /inv\.order_number \|\| '—'/);
+  assert.doesNotMatch(source, /page\.dashboard\.invoice/);
 });
