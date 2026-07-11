@@ -4,6 +4,10 @@ import test from 'node:test';
 
 const tailwindConfig = readFileSync(new URL('../tailwind.config.js', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+const commercialListSource = [
+  '../src/pages/Quotations.tsx',
+  '../src/pages/Orders.tsx',
+].map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
 const appSource = [
   '../src/pages/InventoryPage.tsx',
   '../src/pages/Dashboard.tsx',
@@ -30,4 +34,10 @@ test('common UI does not fall back to heavy section labels or 700 weight', () =>
   assert.doesNotMatch(appSource, /font-semibold text-gray-500 uppercase tracking-wider/);
   assert.doesNotMatch(appSource, /text-2xs font-medium/);
   assert.doesNotMatch(appSource, /font-bold/);
+});
+
+test('quotation and order lists use the interface font with aligned numerals', () => {
+  assert.doesNotMatch(commercialListSource, /font-mono/);
+  assert.equal((commercialListSource.match(/table-cell font-medium text-blue-600 tabular-nums/g) || []).length, 2);
+  assert.equal((commercialListSource.match(/table-cell text-right tabular-nums text-sm font-medium/g) || []).length, 2);
 });

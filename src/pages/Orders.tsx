@@ -74,11 +74,11 @@ export default function Orders() {
             <tbody>
               {sorted.map((o: any) => (
                 <tr key={o.id} className="table-row" onClick={() => navigate(`/orders/${o.id}`)}>
-                  <td className="table-cell font-medium text-blue-600">{o.order_number}</td>
+                  <td className="table-cell font-medium text-blue-600 tabular-nums">{o.order_number}</td>
                   <td className="table-cell text-gray-900">{o.company_name || '—'}</td>
                   <td className="table-cell"><StatusBadge status={o.status} /></td>
                   <td className="table-cell"><StatusBadge status={o.payment_status} /></td>
-                  <td className="table-cell text-right font-mono text-sm font-medium">{formatCurrency(o.total, o.currency)}</td>
+                  <td className="table-cell text-right tabular-nums text-sm font-medium">{formatCurrency(o.total, o.currency)}</td>
                   <td className="table-cell text-xs text-gray-400">{o.order_date?.slice(0, 10)}</td>
                 </tr>
               ))}

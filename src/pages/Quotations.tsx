@@ -85,11 +85,11 @@ export default function Quotations() {
             <tbody>
               {sorted.map(q => (
                 <tr key={q.id} className="table-row" onClick={() => navigate(`/quotations/${q.id}`)}>
-                  <td className="table-cell font-medium text-blue-600">{q.quotation_number}</td>
+                  <td className="table-cell font-medium text-blue-600 tabular-nums">{q.quotation_number}</td>
                   <td className="table-cell text-xs text-gray-500">{q.quotation_date || q.created_at?.slice(0, 10) || '—'}</td>
                   <td className="table-cell text-gray-900">{q.company_name || '—'}</td>
                   <td className="table-cell"><StatusBadge status={q.status} /></td>
-                  <td className="table-cell text-right font-mono text-sm font-medium">{formatCurrency(q.total, q.currency)}</td>
+                  <td className="table-cell text-right tabular-nums text-sm font-medium">{formatCurrency(q.total, q.currency)}</td>
                   <td className="table-cell text-xs text-gray-500">{q.currency}</td>
                   <td className="table-cell text-xs text-gray-500">{q.valid_until || '—'}</td>
                   <td className="table-cell text-xs text-gray-500">{t('page.quotations.rev')} {q.version || 1}</td>
