@@ -113,3 +113,11 @@ test('order edit save checks backend errors before closing the modal', () => {
   assert.match(orderDetailSource, /savingEdit \? t\('page\.orderDetail\.saving'\)/);
   assert.match(orderDetailSource, /disabled=\{savingEdit\}/);
 });
+
+test('quotation edit save surfaces backend errors and locks cancel while saving', () => {
+  const quotationEditSource = readFileSync(new URL('../src/components/quotations/QuotationEditPanel.tsx', import.meta.url), 'utf8');
+
+  assert.match(quotationEditSource, /e instanceof Error \? e\.message : t\('page\.quotationDetail\.quotationSaveFailed'\)/);
+  assert.match(quotationEditSource, /<button onClick=\{onClose\} disabled=\{saving\} className="btn-secondary">/);
+  assert.match(quotationEditSource, /disabled=\{saving \|\| lineItems\.length === 0\}/);
+});

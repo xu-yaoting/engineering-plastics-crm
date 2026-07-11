@@ -148,7 +148,7 @@ export default function QuotationEditPanel({
       onSaved();
       onClose();
     } catch (e) {
-      toast.error(t('page.quotationDetail.quotationSaveFailed'));
+      toast.error(e instanceof Error ? e.message : t('page.quotationDetail.quotationSaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -362,7 +362,7 @@ export default function QuotationEditPanel({
             <button onClick={save} disabled={saving || lineItems.length === 0} className="btn-primary flex-1">
               {saving ? t('page.quotationDetail.editPanel.saving') : isNew ? t('page.quotationDetail.editPanel.createQuotation') : t('page.quotationDetail.editPanel.saveChanges')}
             </button>
-            <button onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
+            <button onClick={onClose} disabled={saving} className="btn-secondary">{t('common.cancel')}</button>
           </div>
         </div>
       </div>
