@@ -16,7 +16,6 @@ export default function Pipeline() {
     { key: 'inquiry', title: t('nav.inquiries') },
     { key: 'quotation', title: t('nav.quotations') },
     { key: 'sample', title: t('page.pipeline.sample') },
-    { key: 'testing', title: t('page.pipeline.testing') },
     { key: 'order', title: t('page.pipeline.order') },
   ];
 
@@ -36,7 +35,9 @@ export default function Pipeline() {
     : cards.filter(c => c.owner === filterOwner);
 
   const grouped = COLUMNS.map(col => {
-    const columnCards = filteredCards.filter(c => c.stage === col.key);
+    const columnCards = filteredCards.filter(c =>
+      col.key === 'sample' ? c.stage === 'sample' || c.stage === 'testing' : c.stage === col.key
+    );
     return {
       ...col,
       cards: columnCards,
@@ -142,7 +143,7 @@ export default function Pipeline() {
         {loading ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('page.pipeline.loading')}</div>
         ) : (
-          <div className="flex h-full min-w-[1240px] gap-4">
+          <div className="grid h-full min-w-[1040px] grid-cols-4 gap-4">
             {grouped.map(col => (
               <PipelineColumn
                 key={col.key}

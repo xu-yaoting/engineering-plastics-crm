@@ -42,7 +42,7 @@ export default function PipelineColumn({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`flex min-w-[232px] flex-1 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white transition-colors ${
+      className={`flex min-w-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white transition-colors ${
         isOver ? 'border-blue-300 bg-blue-50/40 ring-2 ring-blue-100 ring-inset' : ''
       }`}
     >
