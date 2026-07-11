@@ -55,7 +55,7 @@ export default function PipelineColumn({
           </span>
         </div>
         {(usdTotal > 0 || cnyTotal > 0) && (
-          <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-2xs font-mono text-gray-400">
+          <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-2xs tabular-nums text-gray-400">
             {usdTotal > 0 && <span>{formatCurrency(usdTotal, 'USD')}</span>}
             {cnyTotal > 0 && <span>{formatCurrency(cnyTotal, 'CNY')}</span>}
           </div>

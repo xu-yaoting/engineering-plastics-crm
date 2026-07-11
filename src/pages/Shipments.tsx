@@ -201,7 +201,7 @@ export default function Shipments() {
             {/* Sea Freight */}
             {st === 'sea_freight' && (
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="label">{t('page.shipments.containerNo')}</label><input className="input font-mono" value={form.container_no} onChange={e => set('container_no', e.target.value)} placeholder="e.g. MSCU4820347" /></div>
+                <div><label className="label">{t('page.shipments.containerNo')}</label><input className="input tabular-nums" value={form.container_no} onChange={e => set('container_no', e.target.value)} placeholder="e.g. MSCU4820347" /></div>
                 <div><label className="label">{t('page.shipments.vessel')}</label><input className="input" value={form.vessel} onChange={e => set('vessel', e.target.value)} placeholder="e.g. EVER FORTUNE" /></div>
                 <div><label className="label">{t('page.shipments.voyage')}</label><input className="input" value={form.voyage} onChange={e => set('voyage', e.target.value)} placeholder="e.g. 123E" /></div>
                 <div><label className="label">{t('page.shipments.etd')}</label><input className="input" type="date" value={form.etd} onChange={e => set('etd', e.target.value)} /></div>
@@ -212,7 +212,7 @@ export default function Shipments() {
             {/* Air Freight */}
             {st === 'air_freight' && (
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="label">{t('page.shipments.awb')}</label><input className="input font-mono" value={form.awb} onChange={e => set('awb', e.target.value)} placeholder={t('page.shipments.airWaybillPlaceholder')} /></div>
+                <div><label className="label">{t('page.shipments.awb')}</label><input className="input tabular-nums" value={form.awb} onChange={e => set('awb', e.target.value)} placeholder={t('page.shipments.airWaybillPlaceholder')} /></div>
                 <div><label className="label">{t('page.shipments.airline')}</label><input className="input" value={form.airline} onChange={e => set('airline', e.target.value)} placeholder="e.g. Cathay Pacific" /></div>
                 <div><label className="label">{t('page.shipments.etd')}</label><input className="input" type="date" value={form.etd} onChange={e => set('etd', e.target.value)} /></div>
                 <div><label className="label">{t('page.shipments.eta')}</label><input className="input" type="date" value={form.eta} onChange={e => set('eta', e.target.value)} /></div>
@@ -223,7 +223,7 @@ export default function Shipments() {
             {st === 'express' && (
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="label">{t('page.shipments.provider')}</label><input className="input" value={form.express_provider} onChange={e => set('express_provider', e.target.value)} placeholder="DHL, FedEx, UPS..." /></div>
-                <div><label className="label">{t('page.shipments.trackingNumber')}</label><input className="input font-mono" value={form.tracking_number} onChange={e => set('tracking_number', e.target.value)} /></div>
+                <div><label className="label">{t('page.shipments.trackingNumber')}</label><input className="input tabular-nums" value={form.tracking_number} onChange={e => set('tracking_number', e.target.value)} /></div>
               </div>
             )}
 
@@ -288,7 +288,7 @@ export default function Shipments() {
                   <td className="table-cell text-xs">{s.company_name || '—'}</td>
                   <td className="table-cell text-xs">{shipmentTypeLabel(s.shipping_type) || '—'}</td>
                   <td className="table-cell text-xs">{s.carrier || s.vessel || '—'}</td>
-                  <td className="table-cell font-mono text-xs">{s.tracking_number || '—'}</td>
+                  <td className="table-cell tabular-nums text-xs">{s.tracking_number || '—'}</td>
                   <td className="table-cell text-2xs text-gray-400">{s.etd?.slice(0, 10) || '—'}</td>
                   <td className="table-cell text-2xs text-gray-400">{s.eta?.slice(0, 10) || '—'}</td>
                   <td className="table-cell"><StatusBadge status={s.status} /></td>

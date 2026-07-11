@@ -78,3 +78,13 @@ test('workspace and pipeline cards use the interface font with aligned numerals'
   assert.doesNotMatch(workspaceSource, /font-mono/);
   assert.match(workspaceSource, /tabular-nums/);
 });
+
+test('pipeline totals and shipment identifiers use the interface font', () => {
+  const fulfillmentSource = [
+    '../src/components/pipeline/PipelineColumn.tsx',
+    '../src/pages/Shipments.tsx',
+  ].map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
+
+  assert.doesNotMatch(fulfillmentSource, /font-mono/);
+  assert.match(fulfillmentSource, /tabular-nums/);
+});
