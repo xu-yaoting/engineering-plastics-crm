@@ -171,6 +171,8 @@ const en = {
       quotationActivity: 'Quotation {{number}} created from this inquiry',
       inquiryDuplicated: 'Inquiry duplicated', duplicateFailed: 'Failed to duplicate',
       inquiryDeleted: 'Inquiry deleted', deleteFailed: 'Failed to delete inquiry',
+      inquiryUpdated: 'Inquiry updated', inquirySaveFailed: 'Failed to save inquiry',
+      saving: 'Saving...',
     },
     inquiryNew: {
       back: 'Back', customer: 'Customer', contact: 'Contact', source: 'Source',
@@ -694,6 +696,8 @@ const zh: typeof en = {
       quotationActivity: '报价 {{number}} 已由此询盘创建',
       inquiryDuplicated: '询盘已复制', duplicateFailed: '复制失败',
       inquiryDeleted: '询盘已删除', deleteFailed: '询盘删除失败',
+      inquiryUpdated: '询盘已更新', inquirySaveFailed: '询盘保存失败',
+      saving: '保存中...',
     },
     inquiryNew: {
       back: '返回', customer: '客户', contact: '联系人', source: '来源',

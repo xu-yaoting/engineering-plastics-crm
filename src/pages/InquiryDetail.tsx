@@ -31,6 +31,7 @@ export default function InquiryDetail() {
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showEditPanel, setShowEditPanel] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [editForm, setEditForm] = useState({
     application_description: '', target_material_requested: '', quantity_estimate: '',
     urgency: 'within_1_month', source: '',
@@ -134,10 +135,18 @@ export default function InquiryDetail() {
   };
 
   const saveEdit = async () => {
-    if (!id) return;
-    await inquiries.update(id, editForm);
-    setShowEditPanel(false);
-    load();
+    if (!id || savingEdit) return;
+    setSavingEdit(true);
+    try {
+      await inquiries.update(id, editForm);
+      setShowEditPanel(false);
+      toast.success(t('page.inquiryDetail.inquiryUpdated'));
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('page.inquiryDetail.inquirySaveFailed'));
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   if (!inquiry) return <div className="p-6 text-gray-400">{t('common.loading')}</div>;
@@ -210,6 +219,7 @@ export default function InquiryDetail() {
                 urgency: inquiry.urgency || 'within_1_month',
                 source: inquiry.source || '',
               });
+              setSavingEdit(false);
               setShowEditPanel(true);
             }} className="btn-primary btn-sm"><Icon name="square-pen" size={14} className="mr-1.5" />{t('common.edit')}</button>
             {canQuote && (
@@ -410,8 +420,10 @@ export default function InquiryDetail() {
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
-                <button onClick={saveEdit} className="btn-primary flex-1">{t('page.companies.saveChanges')}</button>
-                <button onClick={() => setShowEditPanel(false)} className="btn-secondary">{t('common.cancel')}</button>
+                <button onClick={saveEdit} disabled={savingEdit} className="btn-primary flex-1">
+                  {savingEdit ? t('page.inquiryDetail.saving') : t('page.companies.saveChanges')}
+                </button>
+                <button onClick={() => setShowEditPanel(false)} disabled={savingEdit} className="btn-secondary">{t('common.cancel')}</button>
               </div>
             </div>
           </div>

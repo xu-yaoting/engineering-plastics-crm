@@ -92,6 +92,9 @@ test('second localization batch has dictionary entries for inquiry and quotation
     'duplicateFailed',
     'inquiryDeleted',
     'deleteFailed',
+    'inquiryUpdated',
+    'inquirySaveFailed',
+    'saving',
     'created',
     'noDescription',
     'editInquiry',
@@ -107,6 +110,18 @@ test('second localization batch has dictionary entries for inquiry and quotation
   for (const key of requiredKeys) {
     assert.match(dictionarySource, new RegExp(`${key}:`), `Missing i18n key: ${key}`);
   }
+});
+
+test('inquiry edit save checks backend errors before closing the modal', () => {
+  const inquiryDetailSource = readFileSync(new URL('../src/pages/InquiryDetail.tsx', import.meta.url), 'utf8');
+
+  assert.match(inquiryDetailSource, /const \[savingEdit, setSavingEdit\] = useState\(false\)/);
+  assert.match(inquiryDetailSource, /setSavingEdit\(true\)/);
+  assert.match(inquiryDetailSource, /toast\.success\(t\('page\.inquiryDetail\.inquiryUpdated'\)\)/);
+  assert.match(inquiryDetailSource, /toast\.error\(e instanceof Error \? e\.message : t\('page\.inquiryDetail\.inquirySaveFailed'\)\)/);
+  assert.match(inquiryDetailSource, /finally \{[\s\S]*setSavingEdit\(false\);[\s\S]*\}/);
+  assert.match(inquiryDetailSource, /savingEdit \? t\('page\.inquiryDetail\.saving'\)/);
+  assert.match(inquiryDetailSource, /disabled=\{savingEdit\}/);
 });
 
 test('quotations list defaults to quotation date sorting and exposes sort options', () => {
