@@ -69,3 +69,11 @@ test('final sweep localization dictionary contains email draft, customer summary
     assert.match(dictionarySource, new RegExp(`${key}:`));
   }
 });
+
+test('company edit save surfaces backend errors and locks cancel while saving', () => {
+  const companyEditSource = readFileSync(new URL('../src/components/companies/CompanyEditPanel.tsx', import.meta.url), 'utf8');
+
+  assert.match(companyEditSource, /toast\.error\(e instanceof Error \? e\.message : t\('page\.companies\.companySaveFailed'\)\)/);
+  assert.match(companyEditSource, /disabled=\{saving \|\| !form\.name\}/);
+  assert.match(companyEditSource, /<button onClick=\{onClose\} disabled=\{saving\} className="btn-secondary">/);
+});

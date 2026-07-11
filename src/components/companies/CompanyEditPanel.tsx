@@ -54,7 +54,7 @@ export default function CompanyEditPanel({
       onSaved();
       onClose();
     } catch (e) {
-      toast.error(t('page.companies.companySaveFailed'));
+      toast.error(e instanceof Error ? e.message : t('page.companies.companySaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -161,7 +161,7 @@ export default function CompanyEditPanel({
           <button onClick={save} disabled={saving || !form.name} className="btn-primary flex-1">
             {saving ? t('page.companies.saving') : t('common.save')}
           </button>
-          <button onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
+          <button onClick={onClose} disabled={saving} className="btn-secondary">{t('common.cancel')}</button>
         </div>
       </div>
     </SidePanel>
