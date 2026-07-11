@@ -746,6 +746,7 @@ function StockInTab() {
   const { products, stockMap, refreshStock } = useProductsAndStock();
   const [form, setForm] = useState({ product_id: '', quantity: 1, unit: 'pc', reference_type: '', reference_id: '', notes: '', operator: '', transaction_date: new Date().toISOString().slice(0, 10) });
   const [saved, setSaved] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   const sel = products.find((p: any) => p.id === form.product_id);
   const stockInfo = stockMap[form.product_id];
@@ -755,16 +756,24 @@ function StockInTab() {
   const estWt = unitWt > 0 ? form.quantity * unitWt : 0;
 
   const submit = async () => {
+    if (saving) return;
     if (!form.product_id || form.quantity <= 0) { toast.error(t('page.inventory.selectProductQuantity')); return; }
+    setSaving(true);
     try {
-      await fetch('/api/inventory/stock-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res = await fetch('/api/inventory/stock-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || data?.message || t('page.inventory.failed'));
       toast.success(t('page.inventory.stockInRecorded'));
       setForm(f => ({ ...f, quantity: 1, reference_type: '', reference_id: '', notes: '', operator: '' }));
       setSaved(s => s + 1);
       const newMap = await refreshStock();
       setSaved(s => s); // re-render via dependency
       if (newMap) Object.assign(stockMap, newMap);
-    } catch { toast.error(t('page.inventory.failed')); }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('page.inventory.networkError'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -772,6 +781,7 @@ function StockInTab() {
       title={t('page.inventory.stockInTab')} products={products} form={form} setForm={setForm} submit={submit}
       sel={sel} currentQty={currentQty} currentWt={currentWt} unitWt={unitWt} estWt={estWt}
       showRef={true} qtyLabel={`${t('page.inventory.qty')} (+)`} btnColor="bg-green-600"
+      saving={saving}
     />
   );
 }
@@ -784,6 +794,7 @@ function StockOutTab() {
   const [form, setForm] = useState({ product_id: '', quantity: 1, unit: 'pc', reference_type: 'order', reference_id: '', notes: '', operator: '', transaction_date: new Date().toISOString().slice(0, 10) });
   const [errInfo, setErrInfo] = useState<any>(null);
   const [saved, setSaved] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   const sel = products.find((p: any) => p.id === form.product_id);
   const stockInfo = stockMap[form.product_id];
@@ -793,13 +804,15 @@ function StockOutTab() {
   const estWt = unitWt > 0 ? form.quantity * unitWt : 0;
 
   const submit = async () => {
+    if (saving) return;
     setErrInfo(null);
     if (!form.product_id || form.quantity <= 0) { toast.error(t('page.inventory.selectProductQuantity')); return; }
+    setSaving(true);
     try {
       const res = await fetch('/api/inventory/stock-out', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        if (data.error === 'Insufficient inventory') { setErrInfo(data); } else { toast.error(data.error || t('page.inventory.failed')); }
+        if (data?.error === 'Insufficient inventory') { setErrInfo(data); } else { toast.error(data?.error || data?.message || t('page.inventory.failed')); }
         return;
       }
       toast.success(t('page.inventory.stockOutRecorded'));
@@ -808,6 +821,7 @@ function StockOutTab() {
       const newMap = await refreshStock();
       if (newMap) Object.assign(stockMap, newMap);
     } catch { toast.error(t('page.inventory.networkError')); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -827,6 +841,7 @@ function StockOutTab() {
         title={t('page.inventory.stockOutTab')} products={products} form={form} setForm={setForm} submit={submit}
         sel={sel} currentQty={currentQty} currentWt={currentWt} unitWt={unitWt} estWt={estWt}
         showRef={true} qtyLabel={`${t('page.inventory.qty')} (-)`} btnColor="bg-red-600" isOut={true}
+        saving={saving}
       />
       {errInfo && (
         <div className="mt-3 text-xs text-gray-400">
@@ -844,6 +859,7 @@ function AdjustmentTab() {
   const { products, stockMap, refreshStock } = useProductsAndStock();
   const [form, setForm] = useState({ product_id: '', quantity: 0, unit: 'pc', notes: '', operator: '', transaction_date: new Date().toISOString().slice(0, 10) });
   const [saved, setSaved] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   const sel = products.find((p: any) => p.id === form.product_id);
   const stockInfo = stockMap[form.product_id];
@@ -852,15 +868,23 @@ function AdjustmentTab() {
   const unitWt = sel?.unit_weight_kg || 0;
 
   const submit = async () => {
+    if (saving) return;
     if (!form.product_id || form.quantity === 0) { toast.error(t('page.inventory.selectProductQuantity')); return; }
+    setSaving(true);
     try {
-      await fetch('/api/inventory/adjustment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res = await fetch('/api/inventory/adjustment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || data?.message || t('page.inventory.failed'));
       toast.success(t('page.inventory.adjustmentRecorded'));
       setForm(f => ({ ...f, quantity: 0, notes: '', operator: '' }));
       setSaved(s => s + 1);
       const newMap = await refreshStock();
       if (newMap) Object.assign(stockMap, newMap);
-    } catch { toast.error(t('page.inventory.failed')); }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('page.inventory.networkError'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -873,7 +897,7 @@ function AdjustmentTab() {
         title={t('page.inventory.adjustmentTab')} products={products} form={form} setForm={setForm} submit={submit}
         sel={sel} currentQty={currentQty} currentWt={currentWt} unitWt={unitWt} estWt={0}
         showRef={false} qtyLabel={`${t('page.inventory.qty')} (+/-)`} btnColor="bg-yellow-600"
-        allowNegative={true}
+        allowNegative={true} saving={saving}
       />
     </div>
   );
@@ -881,10 +905,10 @@ function AdjustmentTab() {
 
 // ─── Shared Transaction Form ───
 
-function TransactionForm({ title, products, form, setForm, submit, sel, currentQty, currentWt, unitWt, estWt, showRef, qtyLabel, btnColor, isOut, allowNegative }: {
+function TransactionForm({ title, products, form, setForm, submit, sel, currentQty, currentWt, unitWt, estWt, showRef, qtyLabel, btnColor, isOut, allowNegative, saving }: {
   title: string; products: any[]; form: any; setForm: (f: any) => void; submit: () => void;
   sel: any; currentQty: number; currentWt: number; unitWt: number; estWt: number;
-  showRef: boolean; qtyLabel: string; btnColor: string; isOut?: boolean; allowNegative?: boolean;
+  showRef: boolean; qtyLabel: string; btnColor: string; isOut?: boolean; allowNegative?: boolean; saving: boolean;
 }) {
   const { t } = useTranslation();
   const lowQty = isOut && currentQty === 0;
@@ -988,8 +1012,8 @@ function TransactionForm({ title, products, form, setForm, submit, sel, currentQ
           <input className="input" value={form.operator} onChange={e => setForm({...form, operator: e.target.value})} placeholder={t('page.inventory.placeholderOperator')} />
         </div>
 
-        <button onClick={submit} disabled={isOut && currentQty === 0} className={`btn-primary ${btnColor} hover:opacity-90 disabled:opacity-50`}>
-          {title}
+        <button onClick={submit} disabled={saving || (isOut && currentQty === 0)} className={`btn-primary ${btnColor} hover:opacity-90 disabled:opacity-50`}>
+          {saving ? t('page.inventory.saving') : title}
         </button>
       </div>
     </div>

@@ -39,6 +39,15 @@ test('inventory product save locks form actions while saving', () => {
   assert.match(inventorySource, /savingProduct \? t\('page\.inventory\.saving'\)/);
 });
 
+test('inventory transactions reject API errors and lock duplicate submissions', () => {
+  assert.equal((inventorySource.match(/const \[saving, setSaving\] = useState\(false\)/g) || []).length, 3);
+  assert.equal((inventorySource.match(/if \(saving\) return/g) || []).length, 3);
+  assert.equal((inventorySource.match(/if \(!res\.ok\) throw new Error\(data\?\.error \|\| data\?\.message \|\| t\('page\.inventory\.failed'\)\)/g) || []).length, 2);
+  assert.match(inventorySource, /saving=\{saving\}/);
+  assert.match(inventorySource, /disabled=\{saving \|\| \(isOut && currentQty === 0\)\}/);
+  assert.match(inventorySource, /saving \? t\('page\.inventory\.saving'\) : title/);
+});
+
 test('profile save notifies the sidebar user menu to refresh immediately', () => {
   assert.match(profileSource, /window\.dispatchEvent\(new CustomEvent\('crm-profile-updated'/);
   assert.match(userMenuSource, /crm-profile-updated/);
