@@ -33,8 +33,8 @@ const navItems: { section: string; items: { label: string; path: string; icon: s
   { section: 'nav.fulfillment', items: [
     { label: 'nav.orders', path: '/orders', icon: 'package' },
     { label: 'nav.shipments', path: '/shipments', icon: 'truck' },
-    { label: 'nav.inventory', path: '/inventory', icon: 'warehouse' },
     { label: 'nav.payments', path: '/payments', icon: 'wallet' },
+    { label: 'nav.inventory', path: '/inventory', icon: 'warehouse' },
   ]},
   { section: 'nav.workspace', items: [
     { label: 'nav.activities', path: '/activities', icon: 'history' },

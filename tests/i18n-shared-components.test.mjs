@@ -59,3 +59,7 @@ test('pipeline board keeps sample and testing work in one equal-width column set
   assert.match(source, /grid h-full min-w-\[1040px\] grid-cols-4 gap-4/);
   assert.match(source, /flex min-w-0 flex-col/);
 });
+
+test('sidebar places inventory below payments in fulfillment navigation', () => {
+  assert.match(source, /nav\.shipments[\s\S]*nav\.payments[\s\S]*nav\.inventory/);
+});
