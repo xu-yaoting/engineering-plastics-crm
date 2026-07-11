@@ -4,6 +4,7 @@ import StatusBadge from '../components/shared/StatusBadge';
 import Icon from '../components/shared/Icon';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { formatCurrency } from '../lib/currency';
 
 const statusFlow = [
   { key: 'draft', labelKey: 'status.draft' },
@@ -122,8 +123,6 @@ export default function OrderDetail() {
 
   const currentIdx = statusFlow.findIndex(s => s.key === order.status);
   const subtotal = lineItems.reduce((s: number, i: any) => s + (i.line_total || 0), 0);
-  const sym = order.currency === 'CNY' ? '¥' : '$'; // kept for backward compat in this file; primarily uses formatCurrency
-
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -288,7 +287,7 @@ export default function OrderDetail() {
               <SummaryField label={t('page.quotationDetail.currency')} value={order.currency || 'USD'} />
               <SummaryField label={t('page.orderDetail.paymentTerms')} value={order.payment_term || '—'} />
               <SummaryField label={t('page.orderDetail.deliveryDate')} value={order.confirmed_delivery_date || '—'} />
-              <SummaryField label={t('page.orderDetail.totalAmount')} value={<span className="text-lg font-semibold text-gray-900 tabular-nums">{sym}{(order.total || subtotal).toLocaleString()}</span>} />
+              <SummaryField label={t('page.orderDetail.totalAmount')} value={<span className="text-lg font-semibold text-gray-900 tabular-nums">{formatCurrency(order.total || subtotal, order.currency)}</span>} />
               <SummaryField label={t('page.orderDetail.source')} value={
                 order.quotation_id
                   ? <Link to={`/quotations/${order.quotation_id}`} className="text-blue-600 hover:underline">{t('page.orderDetail.viewOriginalQuotation')}</Link>
@@ -359,9 +358,9 @@ export default function OrderDetail() {
                           <option value="pc">pc</option>
                         </select>
                       </td>
-                      <td className="table-cell text-right tabular-nums text-sm">{sym}{(item.unit_price || 0).toFixed(2)}</td>
-                      <td className="table-cell text-right tabular-nums text-sm font-medium">{sym}{(item.line_total || 0).toFixed(2)}</td>
-                      <td className="table-cell text-right tabular-nums text-sm font-medium text-blue-600">{sym}{shippedTotal.toFixed(2)}</td>
+                      <td className="table-cell text-right tabular-nums text-sm">{formatCurrency(item.unit_price || 0, order.currency)}</td>
+                      <td className="table-cell text-right tabular-nums text-sm font-medium">{formatCurrency(item.line_total || 0, order.currency)}</td>
+                      <td className="table-cell text-right tabular-nums text-sm font-medium text-blue-600">{formatCurrency(shippedTotal, order.currency)}</td>
                     </tr>
                   );
                 })}
@@ -392,17 +391,17 @@ export default function OrderDetail() {
               <div className="w-48 space-y-1">
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>{t('page.orderDetail.subtotal')}</span>
-                  <span className="tabular-nums">{sym}{(order.subtotal || subtotal).toFixed(2)}</span>
+                  <span className="tabular-nums">{formatCurrency(order.subtotal || subtotal, order.currency)}</span>
                 </div>
                 {order.discount_percent > 0 && (
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>{t('page.quotationDetail.discount')} ({order.discount_percent}%)</span>
-                    <span className="tabular-nums">-{sym}{(order.discount_amount || 0).toFixed(2)}</span>
+                    <span className="tabular-nums">-{formatCurrency(order.discount_amount || 0, order.currency)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-semibold text-gray-900 pt-1 border-t border-gray-200">
                   <span>{t('page.orderDetail.total')}</span>
-                  <span className="tabular-nums text-base">{sym}{(order.total || subtotal).toFixed(2)}</span>
+                  <span className="tabular-nums text-base">{formatCurrency(order.total || subtotal, order.currency)}</span>
                 </div>
               </div>
             </div>
@@ -447,7 +446,7 @@ export default function OrderDetail() {
                   <div key={inv.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
                     <div><span className="text-xs font-medium text-gray-900">{inv.invoice_number}</span><span className="text-2xs text-gray-400 ml-2">{t('page.payments.due')}: {inv.due_date?.slice(0, 10)}</span></div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs tabular-nums ${(inv.amount_due || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>{(inv.amount_due || 0).toFixed(2)}</span>
+                      <span className={`text-xs tabular-nums ${(inv.amount_due || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>{formatCurrency(inv.amount_due || 0, inv.currency || order.currency)}</span>
                       <StatusBadge status={inv.status} />
                     </div>
                   </div>

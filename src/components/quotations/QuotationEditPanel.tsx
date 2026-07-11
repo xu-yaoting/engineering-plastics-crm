@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import SidePanel from '../shared/SidePanel';
 import { quotations } from '../../lib/api';
-import { currencySymbol } from '../../lib/currency';
+import { formatCurrency } from '../../lib/currency';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
@@ -101,8 +101,6 @@ export default function QuotationEditPanel({
   const removeLine = (id: string) => {
     setLineItems(prev => prev.filter(item => item.id !== id));
   };
-
-  const sym = currencySymbol(form.currency);
 
   const subtotal = lineItems.reduce((sum, item) => sum + (item.line_total || 0), 0);
   const discountAmount = subtotal * (form.discount_percent / 100);
@@ -217,7 +215,7 @@ export default function QuotationEditPanel({
                     <div className="col-span-2">
                       <label className="text-2xs text-gray-400 block">{t('page.quotationDetail.editPanel.lineTotal')}</label>
                       <div className="text-sm tabular-nums text-gray-900 mt-0.5 px-3 py-2 bg-gray-50 rounded-lg">
-                        {sym}{(item.line_total || 0).toFixed(2)}
+                        {formatCurrency(item.line_total || 0, form.currency)}
                       </div>
                     </div>
                   </div>
@@ -334,27 +332,27 @@ export default function QuotationEditPanel({
           <div className="bg-gray-50 rounded-lg p-4 space-y-1.5 text-sm">
             <div className="flex justify-between text-gray-500">
               <span>{t('page.quotationDetail.editPanel.subtotal')}</span>
-              <span className="tabular-nums">{sym}{subtotal.toFixed(2)}</span>
+              <span className="tabular-nums">{formatCurrency(subtotal, form.currency)}</span>
             </div>
             {form.discount_percent > 0 && (
               <div className="flex justify-between text-gray-500">
                 <span>{t('page.quotationDetail.editPanel.discount')} ({form.discount_percent}%)</span>
-                <span className="tabular-nums">-{sym}{discountAmount.toFixed(2)}</span>
+                <span className="tabular-nums">-{formatCurrency(discountAmount, form.currency)}</span>
               </div>
             )}
             <div className="flex justify-between text-gray-500">
               <span>{t('page.quotationDetail.editPanel.shipping')}</span>
-              <span className="tabular-nums">{sym}{(form.shipping_handling || 0).toFixed(2)}</span>
+              <span className="tabular-nums">{formatCurrency(form.shipping_handling || 0, form.currency)}</span>
             </div>
             {form.tax_type === 'domestic_vat' && form.domestic_vat_rate > 0 && (
               <div className="flex justify-between text-gray-500">
                 <span>{t('page.quotationDetail.editPanel.vat')} ({form.domestic_vat_rate}%)</span>
-                <span className="tabular-nums">{sym}{taxAmount.toFixed(2)}</span>
+                <span className="tabular-nums">{formatCurrency(taxAmount, form.currency)}</span>
               </div>
             )}
             <div className="flex justify-between font-semibold text-gray-900 pt-2 border-t border-gray-200">
               <span>{t('page.quotationDetail.editPanel.total')}</span>
-              <span className="tabular-nums text-base">{sym}{total.toFixed(2)}</span>
+              <span className="tabular-nums text-base">{formatCurrency(total, form.currency)}</span>
             </div>
           </div>
 

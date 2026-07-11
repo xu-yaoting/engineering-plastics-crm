@@ -50,3 +50,14 @@ test('order detail and payments use the interface font with aligned numerals', (
   assert.doesNotMatch(commercialDetailSource, /font-mono/);
   assert.match(commercialDetailSource, /tabular-nums/);
 });
+
+test('quotation edit and order detail format displayed money with thousands separators', () => {
+  const moneyDisplaySource = [
+    '../src/components/quotations/QuotationEditPanel.tsx',
+    '../src/pages/OrderDetail.tsx',
+  ].map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
+
+  assert.equal((moneyDisplaySource.match(/import \{ formatCurrency \}/g) || []).length, 2);
+  assert.doesNotMatch(moneyDisplaySource, /currencySymbol|\bconst sym\b/);
+  assert.doesNotMatch(moneyDisplaySource, /\.toFixed\(2\)/);
+});
