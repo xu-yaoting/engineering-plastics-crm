@@ -84,6 +84,7 @@ test('third localization batch has dictionary entries for quotation and order de
     'quotationDeleteFailed',
     'orderUpdated',
     'orderSaveFailed',
+    'saving',
     'invoiceCreated',
     'invoiceCreateFailed',
     'shippedQty',
@@ -97,4 +98,18 @@ test('third localization batch has dictionary entries for quotation and order de
   for (const key of requiredKeys) {
     assert.match(dictionarySource, new RegExp(`${key}:`), `Missing i18n key: ${key}`);
   }
+});
+
+test('order edit save checks backend errors before closing the modal', () => {
+  const orderDetailSource = readFileSync(new URL('../src/pages/OrderDetail.tsx', import.meta.url), 'utf8');
+
+  assert.match(orderDetailSource, /const \[savingEdit, setSavingEdit\] = useState\(false\)/);
+  assert.match(orderDetailSource, /const readError = async \(res: Response, fallback: string\)/);
+  assert.match(orderDetailSource, /setSavingEdit\(true\)/);
+  assert.match(orderDetailSource, /if \(!res\.ok\) \{/);
+  assert.match(orderDetailSource, /toast\.error\(await readError\(res, t\('page\.orderDetail\.orderSaveFailed'\)\)\)/);
+  assert.match(orderDetailSource, /setShowEditPanel\(false\);[\s\S]*toast\.success\(t\('page\.orderDetail\.orderUpdated'\)\)/);
+  assert.match(orderDetailSource, /finally \{[\s\S]*setSavingEdit\(false\);[\s\S]*\}/);
+  assert.match(orderDetailSource, /savingEdit \? t\('page\.orderDetail\.saving'\)/);
+  assert.match(orderDetailSource, /disabled=\{savingEdit\}/);
 });

@@ -27,6 +27,7 @@ export default function OrderDetail() {
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [editingShipQty, setEditingShipQty] = useState<Record<string, number>>({});
   const [editForm, setEditForm] = useState({
     customer_po_number: '', incoterm: '', payment_term: '', confirmed_delivery_date: '', shipping_address: '',
@@ -61,18 +62,32 @@ export default function OrderDetail() {
     load();
   };
 
+  const readError = async (res: Response, fallback: string) => {
+    const data = await res.json().catch(() => null);
+    return data?.error || data?.message || fallback;
+  };
+
   const saveEdit = async () => {
-    if (!id) return;
+    if (!id || savingEdit) return;
+    setSavingEdit(true);
     try {
-      await fetch(`/api/orders/${id}`, {
+      const res = await fetch(`/api/orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm),
       });
+      if (!res.ok) {
+        toast.error(await readError(res, t('page.orderDetail.orderSaveFailed')));
+        return;
+      }
       setShowEditPanel(false);
       toast.success(t('page.orderDetail.orderUpdated'));
       load();
-    } catch (e) { toast.error(t('page.orderDetail.orderSaveFailed')); }
+    } catch (e) {
+      toast.error(t('page.orderDetail.orderSaveFailed'));
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const duplicate = async () => {
@@ -131,6 +146,7 @@ export default function OrderDetail() {
                 confirmed_delivery_date: order.confirmed_delivery_date || '',
                 shipping_address: order.shipping_address || '',
               });
+              setSavingEdit(false);
               setShowEditPanel(true);
             }} className="btn-primary btn-sm"><Icon name="square-pen" size={14} className="mr-1.5" />{t('common.edit')}</button>
             <Link to={`/shipments?order=${id}`} className="btn-secondary btn-sm"><Icon name="truck" size={14} className="mr-1.5" />{t('page.orderDetail.ship')}</Link>
@@ -223,8 +239,10 @@ export default function OrderDetail() {
                 <input className="input" value={editForm.shipping_address} onChange={e => setEditForm({...editForm, shipping_address: e.target.value})} />
               </div>
               <div className="flex gap-2 pt-2">
-                <button onClick={saveEdit} className="btn-primary flex-1">{t('common.save')}</button>
-                <button onClick={() => setShowEditPanel(false)} className="btn-secondary">{t('common.cancel')}</button>
+                <button onClick={saveEdit} disabled={savingEdit} className="btn-primary flex-1">
+                  {savingEdit ? t('page.orderDetail.saving') : t('common.save')}
+                </button>
+                <button onClick={() => setShowEditPanel(false)} disabled={savingEdit} className="btn-secondary">{t('common.cancel')}</button>
               </div>
             </div>
           </div>
