@@ -11,6 +11,11 @@ test('contact edit save surfaces the actual API error message', () => {
   assert.match(contactPanelSource, /e instanceof Error \? e\.message : t\('page\.contacts\.saveFailed'\)/);
 });
 
+test('contact save locks cancel while saving', () => {
+  assert.match(contactPanelSource, /disabled=\{saving\}/);
+  assert.match(contactPanelSource, /<button onClick=\{onClose\} disabled=\{saving\} className="btn-secondary">/);
+});
+
 test('inventory product form lets users edit SKU and name instead of locking them behind auto generation', () => {
   assert.match(inventorySource, /value=\{form\.sku\}/);
   assert.match(inventorySource, /onChange=\{e => set\('sku', e\.target\.value\)\}/);

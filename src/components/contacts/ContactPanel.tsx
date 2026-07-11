@@ -178,7 +178,7 @@ export default function ContactPanel({
           >
             {saving ? t('page.companies.saving') : isEdit ? t('page.companies.saveChanges') : t('page.contacts.createContact')}
           </button>
-          <button onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
+          <button onClick={onClose} disabled={saving} className="btn-secondary">{t('common.cancel')}</button>
         </div>
 
         {isEdit && (
