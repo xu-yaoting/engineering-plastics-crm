@@ -21,3 +21,17 @@ test('payments edit form checks update errors before closing', () => {
   assert.match(paymentsSource, /toast\.error\(await readError\(res, t\('page\.payments\.failedUpdateInvoice'\)\)\)/);
   assert.match(paymentsSource, /setEditTarget\(null\);[\s\S]*load\(\);/);
 });
+
+test('payments write actions show saving state and success feedback', () => {
+  assert.match(paymentsSource, /const \[savingAction, setSavingAction\] = useState/);
+  assert.match(paymentsSource, /setSavingAction\('create'\)/);
+  assert.match(paymentsSource, /setSavingAction\('edit'\)/);
+  assert.match(paymentsSource, /setSavingAction\('pay'\)/);
+  assert.match(paymentsSource, /finally \{[\s\S]*setSavingAction\(null\);[\s\S]*\}/);
+  assert.match(paymentsSource, /toast\.success\(t\('page\.payments\.invoiceCreated'\)\)/);
+  assert.match(paymentsSource, /toast\.success\(t\('page\.payments\.invoiceUpdated'\)\)/);
+  assert.match(paymentsSource, /toast\.success\(t\('page\.payments\.paymentRecorded'\)\)/);
+  assert.match(paymentsSource, /savingAction === 'create' \? t\('page\.payments\.saving'\)/);
+  assert.match(paymentsSource, /savingAction === 'edit' \? t\('page\.payments\.saving'\)/);
+  assert.match(paymentsSource, /savingAction === 'pay' \? t\('page\.payments\.saving'\)/);
+});

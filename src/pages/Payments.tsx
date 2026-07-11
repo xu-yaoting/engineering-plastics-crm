@@ -20,6 +20,7 @@ export default function Payments() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<any>(null);
   const [editForm, setEditForm] = useState({ total: 0, due_date: '', notes: '' });
+  const [savingAction, setSavingAction] = useState<'create' | 'edit' | 'pay' | null>(null);
 
   const load = () => {
     fetch('/api/payments').then(r => r.json()).then(setList).finally(() => setLoading(false));
@@ -54,7 +55,8 @@ export default function Payments() {
   };
 
   const saveEdit = async () => {
-    if (!editTarget) return;
+    if (!editTarget || savingAction) return;
+    setSavingAction('edit');
     try {
       const res = await fetch(`/api/payments/${editTarget.id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
@@ -65,42 +67,63 @@ export default function Payments() {
         return;
       }
       setEditTarget(null);
+      toast.success(t('page.payments.invoiceUpdated'));
       load();
     } catch (e) {
       console.error('Edit failed', e);
       toast.error(t('page.payments.failedUpdateInvoice'));
+    } finally {
+      setSavingAction(null);
     }
   };
 
   const createInvoice = async () => {
-    if (!form.order_id || !form.total) return;
-    const res = await fetch('/api/payments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
-    if (!res.ok) {
-      toast.error(await readError(res, t('page.payments.failedCreateInvoice')));
-      return;
+    if (!form.order_id || !form.total || savingAction) return;
+    setSavingAction('create');
+    try {
+      const res = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        toast.error(await readError(res, t('page.payments.failedCreateInvoice')));
+        return;
+      }
+      setShowForm(false);
+      setForm({ order_id: '', total: 0, due_date: '', notes: '' });
+      toast.success(t('page.payments.invoiceCreated'));
+      load();
+    } catch (e) {
+      console.error('Create invoice failed', e);
+      toast.error(t('page.payments.failedCreateInvoice'));
+    } finally {
+      setSavingAction(null);
     }
-    setShowForm(false);
-    setForm({ order_id: '', total: 0, due_date: '', notes: '' });
-    load();
   };
 
   const recordPayment = async () => {
-    if (!payForm) return;
-    const res = await fetch(`/api/payments/${payForm.invoiceId}/pay`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: payForm.amount, payment_method: payForm.method, reference_number: payForm.ref }),
-    });
-    if (!res.ok) {
-      toast.error(await readError(res, t('page.payments.failedRecordPayment')));
-      return;
+    if (!payForm || savingAction) return;
+    setSavingAction('pay');
+    try {
+      const res = await fetch(`/api/payments/${payForm.invoiceId}/pay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: payForm.amount, payment_method: payForm.method, reference_number: payForm.ref }),
+      });
+      if (!res.ok) {
+        toast.error(await readError(res, t('page.payments.failedRecordPayment')));
+        return;
+      }
+      setPayForm(null);
+      toast.success(t('page.payments.paymentRecorded'));
+      load();
+    } catch (e) {
+      console.error('Record payment failed', e);
+      toast.error(t('page.payments.failedRecordPayment'));
+    } finally {
+      setSavingAction(null);
     }
-    setPayForm(null);
-    load();
   };
 
   const filtered = list.filter((i: any) => {
@@ -220,8 +243,10 @@ export default function Payments() {
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={createInvoice} className="btn-primary btn-sm">{t('page.payments.createInvoice')}</button>
-            <button onClick={() => setShowForm(false) } className="btn-secondary btn-sm">{t('common.cancel')}</button>
+            <button onClick={createInvoice} disabled={!form.order_id || !form.total || savingAction === 'create'} className="btn-primary btn-sm">
+              {savingAction === 'create' ? t('page.payments.saving') : t('page.payments.createInvoice')}
+            </button>
+            <button onClick={() => setShowForm(false) } disabled={savingAction === 'create'} className="btn-secondary btn-sm">{t('common.cancel')}</button>
           </div>
         </div>
       )}
@@ -248,8 +273,10 @@ export default function Payments() {
                   onChange={e => setEditForm({...editForm, notes: e.target.value})} />
               </div>
               <div className="flex gap-2 pt-2">
-                <button onClick={saveEdit} className="btn-primary flex-1">{t('page.payments.saveChanges')}</button>
-                <button onClick={() => setEditTarget(null) } className="btn-secondary">{t('common.cancel')}</button>
+                <button onClick={saveEdit} disabled={savingAction === 'edit'} className="btn-primary flex-1">
+                  {savingAction === 'edit' ? t('page.payments.saving') : t('page.payments.saveChanges')}
+                </button>
+                <button onClick={() => setEditTarget(null) } disabled={savingAction === 'edit'} className="btn-secondary">{t('common.cancel')}</button>
               </div>
             </div>
           </div>
@@ -280,8 +307,10 @@ export default function Payments() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={recordPayment} disabled={!payForm.amount} className="btn-primary flex-1">{t('page.payments.recordPayment')}</button>
-              <button onClick={() => setPayForm(null) } className="btn-secondary">{t('common.cancel')}</button>
+              <button onClick={recordPayment} disabled={!payForm.amount || savingAction === 'pay'} className="btn-primary flex-1">
+                {savingAction === 'pay' ? t('page.payments.saving') : t('page.payments.recordPayment')}
+              </button>
+              <button onClick={() => setPayForm(null) } disabled={savingAction === 'pay'} className="btn-secondary">{t('common.cancel')}</button>
             </div>
           </div>
         </div>
