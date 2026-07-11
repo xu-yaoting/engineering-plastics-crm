@@ -149,7 +149,7 @@ export default function CompanyDetail() {
                   <h3 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.companyDetail.credit')}</h3>
                   <div className="space-y-1 text-xs text-gray-600">
                     <div className="flex justify-between"><span className="text-gray-400">{t('page.companyDetail.terms')}:</span><span>{company.credit_term || '—'}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-400">{t('page.companyDetail.limit')}:</span><span className="font-mono">{formatCurrency(company.credit_limit, 'USD')}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-400">{t('page.companyDetail.limit')}:</span><span className="tabular-nums">{formatCurrency(company.credit_limit, 'USD')}</span></div>
                   </div>
                 </div>
               )}
@@ -248,7 +248,7 @@ export default function CompanyDetail() {
                             </div>
                             <div className="text-right flex-shrink-0">
                               {inq.estimated_budget > 0 && (
-                                <span className="text-xs font-mono font-medium text-gray-900">{formatCurrency(inq.estimated_budget, inq.currency)}</span>
+                                <span className="text-xs tabular-nums font-medium text-gray-900">{formatCurrency(inq.estimated_budget, inq.currency)}</span>
                               )}
                             </div>
                           </div>
@@ -286,7 +286,7 @@ export default function CompanyDetail() {
                               </div>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <span className="text-sm font-mono font-semibold text-gray-900">{formatCurrency(q.total, q.currency)}</span>
+                              <span className="text-sm tabular-nums font-semibold text-gray-900">{formatCurrency(q.total, q.currency)}</span>
                             </div>
                           </div>
                         </Link>

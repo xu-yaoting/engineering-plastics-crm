@@ -129,7 +129,7 @@ export default function ShipmentDetail() {
             <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.shipmentDetail.trackingDetails')}</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><span className="text-2xs text-gray-400 block">{t('page.shipmentDetail.carrier')}</span><span className="text-gray-700">{shipment.carrier || '—'}</span></div>
-              <div><span className="text-2xs text-gray-400 block">{t('page.shipmentDetail.trackingNumber')}</span><span className="font-mono text-blue-600">{shipment.tracking_number || '—'}</span></div>
+              <div><span className="text-2xs text-gray-400 block">{t('page.shipmentDetail.trackingNumber')}</span><span className="tabular-nums text-blue-600">{shipment.tracking_number || '—'}</span></div>
               <div><span className="text-2xs text-gray-400 block">{t('page.shipmentDetail.shipDate')}</span><span className="text-gray-700">{shipment.shipped_at?.slice(0, 10) || '—'}</span></div>
               <div><span className="text-2xs text-gray-400 block">{t('page.shipmentDetail.estDelivery')}</span><span className="text-gray-700">{shipment.estimated_delivery_date || '—'}</span></div>
               {shipment.shipping_method && <div className="col-span-2"><span className="text-2xs text-gray-400 block">{t('page.shipmentDetail.method')}</span><span className="text-gray-700">{shipment.shipping_method}</span></div>}
@@ -148,7 +148,7 @@ export default function ShipmentDetail() {
                   {lineItems.map((li: any) => (
                     <tr key={li.id} className="border-b border-gray-100">
                       <td className="py-2 text-xs text-gray-700">{li.order_line_item_id?.slice(0, 8) || t('page.shipmentDetail.item')}</td>
-                      <td className="py-2 text-right font-mono text-xs">{li.quantity_shipped}</td>
+                      <td className="py-2 text-right tabular-nums text-xs">{li.quantity_shipped}</td>
                     </tr>
                   ))}
                 </tbody>

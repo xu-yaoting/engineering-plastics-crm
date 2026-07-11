@@ -88,3 +88,13 @@ test('pipeline totals and shipment identifiers use the interface font', () => {
   assert.doesNotMatch(fulfillmentSource, /font-mono/);
   assert.match(fulfillmentSource, /tabular-nums/);
 });
+
+test('shipment and company details use the interface font for identifiers and money', () => {
+  const detailSource = [
+    '../src/pages/ShipmentDetail.tsx',
+    '../src/pages/CompanyDetail.tsx',
+  ].map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
+
+  assert.doesNotMatch(detailSource, /font-mono/);
+  assert.match(detailSource, /tabular-nums/);
+});
