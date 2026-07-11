@@ -333,10 +333,10 @@ export default function QuotationDetail() {
                           <span className="text-sm text-gray-900">{item.product_grade_snapshot}</span>
                           {item.description && <span className="text-2xs text-gray-400 block">{item.description}</span>}
                         </td>
-                        <td className="table-cell text-right font-mono text-sm">{item.quantity}</td>
+                        <td className="table-cell text-right tabular-nums text-sm">{item.quantity}</td>
                         <td className="table-cell text-xs text-gray-500">{item.unit_of_measure}</td>
-                        <td className="table-cell text-right font-mono text-sm">{formatCurrency(item.unit_price, quotation.currency)}</td>
-                        <td className="table-cell text-right font-mono text-sm font-medium">{formatCurrency(item.line_total, quotation.currency)}</td>
+                        <td className="table-cell text-right tabular-nums text-sm">{formatCurrency(item.unit_price, quotation.currency)}</td>
+                        <td className="table-cell text-right tabular-nums text-sm font-medium">{formatCurrency(item.line_total, quotation.currency)}</td>
                       </tr>
                     ))}
                     {lineItems.length === 0 && (
@@ -364,17 +364,17 @@ export default function QuotationDetail() {
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between text-gray-500">
                     <span>{t('page.quotationDetail.subtotal')}</span>
-                    <span className="font-mono">{formatCurrency(quotation.subtotal ?? subtotal, quotation.currency)}</span>
+                    <span className="tabular-nums">{formatCurrency(quotation.subtotal ?? subtotal, quotation.currency)}</span>
                   </div>
                   {quotation.discount_percent > 0 && (
                     <div className="flex justify-between text-gray-500">
                       <span>{t('page.quotationDetail.discount')} ({quotation.discount_percent}%)</span>
-                      <span className="font-mono">-{formatCurrency(quotation.discount_amount || 0, quotation.currency)}</span>
+                      <span className="tabular-nums">-{formatCurrency(quotation.discount_amount || 0, quotation.currency)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-gray-500">
                     <span>{t('page.quotationDetail.shipping')}</span>
-                    <span className="font-mono">{formatCurrency(quotation.shipping_handling || 0, quotation.currency)}</span>
+                    <span className="tabular-nums">{formatCurrency(quotation.shipping_handling || 0, quotation.currency)}</span>
                   </div>
                   {quotation.tax_type && quotation.tax_type !== 'none' && (
                     <div className="flex justify-between text-gray-500">
@@ -382,14 +382,14 @@ export default function QuotationDetail() {
                         {quotation.tax_type === 'domestic_vat' ? `VAT (${quotation.domestic_vat_rate || 0}%)` :
                          `Rebate (${quotation.export_tax_rebate_rate || 0}%)`}
                       </span>
-                      <span className={`font-mono ${quotation.tax_type === 'export' ? 'text-green-600' : ''}`}>
+                      <span className={`tabular-nums ${quotation.tax_type === 'export' ? 'text-green-600' : ''}`}>
                         {quotation.tax_type === 'domestic_vat' ? `+${formatCurrency(taxAmount, quotation.currency)}` : `-${formatCurrency(quotation.total ? (quotation.subtotal || subtotal) * (quotation.export_tax_rebate_rate || 0) / 100 : 0, quotation.currency)}`}
                       </span>
                     </div>
                   )}
                   <div className="flex justify-between font-semibold text-gray-900 pt-2 border-t border-gray-200">
                     <span>{t('page.quotationDetail.total')}</span>
-                    <span className="font-mono text-base">{formatCurrency(quotation.total ?? subtotal, quotation.currency)}</span>
+                    <span className="tabular-nums text-base">{formatCurrency(quotation.total ?? subtotal, quotation.currency)}</span>
                   </div>
                   {quotation.margin_estimate_percent != null && (
                     <div className="flex justify-between text-green-600 text-xs pt-1">

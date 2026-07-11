@@ -121,3 +121,12 @@ test('quotation edit save surfaces backend errors and locks cancel while saving'
   assert.match(quotationEditSource, /<button onClick=\{onClose\} disabled=\{saving\} className="btn-secondary">/);
   assert.match(quotationEditSource, /disabled=\{saving \|\| lineItems\.length === 0\}/);
 });
+
+test('quotation amounts use the interface font with aligned numerals', () => {
+  const quotationSource = files.slice(0, 2)
+    .map((file) => readFileSync(new URL(file, import.meta.url), 'utf8'))
+    .join('\n');
+
+  assert.doesNotMatch(quotationSource, /font-mono/);
+  assert.match(quotationSource, /tabular-nums/);
+});

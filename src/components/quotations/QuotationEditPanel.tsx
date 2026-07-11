@@ -206,7 +206,7 @@ export default function QuotationEditPanel({
                     </div>
                     <div>
                       <label className="text-2xs text-gray-400 block">{t('page.quotationDetail.editPanel.unitPrice')}</label>
-                      <input className="input text-sm mt-0.5 font-mono" type="number" min="0" step="0.01" value={item.unit_price}
+                      <input className="input text-sm mt-0.5 tabular-nums" type="number" min="0" step="0.01" value={item.unit_price}
                         onChange={e => updateLine(item.id, 'unit_price', parseFloat(e.target.value) || 0)} />
                     </div>
                     <div>
@@ -216,7 +216,7 @@ export default function QuotationEditPanel({
                     </div>
                     <div className="col-span-2">
                       <label className="text-2xs text-gray-400 block">{t('page.quotationDetail.editPanel.lineTotal')}</label>
-                      <div className="text-sm font-mono text-gray-900 mt-0.5 px-3 py-2 bg-gray-50 rounded-lg">
+                      <div className="text-sm tabular-nums text-gray-900 mt-0.5 px-3 py-2 bg-gray-50 rounded-lg">
                         {sym}{(item.line_total || 0).toFixed(2)}
                       </div>
                     </div>
@@ -308,7 +308,7 @@ export default function QuotationEditPanel({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">{t('page.quotationDetail.editPanel.shippingHandling')}</label>
-                <input className="input font-mono" type="number" min="0" step="0.01"
+                <input className="input tabular-nums" type="number" min="0" step="0.01"
                   value={form.shipping_handling || ''}
                   onChange={e => set('shipping_handling', parseFloat(e.target.value) || 0)} />
               </div>
@@ -334,27 +334,27 @@ export default function QuotationEditPanel({
           <div className="bg-gray-50 rounded-lg p-4 space-y-1.5 text-sm">
             <div className="flex justify-between text-gray-500">
               <span>{t('page.quotationDetail.editPanel.subtotal')}</span>
-              <span className="font-mono">{sym}{subtotal.toFixed(2)}</span>
+              <span className="tabular-nums">{sym}{subtotal.toFixed(2)}</span>
             </div>
             {form.discount_percent > 0 && (
               <div className="flex justify-between text-gray-500">
                 <span>{t('page.quotationDetail.editPanel.discount')} ({form.discount_percent}%)</span>
-                <span className="font-mono">-{sym}{discountAmount.toFixed(2)}</span>
+                <span className="tabular-nums">-{sym}{discountAmount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between text-gray-500">
               <span>{t('page.quotationDetail.editPanel.shipping')}</span>
-              <span className="font-mono">{sym}{(form.shipping_handling || 0).toFixed(2)}</span>
+              <span className="tabular-nums">{sym}{(form.shipping_handling || 0).toFixed(2)}</span>
             </div>
             {form.tax_type === 'domestic_vat' && form.domestic_vat_rate > 0 && (
               <div className="flex justify-between text-gray-500">
                 <span>{t('page.quotationDetail.editPanel.vat')} ({form.domestic_vat_rate}%)</span>
-                <span className="font-mono">{sym}{taxAmount.toFixed(2)}</span>
+                <span className="tabular-nums">{sym}{taxAmount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between font-semibold text-gray-900 pt-2 border-t border-gray-200">
               <span>{t('page.quotationDetail.editPanel.total')}</span>
-              <span className="font-mono text-base">{sym}{total.toFixed(2)}</span>
+              <span className="tabular-nums text-base">{sym}{total.toFixed(2)}</span>
             </div>
           </div>
 
