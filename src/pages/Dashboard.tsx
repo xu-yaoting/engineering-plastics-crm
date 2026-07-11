@@ -4,6 +4,12 @@ import { AlertCircle, AlertTriangle, Award, CheckCircle, FileText, ReceiptText, 
 import { formatCurrency } from '../lib/currency';
 import { useTranslation } from 'react-i18next';
 
+const WORKSPACE_CARD = 'card overflow-hidden border-gray-200';
+const WORKSPACE_CARD_HEADER = 'px-4 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center justify-between min-h-[52px]';
+const WORKSPACE_CARD_TITLE = 'text-base font-semibold text-gray-700 flex items-center gap-2';
+const WORKSPACE_CARD_BODY = 'p-4';
+const KPI_CARD = 'card p-4 border-gray-200 hover:border-gray-300 transition-colors min-h-[120px] flex flex-col justify-between';
+
 export default function Dashboard() {
   const { t } = useTranslation();
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -120,28 +126,28 @@ export default function Dashboard() {
 
       {/* 1. KPI Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link to="/payments" className="card p-4 hover:border-gray-300 transition-colors">
+        <Link to="/payments" className={KPI_CARD}>
           <div className="mb-2">
             <span className="text-xs text-gray-500 font-medium">{t('page.dashboard.outstandingReceivables')}</span>
           </div>
           <div className="text-3xl font-semibold text-gray-900">{formatWithCurrency(outstandingUSD, outstandingCNY)}</div>
           <div className="text-2xs text-gray-400 mt-1">{t('page.dashboard.unpaidInvoices', { count: unpaid.length })}</div>
         </Link>
-        <Link to="/payments" className="card p-4 hover:border-gray-300 transition-colors">
+        <Link to="/payments" className={KPI_CARD}>
           <div className="mb-2">
             <span className="text-xs text-gray-500 font-medium">{t('page.dashboard.overdueReceivables')}</span>
           </div>
           <div className="text-3xl font-semibold text-red-600">{formatWithCurrency(overdueUSD, overdueCNY)}</div>
           <div className="text-2xs text-red-500 mt-1">{t('page.dashboard.overdueInvoices', { count: overdue.length })}</div>
         </Link>
-        <Link to="/orders" className="card p-4 hover:border-gray-300 transition-colors">
+        <Link to="/orders" className={KPI_CARD}>
           <div className="mb-2">
             <span className="text-xs text-gray-500 font-medium">{t('page.dashboard.openOrders')}</span>
           </div>
           <div className="text-3xl font-semibold text-blue-600">{openOrders.length}</div>
           <div className="text-2xs text-gray-400 mt-1">{t('page.dashboard.notYetDelivered')}</div>
         </Link>
-        <Link to="/quotations" className="card p-4 hover:border-gray-300 transition-colors">
+        <Link to="/quotations" className={KPI_CARD}>
           <div className="mb-2">
             <span className="text-xs text-gray-500 font-medium">{t('page.dashboard.openQuotations')}</span>
           </div>
@@ -151,9 +157,9 @@ export default function Dashboard() {
       </div>
 
       {/* 2. Accounts Receivable Alert */}
-      <div className="card">
-        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><ReceiptText size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.accountsReceivableAlert')}</h2>
+      <div className={WORKSPACE_CARD}>
+        <div className={WORKSPACE_CARD_HEADER}>
+          <h2 className={WORKSPACE_CARD_TITLE}><ReceiptText size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.accountsReceivableAlert')}</h2>
           <Link to="/payments" className="text-xs text-blue-600 hover:underline">{t('page.dashboard.viewAll')}</Link>
         </div>
         <div className="overflow-x-auto">
@@ -198,11 +204,11 @@ export default function Dashboard() {
 
       {/* 3. Sales Pipeline */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
-          <div className="px-4 py-3 border-b border-gray-200">
-            <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><Workflow size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.salesPipeline')}</h2>
+        <div className={WORKSPACE_CARD}>
+          <div className={WORKSPACE_CARD_HEADER}>
+            <h2 className={WORKSPACE_CARD_TITLE}><Workflow size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.salesPipeline')}</h2>
           </div>
-          <div className="p-4">
+          <div className={WORKSPACE_CARD_BODY}>
             <div className="space-y-2">
               {pipeline.map(stage => (
                 <Link key={stage.labelKey} to={stage.link} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
@@ -226,12 +232,12 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Inquiries */}
-        <div className="card">
-          <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><Inbox size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.recentInquiries')}</h2>
+        <div className={WORKSPACE_CARD}>
+          <div className={WORKSPACE_CARD_HEADER}>
+            <h2 className={WORKSPACE_CARD_TITLE}><Inbox size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.recentInquiries')}</h2>
             <Link to="/inquiries" className="text-xs text-blue-600 hover:underline">{t('page.dashboard.viewAll')}</Link>
           </div>
-          <div className="p-4">
+          <div className={WORKSPACE_CARD_BODY}>
             {inquiries.length === 0 ? (
               <p className="text-sm text-gray-400 text-center py-6">{t('page.dashboard.noInquiries')}</p>
             ) : (
@@ -253,69 +259,77 @@ export default function Dashboard() {
 
       {/* 4. Monthly Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="card p-4 lg:col-span-1">
-          <h2 className="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2"><TrendingUp size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.thisMonthSales')}</h2>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-2xs font-450 text-gray-400 uppercase tracking-[0.08em]">{t('page.dashboard.currency')}</span>
-            <span className="text-2xs font-450 text-gray-400 uppercase tracking-[0.08em]">{t('page.dashboard.target')}</span>
-            <span className="text-2xs font-450 text-gray-400 uppercase tracking-[0.08em]">{t('page.dashboard.actual')}</span>
-            <span className="text-2xs font-450 text-gray-400 uppercase tracking-[0.08em]">%</span>
+        <div className={`${WORKSPACE_CARD} lg:col-span-1`}>
+          <div className={WORKSPACE_CARD_HEADER}>
+            <h2 className={WORKSPACE_CARD_TITLE}><TrendingUp size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.thisMonthSales')}</h2>
           </div>
-          {actualUSD > 0 && (
-            <div className="flex items-center justify-between py-1.5 border-b border-gray-50">
-              <span className="text-xs font-medium text-gray-600">USD</span>
-              <span className="text-xs font-mono text-gray-500">{formatCurrency(targetUSD, 'USD')}</span>
-              <span className="text-sm font-semibold text-gray-900">{formatCurrency(actualUSD, 'USD')}</span>
-              <span className={`text-xs font-semibold ${pctUSD >= 100 ? 'text-green-600' : pctUSD >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>{pctUSD}%</span>
+          <div className={WORKSPACE_CARD_BODY}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-2xs font-450 text-gray-400 uppercase tracking-[0.08em]">{t('page.dashboard.currency')}</span>
+              <span className="text-2xs font-450 text-gray-400 uppercase tracking-[0.08em]">{t('page.dashboard.target')}</span>
+              <span className="text-2xs font-450 text-gray-400 uppercase tracking-[0.08em]">{t('page.dashboard.actual')}</span>
+              <span className="text-2xs font-450 text-gray-400 uppercase tracking-[0.08em]">%</span>
             </div>
-          )}
-          {actualCNY > 0 && (
-            <div className="flex items-center justify-between py-1.5 border-b border-gray-50">
-              <span className="text-xs font-medium text-gray-600">CNY</span>
-              <span className="text-xs font-mono text-gray-500">{formatCurrency(targetCNY, 'CNY')}</span>
-              <span className="text-sm font-semibold text-gray-900">{formatCurrency(actualCNY, 'CNY')}</span>
-              <span className="text-xs font-semibold">{Math.round((actualCNY / targetCNY) * 100)}%</span>
-            </div>
-          )}
-          {actualUSD === 0 && actualCNY === 0 && <p className="text-xs text-gray-400 text-center py-4">{t('page.dashboard.noClosedSalesThisMonth')}</p>}
-          {(actualUSD > 0 || actualCNY > 0) && (
-            <div className="mt-3">
-              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${pctUSD >= 100 ? 'bg-green-500' : pctUSD >= 70 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                  style={{ width: `${Math.min(100, Math.max(2, pctUSD))}%` }} />
+            {actualUSD > 0 && (
+              <div className="flex items-center justify-between py-1.5 border-b border-gray-50">
+                <span className="text-xs font-medium text-gray-600">USD</span>
+                <span className="text-xs font-mono text-gray-500">{formatCurrency(targetUSD, 'USD')}</span>
+                <span className="text-sm font-semibold text-gray-900">{formatCurrency(actualUSD, 'USD')}</span>
+                <span className={`text-xs font-semibold ${pctUSD >= 100 ? 'text-green-600' : pctUSD >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>{pctUSD}%</span>
               </div>
-            </div>
-          )}
+            )}
+            {actualCNY > 0 && (
+              <div className="flex items-center justify-between py-1.5 border-b border-gray-50">
+                <span className="text-xs font-medium text-gray-600">CNY</span>
+                <span className="text-xs font-mono text-gray-500">{formatCurrency(targetCNY, 'CNY')}</span>
+                <span className="text-sm font-semibold text-gray-900">{formatCurrency(actualCNY, 'CNY')}</span>
+                <span className="text-xs font-semibold">{Math.round((actualCNY / targetCNY) * 100)}%</span>
+              </div>
+            )}
+            {actualUSD === 0 && actualCNY === 0 && <p className="text-xs text-gray-400 text-center py-4">{t('page.dashboard.noClosedSalesThisMonth')}</p>}
+            {(actualUSD > 0 || actualCNY > 0) && (
+              <div className="mt-3">
+                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${pctUSD >= 100 ? 'bg-green-500' : pctUSD >= 70 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                    style={{ width: `${Math.min(100, Math.max(2, pctUSD))}%` }} />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="card p-4 lg:col-span-2">
-          <h2 className="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2"><Award size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.topCustomersThisMonth')}</h2>
-          {topCustomers.length > 0 ? (
-            <div className="space-y-2">
-              {topCustomers.map((c, idx) => (
-                <div key={c.name} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                  {idx === 0 ? <Award size={18} strokeWidth={1.75} className="text-yellow-500 flex-shrink-0" /> :
-                   idx === 1 ? <Award size={18} strokeWidth={1.75} className="text-gray-400 flex-shrink-0" /> :
-                   idx === 2 ? <Award size={18} strokeWidth={1.75} className="text-orange-500 flex-shrink-0" /> :
-                   <span className="w-6 h-6 flex items-center justify-center text-xs font-medium text-gray-300">{idx + 1}</span>}
-                  <span className="flex-1 text-sm text-gray-700 truncate">{c.name}</span>
-                  <span className="text-xs text-gray-400">{t('page.dashboard.deals', { count: c.count })}</span>
-                  <span className="text-sm font-mono font-semibold text-gray-900">{formatCurrency(c.total, c.currency)}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400 text-center py-6">{t('page.dashboard.noClosedSalesThisMonth')}</p>
-          )}
+        <div className={`${WORKSPACE_CARD} lg:col-span-2`}>
+          <div className={WORKSPACE_CARD_HEADER}>
+            <h2 className={WORKSPACE_CARD_TITLE}><Award size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.topCustomersThisMonth')}</h2>
+          </div>
+          <div className={WORKSPACE_CARD_BODY}>
+            {topCustomers.length > 0 ? (
+              <div className="space-y-2">
+                {topCustomers.map((c, idx) => (
+                  <div key={c.name} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                    {idx === 0 ? <Award size={18} strokeWidth={1.75} className="text-yellow-500 flex-shrink-0" /> :
+                     idx === 1 ? <Award size={18} strokeWidth={1.75} className="text-gray-400 flex-shrink-0" /> :
+                     idx === 2 ? <Award size={18} strokeWidth={1.75} className="text-orange-500 flex-shrink-0" /> :
+                     <span className="w-6 h-6 flex items-center justify-center text-xs font-medium text-gray-300">{idx + 1}</span>}
+                    <span className="flex-1 text-sm text-gray-700 truncate">{c.name}</span>
+                    <span className="text-xs text-gray-400">{t('page.dashboard.deals', { count: c.count })}</span>
+                    <span className="text-sm font-mono font-semibold text-gray-900">{formatCurrency(c.total, c.currency)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 text-center py-6">{t('page.dashboard.noClosedSalesThisMonth')}</p>
+            )}
+          </div>
         </div>
       </div>
 
       {/* 5. Receivable Aging */}
-      <div className="card">
-        <div className="px-4 py-3 border-b border-gray-200">
-          <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><CalendarClock size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.receivableAging')}</h2>
+      <div className={WORKSPACE_CARD}>
+        <div className={WORKSPACE_CARD_HEADER}>
+          <h2 className={WORKSPACE_CARD_TITLE}><CalendarClock size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.receivableAging')}</h2>
         </div>
-        <div className="p-4">
+        <div className={WORKSPACE_CARD_BODY}>
           {(() => {
             const buckets = [
               { label: t('page.dashboard.days0to30'), min: 0, max: 30, bar: 'bg-green-500' },
@@ -372,12 +386,12 @@ export default function Dashboard() {
       </div>
 
       {/* 6. Recent Quotations */}
-      <div className="card">
-        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2"><FileText size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.recentQuotations')}</h2>
+      <div className={WORKSPACE_CARD}>
+        <div className={WORKSPACE_CARD_HEADER}>
+          <h2 className={WORKSPACE_CARD_TITLE}><FileText size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.recentQuotations')}</h2>
           <Link to="/quotations" className="text-xs text-blue-600 hover:underline">{t('page.dashboard.viewAll')}</Link>
         </div>
-        <div className="p-4">
+        <div className={WORKSPACE_CARD_BODY}>
           {quotations.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-6">{t('page.dashboard.noQuotations')}</p>
           ) : (

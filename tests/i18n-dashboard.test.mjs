@@ -101,3 +101,11 @@ test('dashboard sales pipeline uses real module counts without unused stages', (
   assert.doesNotMatch(source, /BadgeCheck/);
   assert.doesNotMatch(source, /Factory/);
 });
+
+test('dashboard uses shared workspace card layout classes', () => {
+  assert.match(source, /const WORKSPACE_CARD = 'card overflow-hidden border-gray-200'/);
+  assert.match(source, /const WORKSPACE_CARD_HEADER = 'px-4 py-3 border-b border-gray-100 bg-gray-50\/60 flex items-center justify-between min-h-\[52px\]'/);
+  assert.match(source, /const WORKSPACE_CARD_TITLE = 'text-base font-semibold text-gray-700 flex items-center gap-2'/);
+  assert.match(source, /const WORKSPACE_CARD_BODY = 'p-4'/);
+  assert.match(source, /const KPI_CARD = 'card p-4 border-gray-200 hover:border-gray-300 transition-colors min-h-\[120px\] flex flex-col justify-between'/);
+});
