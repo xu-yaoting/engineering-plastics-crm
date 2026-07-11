@@ -61,3 +61,10 @@ test('quotation edit and order detail format displayed money with thousands sepa
   assert.doesNotMatch(moneyDisplaySource, /currencySymbol|\bconst sym\b/);
   assert.doesNotMatch(moneyDisplaySource, /\.toFixed\(2\)/);
 });
+
+test('inventory SKUs and measurements use the interface font with aligned numerals', () => {
+  const inventorySource = readFileSync(new URL('../src/pages/InventoryPage.tsx', import.meta.url), 'utf8');
+
+  assert.doesNotMatch(inventorySource, /font-mono/);
+  assert.match(inventorySource, /tabular-nums/);
+});

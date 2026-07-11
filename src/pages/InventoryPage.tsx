@@ -115,17 +115,17 @@ function DashboardTab({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
         <div className="grid grid-cols-3 gap-6">
           <div>
             <div className="text-2xs text-gray-400">{t('page.inventory.stockInTab')}</div>
-            <div className="text-lg font-semibold text-green-600 font-mono">{inQty.toLocaleString()}</div>
+            <div className="text-lg font-semibold text-green-600 tabular-nums">{inQty.toLocaleString()}</div>
             <div className="text-2xs text-gray-400">{inWt.toFixed(1)} kg {t('page.inventory.received')}</div>
           </div>
           <div>
             <div className="text-2xs text-gray-400">{t('page.inventory.stockOutTab')}</div>
-            <div className="text-lg font-semibold text-red-600 font-mono">{outQty.toLocaleString()}</div>
+            <div className="text-lg font-semibold text-red-600 tabular-nums">{outQty.toLocaleString()}</div>
             <div className="text-2xs text-gray-400">{outWt.toFixed(1)} kg {t('page.inventory.shipped')}</div>
           </div>
           <div>
             <div className="text-2xs text-gray-400">{t('page.inventory.adjustments')}</div>
-            <div className="text-lg font-semibold text-yellow-600 font-mono">{adjQty.toLocaleString()}</div>
+            <div className="text-lg font-semibold text-yellow-600 tabular-nums">{adjQty.toLocaleString()}</div>
             <div className="text-2xs text-gray-400">{t('page.inventory.unitsAdjusted')}</div>
           </div>
         </div>
@@ -155,16 +155,16 @@ function DashboardTab({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
                 const lowWt = p.safety_stock_weight_kg > 0 && p.current_weight_kg < p.safety_stock_weight_kg;
                 return (
                   <tr key={p.id} className="border-b border-gray-100">
-                    <td className="table-cell font-mono text-xs text-gray-500">{p.sku}</td>
+                    <td className="table-cell tabular-nums text-xs text-gray-500">{p.sku}</td>
                     <td className="table-cell font-medium text-gray-900">{p.name}</td>
-                    <td className={`table-cell text-right font-mono text-sm ${lowQty ? 'text-red-600 font-semibold' : 'text-gray-900'}`}>
+                    <td className={`table-cell text-right tabular-nums text-sm ${lowQty ? 'text-red-600 font-semibold' : 'text-gray-900'}`}>
                       {Math.max(0, p.current_stock)}
                     </td>
-                    <td className="table-cell text-right font-mono text-xs text-gray-500">{p.safety_stock_qty || '—'}</td>
-                    <td className={`table-cell text-right font-mono text-sm ${lowWt ? 'text-red-600 font-semibold' : 'text-gray-900'}`}>
+                    <td className="table-cell text-right tabular-nums text-xs text-gray-500">{p.safety_stock_qty || '—'}</td>
+                    <td className={`table-cell text-right tabular-nums text-sm ${lowWt ? 'text-red-600 font-semibold' : 'text-gray-900'}`}>
                       {Math.max(0, p.current_weight_kg || 0).toFixed(1)}
                     </td>
-                    <td className="table-cell text-right font-mono text-xs text-gray-500">{p.safety_stock_weight_kg ? p.safety_stock_weight_kg + ' kg' : '—'}</td>
+                    <td className="table-cell text-right tabular-nums text-xs text-gray-500">{p.safety_stock_weight_kg ? p.safety_stock_weight_kg + ' kg' : '—'}</td>
                     <td className="table-cell">
                       <div className="flex gap-1">
                         {lowQty && <span className="inline-flex px-1.5 py-0.5 rounded text-2xs font-450 bg-red-50 text-red-600">Qty</span>}
@@ -213,20 +213,20 @@ function DashboardTab({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
               const lowWt = p.safety_stock_weight_kg > 0 && p.current_weight_kg < p.safety_stock_weight_kg;
               return (
                 <tr key={p.id} className="border-b border-gray-100">
-                  <td className="table-cell font-mono text-xs text-gray-500">{p.sku}</td>
+                  <td className="table-cell tabular-nums text-xs text-gray-500">{p.sku}</td>
                   <td className="table-cell font-medium text-gray-900">{p.name}</td>
                   <td className="table-cell text-xs text-gray-500">{p.material_name || '—'}</td>
                   <td className="table-cell text-xs text-gray-500 capitalize">{p.product_type || '—'}</td>
-                  <td className={`table-cell text-right font-mono text-sm ${lowQty ? 'text-red-600 font-semibold' : 'text-gray-900'}`}>
+                  <td className={`table-cell text-right tabular-nums text-sm ${lowQty ? 'text-red-600 font-semibold' : 'text-gray-900'}`}>
                     {Math.max(0, p.current_stock)}
                   </td>
-                  <td className={`table-cell text-right font-mono text-sm ${lowWt ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+                  <td className={`table-cell text-right tabular-nums text-sm ${lowWt ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
                     {Math.max(0, p.current_weight_kg || 0).toFixed(1)}
                   </td>
-                  <td className="table-cell text-right font-mono text-xs text-gray-400">
+                  <td className="table-cell text-right tabular-nums text-xs text-gray-400">
                     {(p.unit_weight_kg || 0).toFixed(3)}
                   </td>
-                  <td className="table-cell text-right font-mono text-xs text-gray-500">
+                  <td className="table-cell text-right tabular-nums text-xs text-gray-500">
                     {p.safety_stock_qty || '—'}
                   </td>
                   <td className="table-cell text-right">
@@ -518,7 +518,7 @@ function ProductsTab() {
             {weightPreview !== null && weightPreview > 0 && (
               <div className="col-span-2 bg-blue-50 rounded-lg px-3 py-2 text-sm">
                 <span className="text-blue-700 font-medium">{t('page.inventory.unitWeight')}:</span>
-                <span className="text-blue-900 font-mono font-semibold ml-2">{weightPreview.toFixed(3)}</span>
+                <span className="text-blue-900 tabular-nums font-semibold ml-2">{weightPreview.toFixed(3)}</span>
                 <span className="text-blue-500 ml-1">kg</span>
               </div>
             )}
@@ -579,12 +579,12 @@ function ProductsTab() {
           <tbody>
             {products.map((p: any) => (
               <tr key={p.id} className="border-b border-gray-100">
-                <td className="table-cell font-mono text-xs text-gray-500">{p.sku}</td>
+                <td className="table-cell tabular-nums text-xs text-gray-500">{p.sku}</td>
                 <td className="table-cell font-medium text-gray-900">{p.name}</td>
                 <td className="table-cell text-xs text-gray-500 capitalize">{p.product_type || '—'}</td>
                 <td className="table-cell text-xs text-gray-500">{p.material_name || '—'}</td>
-                <td className="table-cell text-right font-mono text-sm text-gray-600">{(p.unit_weight_kg || 0).toFixed(3)}</td>
-                <td className="table-cell text-right font-mono text-xs text-gray-500">
+                <td className="table-cell text-right tabular-nums text-sm text-gray-600">{(p.unit_weight_kg || 0).toFixed(3)}</td>
+                <td className="table-cell text-right tabular-nums text-xs text-gray-500">
                   {p.safety_stock_qty || '—'}/{p.safety_stock_weight_kg ? p.safety_stock_weight_kg + 'kg' : '—'}
                 </td>
                 <td className="table-cell text-right">
@@ -651,7 +651,7 @@ function LedgerTab() {
             <div key={p.id} className={`p-2 rounded-lg border ${p.current_stock < p.safety_stock ? 'border-red-200 bg-red-50' : 'border-gray-100'}`}>
               <div className="text-2xs text-gray-500 truncate">{p.sku}</div>
               <div className="text-xs font-semibold text-gray-900 truncate">{p.name}</div>
-              <div className={`text-sm font-mono mt-1 ${p.current_stock < p.safety_stock ? 'text-red-600' : 'text-gray-700'}`}>
+              <div className={`text-sm tabular-nums mt-1 ${p.current_stock < p.safety_stock ? 'text-red-600' : 'text-gray-700'}`}>
                 {Math.max(0, p.current_stock)} <span className="text-2xs text-gray-400">{p.unit}</span>
               </div>
             </div>
@@ -688,7 +688,7 @@ function LedgerTab() {
             {filtered.map((txn: any) => (
               <tr key={txn.id} className="border-b border-gray-100">
                 <td className="table-cell text-xs text-gray-500">{txn.transaction_date}</td>
-                <td className="table-cell font-mono text-xs text-gray-500">{txn.transaction_number}</td>
+                <td className="table-cell tabular-nums text-xs text-gray-500">{txn.transaction_number}</td>
                 <td className="table-cell">
                   <span className={`inline-flex px-2 py-0.5 rounded text-2xs font-450 ${
                     txn.transaction_type === 'stock_in' ? 'bg-green-50 text-green-600' :
@@ -699,7 +699,7 @@ function LedgerTab() {
                   </span>
                 </td>
                 <td className="table-cell"><span className="font-medium text-gray-900">{txn.product_name || txn.product_sku}</span></td>
-                <td className={`table-cell text-right font-mono text-sm font-medium ${txn.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <td className={`table-cell text-right tabular-nums text-sm font-medium ${txn.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {txn.quantity > 0 ? `+${txn.quantity}` : txn.quantity}
                 </td>
                 <td className="table-cell text-xs text-gray-500">
@@ -831,8 +831,8 @@ function StockOutTab() {
           <div className="font-semibold text-red-700 mb-1">{t('page.inventory.insufficientInventory')}</div>
           <div className="text-red-600 space-y-0.5">
             <div>{t('page.inventory.product')}: <span className="font-medium">{errInfo.product_sku} — {errInfo.product_name}</span></div>
-            <div>{t('page.inventory.current')}: <span className="font-mono font-semibold">{errInfo.currentStock}</span> {t('page.inventory.unit')}</div>
-            <div>{t('page.inventory.requested')}: <span className="font-mono font-semibold">{errInfo.requestedQuantity}</span> {t('page.inventory.unit')}</div>
+            <div>{t('page.inventory.current')}: <span className="tabular-nums font-semibold">{errInfo.currentStock}</span> {t('page.inventory.unit')}</div>
+            <div>{t('page.inventory.requested')}: <span className="tabular-nums font-semibold">{errInfo.requestedQuantity}</span> {t('page.inventory.unit')}</div>
             <div className="text-xs text-red-500 mt-1">{t('page.inventory.reduceOrStockIn')}</div>
           </div>
         </div>
@@ -932,11 +932,11 @@ function TransactionForm({ title, products, form, setForm, submit, sel, currentQ
           <div className={`grid grid-cols-2 gap-3 ${lowQty ? 'bg-red-50 border border-red-200' : 'bg-gray-50'} rounded-lg p-3 text-sm`}>
             <div>
               <span className="text-xs text-gray-500">{t('page.inventory.currentQty')}</span>
-              <div className={`font-mono font-semibold ${lowQty ? 'text-red-600' : 'text-gray-800'}`}>{currentQty}</div>
+              <div className={`tabular-nums font-semibold ${lowQty ? 'text-red-600' : 'text-gray-800'}`}>{currentQty}</div>
             </div>
             <div>
               <span className="text-xs text-gray-500">{t('page.inventory.currentWeight')}</span>
-              <div className="font-mono font-semibold text-gray-800">{currentWt.toFixed(1)} kg</div>
+              <div className="tabular-nums font-semibold text-gray-800">{currentWt.toFixed(1)} kg</div>
             </div>
           </div>
           {lowQty && <div className="text-xs text-red-600 font-medium">{t('page.inventory.cannotStockOut')}</div>}
@@ -972,7 +972,7 @@ function TransactionForm({ title, products, form, setForm, submit, sel, currentQ
         {estWt > 0 && (
           <div className="bg-blue-50 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
             <span className="text-blue-600 font-medium">{t('page.inventory.estWeight')}:</span>
-            <span className="text-blue-800 font-mono font-semibold">{estWt.toFixed(3)} kg</span>
+            <span className="text-blue-800 tabular-nums font-semibold">{estWt.toFixed(3)} kg</span>
             <span className="text-blue-400">({form.quantity || 0} × {unitWt.toFixed(3)} kg)</span>
           </div>
         )}
@@ -1156,7 +1156,7 @@ function ImportTab() {
         {preview && !result && (
           <div>
             <div className="text-xs font-medium text-gray-500 mb-1">{t('page.inventory.previewRows')}</div>
-            <div className="bg-gray-50 rounded-lg p-2 text-xs font-mono overflow-x-auto">
+            <div className="bg-gray-50 rounded-lg p-2 text-xs tabular-nums overflow-x-auto">
               {preview.length === 0 ? <span className="text-gray-400">{t('page.inventory.emptyFile')}</span> :
                 <table><thead><tr>{Object.keys(preview[0]).map(h => <th key={h} className="px-2 py-1 text-left text-gray-400">{h}</th>)}</tr></thead>
                   <tbody>{preview.map((row: any, i: number) => <tr key={i}>{Object.values(row).map((v: any, j: number) => <td key={j} className="px-2 py-0.5 text-gray-700">{String(v || '—')}</td>)}</tr>)}</tbody></table>}
