@@ -1,4 +1,56 @@
-# CRM Chinese Localization Plan
+# CRM Team Accountability Plan
+
+**Current goal:** Make ownership and every important write operation attributable to a real CRM user for the current 2-3 person internal team.
+
+**Rules:**
+- Ownership and operation history are separate concepts.
+- Store user IDs in records; resolve names from `users` when displaying them.
+- New sales records default to the current user and inherit customer ownership where appropriate.
+- Historical records remain unassigned until an administrator assigns them.
+- Inventory changes must remain ledger-based and record before/change/after quantities.
+- Keep permissions simple for the internal team: administrators manage accounts; authenticated members collaborate and every key write is audited.
+
+**Implementation order:**
+1. [x] Add ownership, creator, and updater fields with additive migrations.
+2. [x] Add field-level audit diffing and a protected history API.
+3. [x] Complete audit coverage for companies, contacts, tasks, and inventory.
+4. [x] Default and inherit ownership through customers, inquiries, quotations, and orders.
+5. [x] Add owner columns, filters, assignment, metadata, and history UI.
+6. [x] Verify migrations, tests, build, and isolated API smoke writes.
+
+**Completed verification (2026-07-13):** 167 automated tests, frontend and server type checks, production build, database backup, and isolated API write smoke across nine modules.
+
+**Payments soft ownership (2026-07-13):** Payments display linked order owners, preserve truthful actor metadata, and enforce owner-or-admin invoice/payment writes. Verified with 170 automated tests and three-account API smoke coverage.
+
+---
+
+# CRM Product UI Refinement Plan
+
+**Current goal:** Give the local CRM a distinctive, professional Precision Industrial visual language without changing its typography system or business workflows.
+
+**Design direction:** Attio-inspired information discipline, cool neutral surfaces, one blue brand accent, restrained status color, compact motion, and clear operational hierarchy.
+
+**Constraints:**
+- Keep React, Tailwind 3, Lucide, the existing font scale, and current routes.
+- Add no production dependency.
+- Preserve bilingual layout and dense desktop workflows.
+- Use cards only where a framed surface communicates real hierarchy.
+- Change no more than three files per batch and verify each batch.
+
+**Implementation order:**
+1. [x] Establish `DESIGN.md`, shared surface tokens, page shells, toolbars, and interaction primitives.
+2. [x] Reshape Workspace hierarchy and reduce repetitive cards.
+3. [x] Use Customers as the canonical list-page pattern.
+4. [x] Apply the list pattern to quotations and orders.
+5. [x] Apply the list pattern to shipments, payments, and inventory.
+6. [x] Standardize side panels, modals, forms, loading, empty, and error states.
+7. [x] Audit icon semantics, sizes, tooltips, focus, hover, and pressed states.
+8. [x] Complete the Attio-style density pass: sentence-case headers, stable row heights, responsive action wrapping, and restrained segmented controls.
+9. [x] Verify responsive layout constraints, tests, type checking, build, and static visual regressions.
+
+---
+
+# Previous CRM Chinese Localization Plan
 
 **Goal:** Finish the Simplified Chinese UI for the local CRM in small, safe batches.
 

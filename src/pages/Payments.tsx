@@ -5,9 +5,11 @@ import Icon from '../components/shared/Icon';
 import { useTranslation } from 'react-i18next';
 import { exportFullCsv } from '../lib/exportCsv';
 import { toast } from '../lib/toast';
+import { useAuth } from '../lib/auth';
 
 export default function Payments() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [list, setList] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,10 +50,17 @@ export default function Payments() {
 
   const remove = async (id: string) => {
     try {
-      await fetch(`/api/payments/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/payments/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        toast.error(await readError(res, t('page.payments.failedDeleteInvoice')));
+        return;
+      }
       setConfirmDelete(null);
       load();
-    } catch (e) { console.error('Delete failed', e); }
+    } catch (e) {
+      console.error('Delete failed', e);
+      toast.error(t('page.payments.failedDeleteInvoice'));
+    }
   };
 
   const saveEdit = async () => {
@@ -137,6 +146,9 @@ export default function Payments() {
     }
     return true;
   });
+  const editableOrders = user?.role === 'admin'
+    ? orders
+    : orders.filter((order: any) => order.owner_user_id === user?.id);
   const isOverdue = (inv: any) => inv.status === 'overdue' || (inv.status !== 'paid' && inv.status !== 'cancelled' && new Date(inv.due_date) < new Date());
 
   // KPI computations
@@ -184,13 +196,13 @@ export default function Payments() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="page-shell space-y-6">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">{t('nav.payments')}</h1>
-          <p className="text-sm text-gray-500">{t('page.payments.outstanding')}</p>
+          <h1 className="page-heading">{t('nav.payments')}</h1>
+          <p className="page-summary">{t('page.payments.outstanding')}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="page-actions">
           <button onClick={() => setShowForm(true)} className="btn-primary btn-sm"><Icon name="plus" size={16} className="mr-1.5" />{t('page.payments.new')}</button>
           <button onClick={() => exportFullCsv('/api/payments', 'invoices')} className="btn-secondary btn-sm"><Icon name="download" size={14} className="mr-1" />CSV</button>
         </div>
@@ -221,8 +233,10 @@ export default function Payments() {
       </div>
 
       {showForm && (
-        <div className="card p-4 mb-6">
-          <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="data-surface p-4 mb-6">
+          <fieldset>
+          <legend className="section-label mb-3">{t('page.payments.new')}</legend>
+          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="label">{t('page.payments.order')} *</label>
               <select className="input" value={form.order_id} onChange={e => {
@@ -230,7 +244,7 @@ export default function Payments() {
                 setForm({...form, order_id: e.target.value, total: sel?.total || 0});
               }}>
                 <option value="">{t('select.order')}</option>
-                {orders.map((o: any) => <option key={o.id} value={o.id}>{o.order_number} — {o.company_name || ''}</option>)}
+                {editableOrders.map((o: any) => <option key={o.id} value={o.id}>{o.order_number} — {o.company_name || ''}</option>)}
               </select>
             </div>
             <div>
@@ -248,15 +262,21 @@ export default function Payments() {
             </button>
             <button onClick={() => setShowForm(false) } disabled={savingAction === 'create'} className="btn-secondary btn-sm">{t('common.cancel')}</button>
           </div>
+          </fieldset>
         </div>
       )}
 
       {/* Edit Modal */}
       {editTarget && (
         <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-[420px]">
+          <div role="dialog" aria-modal="true" aria-label={t('page.payments.editInvoice')} className="modal-surface w-[min(420px,calc(100vw-2rem))] p-6">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">{t('page.payments.editInvoice')} — {editTarget.invoice_number}</h3>
             <div className="space-y-4">
+              <dl className="grid grid-cols-1 gap-2 rounded border border-gray-200 bg-gray-50 p-3 text-xs sm:grid-cols-3">
+                <div><dt className="text-gray-400">{t('accountability.owner')}</dt><dd className="mt-0.5 text-gray-700">{editTarget.owner_name || t('accountability.unassigned')}</dd></div>
+                <div><dt className="text-gray-400">{t('accountability.createdBy')}</dt><dd className="mt-0.5 text-gray-700">{editTarget.created_by_name || t('accountability.historicalActorUnknown')}</dd></div>
+                <div><dt className="text-gray-400">{t('accountability.updatedBy')}</dt><dd className="mt-0.5 text-gray-700">{editTarget.updated_by_name || t('accountability.historicalActorUnknown')}</dd></div>
+              </dl>
               <div>
                 <label className="label">{t('page.payments.total')} ({editTarget.currency || 'USD'})</label>
                 <input className="input tabular-nums" type="number" step="0.01" value={editForm.total}
@@ -285,7 +305,7 @@ export default function Payments() {
 
       {payForm && (
         <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-[400px]">
+          <div role="dialog" aria-modal="true" aria-label={t('page.payments.recordPayment')} className="modal-surface w-[min(400px,calc(100vw-2rem))] p-6">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">{t('page.payments.recordPayment')}</h3>
             <div className="space-y-3 mb-4">
               <div>
@@ -316,12 +336,15 @@ export default function Payments() {
         </div>
       )}
 
-      <div className="flex items-center gap-3 mb-4">
-        <input className="input max-w-sm" placeholder={t('common.searchInvoices')} value={search} onChange={e => setSearch(e.target.value)} />
-        <div className="flex items-center gap-2">
+      <div className="toolbar gap-3 overflow-x-auto">
+        <div className="relative w-full max-w-sm shrink-0">
+          <Icon name="search" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input className="input w-full pl-9" placeholder={t('common.searchInvoices')} value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <div className="segmented-control whitespace-nowrap">
         {['', 'issued', 'partial_paid', 'paid', 'overdue', 'cancelled'].map(s => (
           <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium ${filter === s ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}>
+            className={`segmented-option ${filter === s ? 'segmented-option-active' : ''}`}>
             {s ? t(`status.${s}`) : t('status.all')}
           </button>
         ))}
@@ -329,11 +352,15 @@ export default function Payments() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">{t('common.loading')}</div>
+        <div className="data-surface p-3" aria-label={t('common.loading')}>
+          <div className="animate-pulse space-y-2">
+            {[0, 1, 2, 3, 4].map(row => <div key={row} className="h-10 rounded bg-gray-100" />)}
+          </div>
+        </div>
       ) : (
-        <div className="card">
+        <div className="data-surface overflow-x-auto">
           <table className="w-full">
-            <thead>
+            <thead className="sticky top-0 z-10">
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="table-header">{t('page.payments.invoices')} #</th>
                 <th className="table-header">{t('page.payments.order')}</th>
@@ -343,6 +370,8 @@ export default function Payments() {
                 <th className="table-header text-right">{t('page.payments.paid')}</th>
                 <th className="table-header text-right">{t('page.payments.due')}</th>
                 <th className="table-header">{t('page.payments.dueDate')}</th>
+                <th className="table-header hidden lg:table-cell">{t('accountability.owner')}</th>
+                <th className="table-header w-16"></th>
                 <th className="table-header w-12"></th>
               </tr>
             </thead>
@@ -364,25 +393,32 @@ export default function Payments() {
                       {isOverdue(inv) && ` `}
                     </span>
                   </td>
+                  <td className="table-cell hidden lg:table-cell text-xs text-gray-500">{inv.owner_name || t('accountability.unassigned')}</td>
                   {inv.status !== 'paid' && inv.status !== 'cancelled' ? (
                     <td className="table-cell">
-                      <button onClick={() => setPayForm({ invoiceId: inv.id, amount: inv.amount_due || inv.total, method: 'wire_transfer', ref: '' })}
-                        className="text-xs text-blue-600 hover:underline">{t('page.payments.pay')}</button>
+                      <button
+                        onClick={() => setPayForm({ invoiceId: inv.id, amount: inv.amount_due || inv.total, method: 'wire_transfer', ref: '' })}
+                        disabled={!inv.can_edit}
+                        title={!inv.can_edit ? t('accountability.ownerOrAdminOnly') : undefined}
+                        className="text-xs text-blue-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-300 disabled:no-underline"
+                      >{t('page.payments.pay')}</button>
                     </td>
                   ) : <td className="table-cell"></td>}
                   <td className="table-cell" onClick={e => e.stopPropagation()}>
                     <div className="relative">
-                      <button onClick={() => setOpenMenu(openMenu === inv.id ? null : inv.id)} className="btn-ghost btn-sm text-xs px-1">⋮</button>
+                      <button onClick={() => setOpenMenu(openMenu === inv.id ? null : inv.id)} className="icon-btn" aria-label={t('common.moreActions')} title={t('common.moreActions')}>
+                        <Icon name="more" size={16} />
+                      </button>
                       {openMenu === inv.id && (
-                        <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-md z-20 py-1">
-                          <button onClick={() => {
+                        <div className="menu-surface absolute right-0 top-full mt-1 w-36">
+                          <button disabled={!inv.can_edit} title={!inv.can_edit ? t('accountability.ownerOrAdminOnly') : undefined} onClick={() => {
                             setOpenMenu(null);
                             setEditForm({ total: inv.total || 0, due_date: inv.due_date || '', notes: inv.notes || '' });
                             setEditTarget(inv);
-                          }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
+                          }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-white">
                             <Icon name="square-pen" size={13} />{t('common.edit')}
                           </button>
-                          {confirmDelete !== inv.id ? (
+                          {user?.role === 'admin' && (confirmDelete !== inv.id ? (
                             <button onClick={() => setConfirmDelete(inv.id)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">
                               <Icon name="delete" size={13} />{t('common.delete')}
                             </button>
@@ -394,14 +430,14 @@ export default function Payments() {
                                 <button onClick={() => setConfirmDelete(null)} className="text-xs text-gray-500 px-2 py-0.5">{t('common.no')}</button>
                               </div>
                             </div>
-                          )}
+                          ))}
                         </div>
                       )}
                     </div>
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={8} className="text-center py-12 text-gray-400 text-sm">{t('noData.invoices')}</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={11}><div className="empty-state">{t('noData.invoices')}</div></td></tr>}
             </tbody>
           </table>
         </div>

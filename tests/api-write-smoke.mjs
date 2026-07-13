@@ -1,10 +1,17 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import Database from 'better-sqlite3';
 
 const PORT = 3101;
 const BASE_URL = `http://127.0.0.1:${PORT}/api`;
 const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const smokeUserId = randomUUID();
+const smokeAuthToken = randomUUID();
+const smokeMemberId = randomUUID();
+const smokeMemberToken = randomUUID();
+const otherMemberId = randomUUID();
+const otherMemberToken = randomUUID();
 const created = {
   companyId: null,
   contactId: null,
@@ -25,10 +32,15 @@ function delay(ms) {
 }
 
 async function request(path, options = {}) {
+  return requestAs(smokeAuthToken, path, options);
+}
+
+async function requestAs(token, path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
       ...(options.headers || {}),
     },
   });
@@ -41,10 +53,15 @@ async function request(path, options = {}) {
 }
 
 async function expectRequestFailure(path, options = {}, expectedStatus) {
+  return expectRequestFailureAs(smokeAuthToken, path, options, expectedStatus);
+}
+
+async function expectRequestFailureAs(token, path, options = {}, expectedStatus) {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
       ...(options.headers || {}),
     },
   });
@@ -63,6 +80,31 @@ async function waitForHealth() {
     }
   }
   throw new Error('API did not become healthy');
+}
+
+function verifyPaymentAudit() {
+  const db = new Database(new URL('../crm.db', import.meta.url).pathname);
+  const invoiceEvents = db.prepare(`
+    SELECT action, changes, user_id
+    FROM audit_log
+    WHERE entity_type = 'invoice' AND entity_id = ?
+  `).all(created.invoiceId);
+  const paymentEvents = db.prepare(`
+    SELECT action, changes, user_id
+    FROM audit_log
+    WHERE entity_type = 'payment_record' AND user_id = ?
+  `).all(smokeMemberId);
+  db.close();
+
+  const invoiceActions = new Set(invoiceEvents.map((event) => event.action));
+  assert.ok(invoiceActions.has('create'));
+  assert.ok(invoiceActions.has('update'));
+  assert.ok(invoiceActions.has('payment_applied'));
+  assert.ok(paymentEvents.some((event) => event.action === 'create'));
+  for (const event of [...invoiceEvents.filter(event => event.action !== 'delete'), ...paymentEvents]) {
+    assert.equal(event.user_id, smokeMemberId);
+    assert.doesNotThrow(() => JSON.parse(event.changes));
+  }
 }
 
 async function cleanup() {
@@ -95,6 +137,11 @@ async function cleanup() {
   }
   if (created.invoiceId) {
     await request(`/payments/${created.invoiceId}`, { method: 'DELETE' }).catch(() => {});
+    const db = new Database(new URL('../crm.db', import.meta.url).pathname);
+    const deleteAudit = db.prepare("SELECT id FROM audit_log WHERE entity_type = 'invoice' AND entity_id = ? AND action = 'delete' AND user_id = ?")
+      .get(created.invoiceId, smokeUserId);
+    db.close();
+    if (!deleteAudit) cleanupIssues.push('Invoice delete audit event is missing');
   }
   if (created.orderId) {
     await request(`/orders/${created.orderId}`, { method: 'DELETE' }).catch(() => {});
@@ -122,6 +169,13 @@ async function cleanup() {
   if (created.companyId) {
     await request(`/companies/${created.companyId}`, { method: 'DELETE' }).catch(() => {});
   }
+
+  const authDb = new Database(new URL('../crm.db', import.meta.url).pathname);
+  authDb.prepare('DELETE FROM audit_log WHERE user_id = ?').run(smokeUserId);
+  authDb.prepare('DELETE FROM audit_log WHERE user_id IN (?, ?)').run(smokeMemberId, otherMemberId);
+  authDb.prepare('DELETE FROM users WHERE id = ?').run(smokeUserId);
+  authDb.prepare('DELETE FROM users WHERE id IN (?, ?)').run(smokeMemberId, otherMemberId);
+  authDb.close();
 }
 
 async function runSmoke() {
@@ -296,7 +350,11 @@ async function runSmoke() {
   });
   assert.equal(updatedOrder.status, 'confirmed');
 
-  await expectRequestFailure('/payments', {
+  const ownershipDb = new Database(new URL('../crm.db', import.meta.url).pathname);
+  ownershipDb.prepare('UPDATE orders SET owner_user_id = ? WHERE id = ?').run(smokeMemberId, created.orderId);
+  ownershipDb.close();
+
+  await expectRequestFailureAs(smokeMemberToken, '/payments', {
     method: 'POST',
     body: JSON.stringify({
       order_id: created.orderId,
@@ -305,7 +363,7 @@ async function runSmoke() {
     }),
   }, 400);
 
-  const invoice = await request('/payments', {
+  const invoice = await requestAs(smokeMemberToken, '/payments', {
     method: 'POST',
     body: JSON.stringify({
       order_id: created.orderId,
@@ -319,7 +377,12 @@ async function runSmoke() {
   assert.equal(invoice.amount_due, 100);
   assert.equal(invoice.due_date, '2026-07-15');
 
-  const editedInvoice = await request(`/payments/${created.invoiceId}`, {
+  await expectRequestFailureAs(otherMemberToken, `/payments/${created.invoiceId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ due_date: '2026-09-01' }),
+  }, 403);
+
+  const editedInvoice = await requestAs(smokeMemberToken, `/payments/${created.invoiceId}`, {
     method: 'PUT',
     body: JSON.stringify({
       total: 120,
@@ -332,7 +395,12 @@ async function runSmoke() {
   assert.equal(editedInvoice.due_date, '2026-08-20');
   assert.equal(editedInvoice.notes, 'Updated local API smoke invoice');
 
-  await expectRequestFailure(`/payments/${created.invoiceId}/pay`, {
+  await expectRequestFailureAs(otherMemberToken, `/payments/${created.invoiceId}/pay`, {
+    method: 'POST',
+    body: JSON.stringify({ amount: 1, payment_method: 'wire' }),
+  }, 403);
+
+  await expectRequestFailureAs(smokeMemberToken, `/payments/${created.invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({
       amount: -10,
@@ -341,7 +409,7 @@ async function runSmoke() {
     }),
   }, 400);
 
-  const partiallyPaidInvoice = await request(`/payments/${created.invoiceId}/pay`, {
+  const partiallyPaidInvoice = await requestAs(smokeMemberToken, `/payments/${created.invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({
       amount: 40,
@@ -353,7 +421,7 @@ async function runSmoke() {
   assert.equal(partiallyPaidInvoice.amount_paid, 40);
   assert.equal(partiallyPaidInvoice.amount_due, 80);
 
-  await expectRequestFailure(`/payments/${created.invoiceId}/pay`, {
+  await expectRequestFailureAs(smokeMemberToken, `/payments/${created.invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({
       amount: 81,
@@ -362,7 +430,7 @@ async function runSmoke() {
     }),
   }, 400);
 
-  const paidInvoice = await request(`/payments/${created.invoiceId}/pay`, {
+  const paidInvoice = await requestAs(smokeMemberToken, `/payments/${created.invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({
       amount: 80,
@@ -374,7 +442,7 @@ async function runSmoke() {
   assert.equal(paidInvoice.amount_paid, 120);
   assert.equal(paidInvoice.amount_due, 0);
 
-  await expectRequestFailure(`/payments/${created.invoiceId}/pay`, {
+  await expectRequestFailureAs(smokeMemberToken, `/payments/${created.invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({
       amount: 1,
@@ -507,13 +575,21 @@ async function runSmoke() {
   assert.equal(smokeStock.current_stock, 5);
 }
 
+const authDb = new Database(new URL('../crm.db', import.meta.url).pathname);
+authDb.prepare("INSERT INTO users (id, name, token, role, is_active, created_at) VALUES (?, ?, ?, 'admin', 1, datetime('now'))")
+  .run(smokeUserId, `Smoke Admin ${runId}`, smokeAuthToken);
+authDb.prepare("INSERT INTO users (id, name, token, role, is_active, created_at) VALUES (?, ?, ?, 'member', 1, datetime('now'))")
+  .run(smokeMemberId, `Smoke Member ${runId}`, smokeMemberToken);
+authDb.prepare("INSERT INTO users (id, name, token, role, is_active, created_at) VALUES (?, ?, ?, 'member', 1, datetime('now'))")
+  .run(otherMemberId, `Other Smoke Member ${runId}`, otherMemberToken);
+authDb.close();
+
 const server = spawn(process.execPath, ['dist-server/index.js'], {
   cwd: new URL('..', import.meta.url).pathname,
   env: {
     ...process.env,
     PORT: String(PORT),
     HOST: '127.0.0.1',
-    API_KEY: '',
   },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -529,6 +605,7 @@ server.stderr.on('data', (chunk) => {
 try {
   await waitForHealth();
   await runSmoke();
+  verifyPaymentAudit();
   await cleanup();
   assert.deepEqual(cleanupIssues, []);
   console.log('API write smoke passed: companies, contacts, tasks, inquiries, quotations, orders, payments, shipments, inventory');

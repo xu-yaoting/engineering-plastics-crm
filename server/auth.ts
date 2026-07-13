@@ -1,26 +1,32 @@
 import type { NextFunction, Request, Response } from 'express';
+import db from './db.js';
 
-export function getApiKey(): string | null {
-  const key = process.env.API_KEY?.trim();
-  return key || null;
+declare global {
+  namespace Express {
+    interface Request {
+      user?: { id: string; name: string; role: string };
+    }
+  }
 }
 
-export function isAuthEnabled(): boolean {
-  const key = getApiKey();
-  return Boolean(key);
-}
-
-export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
-  const key = getApiKey();
-  if (!key) {
-    next();
+export function authMiddleware(req: Request, _res: Response, next: NextFunction): void {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) {
+    _res.status(401).json({ error: 'Unauthorized', message: 'Valid Authorization: Bearer <token> header required' });
     return;
   }
 
-  const provided = req.headers['x-api-key'];
-  if (provided === key) {
-    next();
-  } else {
-    res.status(401).json({ error: 'Unauthorized', message: 'Valid x-api-key header required' });
+  const token = header.slice(7);
+  const user = db.prepare("SELECT id, name, role FROM users WHERE token = ? AND is_active = 1").get(token) as { id: string; name: string; role: string } | undefined;
+
+  if (!user) {
+    _res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
+    return;
   }
+
+  // Update last_seen_at
+  db.prepare("UPDATE users SET last_seen_at = datetime('now') WHERE id = ?").run(user.id);
+
+  req.user = user;
+  next();
 }
