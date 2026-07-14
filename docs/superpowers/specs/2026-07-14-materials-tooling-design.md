@@ -1,7 +1,7 @@
 # Materials & Tooling Design
 
 **Date:** 2026-07-14
-**Status:** Conversation-approved; awaiting written review
+**Status:** Review updates applied; awaiting final review
 **Product name:** 工厂物资与工装管理系统
 **Navigation label:** Materials & Tooling / 物资与工装
 
@@ -108,9 +108,9 @@ Each material record contains:
 
 - internal material code;
 - name;
-- category;
+- single-level category;
 - specification or model;
-- unit of measure;
+- one fixed stock unit of measure;
 - warehouse and bin location;
 - safety quantity;
 - active/inactive status;
@@ -118,6 +118,8 @@ Each material record contains:
 - created and updated actor metadata.
 
 Current quantity is calculated from executed material movements. It is never edited directly.
+
+First phase does not convert between purchase and issue units. Each material uses one practical stock unit, such as piece, bottle, pair, or kilogram, across receipts, issues, ledgers, and price history. Supplier packaging such as "one box contains 20 pieces" may be stored as descriptive notes, but receipt quantity and unit price must be entered in the material's stock unit.
 
 The material detail shows current quantity, movement history, monthly history, and—only for authorized users—purchase price history and sensitive attachments.
 
@@ -138,6 +140,8 @@ Number format: `GR-YYYY-NNNN`.
 Fields include receipt date, supplier, optional related purchase request, material lines, received quantities, actual tax-inclusive unit prices and amounts, warehouse/bin, inspection result, invoice number, contract number, operator, notes, and supporting attachments.
 
 Executing a receipt creates positive material movements and purchase price history. A receipt does not create accounting entries or payables.
+
+A purchase request is not itself a stock-executing document. One approved request may be fulfilled by multiple purchase receipts, and the request displays Open, Partially received, or Fulfilled progress derived from its linked receipts. Each purchase receipt records only the quantity physically received and is executed exactly once.
 
 ### 6.3 Material issue
 
@@ -189,8 +193,11 @@ Rules:
 - execution posts movements and cannot occur before approval;
 - uploading the signed paper copy completes the online/offline evidence chain;
 - executed records cannot be edited or deleted;
-- administrators correct an executed error by voiding it with a reason and creating a replacement document;
+- administrators correct an executed error by voiding it with a reason and creating a replacement document with a new sequential number;
+- the replacement document stores `replaces_document_id`, and the voided document stores `replaced_by_document_id`, so both directions are visible without reusing the original number or adding an `-R1` suffix;
 - every status transition records actor, time, comment, before state, and after state.
+
+First-phase approval assignment is static and configured by an administrator per document type. Applicants cannot choose or replace the approver at submission. Department- or amount-based routing and multi-step approval are outside first-phase scope.
 
 ## 8. PDF and offline signatures
 
@@ -256,7 +263,7 @@ The monthly ledger may display a reference weighted-average unit price:
 (opening quantity + period purchase receipt quantity)
 ```
 
-When the denominator is zero, the reference unit price and amount are zero. Returns linked to an issue retain that issue's reference price; unlinked returns use the current reference price on the return date.
+When the denominator is zero, the reference unit price and amount are zero. Returns linked to an issue retain that issue's reference price. An unlinked return uses the latest actual unit price from an executed purchase receipt dated on or before the return date. If no such receipt exists, its reference price is zero and the ledger marks it as unavailable rather than inventing a value.
 
 Issue and closing amounts are reference values and must be labelled "not an accounting record." Negotiation views always use actual purchase batches rather than averages.
 
@@ -293,7 +300,8 @@ Valid transitions include:
 - return: In use -> In stock;
 - repair: In stock/In use -> Under repair;
 - repair completion: Under repair -> In stock;
-- disposal: any active state -> Disposed.
+- disposal: any active state -> Disposed;
+- loss report: any active state -> Lost, requiring approval, a written reason, and evidence photos when available.
 
 State, custody, and location can change only through a movement document. The tooling record exposes the complete handover and maintenance history.
 
@@ -311,6 +319,8 @@ Rules:
 - document snapshots cannot be replaced or deleted;
 - attachment removal is administrator-only and audited;
 - sensitive purchase attachments use the same server-enforced permissions as price data;
+- attachment files are never exposed through permanent static paths; downloads pass through an authenticated, server-authorized endpoint;
+- if a download must use a bearer link without the active CRM session, the link uses a short-lived signed token and expires after no more than 60 seconds;
 - a failed upload cannot incorrectly complete a document.
 
 ## 14. Historical import
@@ -339,6 +349,10 @@ The system must reject:
 - issue of disposed or already-issued tooling;
 - unauthorized price or sensitive attachment access.
 
+Submission for approval does not reserve quantity and is not blocked solely because current stock is insufficient. Immediately before issue execution, inside the same database transaction that creates the movement, the system recalculates current quantity and requires `current quantity - execution quantity >= 0`. If stock is insufficient at that moment, execution is rejected and the approved document remains pending execution.
+
+Partial execution of a stock-affecting document is not supported. A purchase receipt, material issue, return, scrap, count adjustment, or tooling movement is executed once for all quantities in its approved snapshot. If the executable quantity changes after approval, the document must be revised and resubmitted or replaced by separate documents. Purchase requests are the exception only in fulfillment tracking: one request may be linked to multiple fully executed purchase receipts as described in Section 6.2.
+
 Document execution, movement creation, state changes, and audit records occur atomically. A failure must not leave a partially executed document or partial quantity change. Negative stock is forbidden; physical discrepancies use an approved count adjustment.
 
 ## 16. Audit requirements
@@ -360,9 +374,16 @@ The first release is acceptable when all of the following are verified:
 7. Closed periods reject new or changed dated transactions.
 8. Reopening a period requires an administrator reason and is audited.
 9. Tooling issue, return, repair, repair completion, and disposal produce valid states and history.
-10. Duplicate submissions, insufficient quantity, or failed attachments do not create partial data.
-11. Database and business attachments can be backed up and restored together.
-12. Existing Inventory, customer, sales, fulfillment, and payment workflows remain unchanged.
+10. An approved tooling loss report moves an active tool to Lost and retains its reason and evidence.
+11. Replacement documents receive new sequential numbers and expose links to and from the voided originals.
+12. Single-UOM validation rejects a receipt or issue using a different unit from its material master.
+13. A purchase request can be fulfilled by multiple receipts, while each receipt and issue executes only once in full.
+14. Static approver assignment cannot be overridden by an applicant.
+15. An issue can be submitted when stock is temporarily insufficient but cannot execute if the final atomic stock check would create a negative balance.
+16. Permanent static attachment paths do not work, and short-lived bearer links expire as specified.
+17. Duplicate submissions, insufficient quantity, or failed attachments do not create partial data.
+18. Database and business attachments can be backed up and restored together.
+19. Existing Inventory, customer, sales, fulfillment, and payment workflows remain unchanged.
 
 ## 18. Explicit non-goals
 
@@ -375,7 +396,10 @@ The first release does not include:
 - production planning, BOMs, work orders, or MRP;
 - links to CRM customers, sales orders, or existing Inventory records;
 - third-party legally binding electronic signatures;
-- multi-step online approval chains.
+- multi-step online approval chains;
+- unit-of-measure conversion, including box-to-piece or roll-to-meter conversion;
+- nested or tree-structured material categories;
+- department- or amount-based dynamic approval routing.
 
 ## 19. Implementation sequencing constraint
 
