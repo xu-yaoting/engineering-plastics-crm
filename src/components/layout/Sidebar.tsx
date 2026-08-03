@@ -28,7 +28,7 @@ const navItems: { section: string; items: { label: string; path: string; icon: s
   { section: 'nav.sales', items: [
     { label: 'nav.companies', path: '/companies', icon: 'building' },
     { label: 'page.customerDevelopment.workbench', path: '/companies/follow-ups', icon: 'calendar-clock' },
-    { label: 'nav.opportunities', path: '/opportunities', icon: 'inbox' },
+    { label: 'nav.quotations', path: '/quotations', icon: 'file-text' },
   ]},
   { section: 'nav.fulfillment', items: [
     { label: 'nav.orders', path: '/orders', icon: 'package' },
@@ -36,7 +36,6 @@ const navItems: { section: string; items: { label: string; path: string; icon: s
     { label: 'nav.payments', path: '/payments', icon: 'wallet' },
     { label: 'nav.inventory', path: '/inventory', icon: 'warehouse' },
     { label: 'nav.materialsTooling', path: '/materials-tooling', icon: 'wrench' },
-    { label: 'nav.quotations', path: '/quotations', icon: 'file-text' },
   ]},
   { section: 'nav.workspace', items: [
     { label: 'nav.activities', path: '/activities', icon: 'history' },

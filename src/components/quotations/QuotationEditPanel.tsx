@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import SidePanel from '../shared/SidePanel';
-import { quotations, team, type TeamMember } from '../../lib/api';
+import { quotations, companies, contacts, team, type TeamMember } from '../../lib/api';
 import { formatCurrency } from '../../lib/currency';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +32,13 @@ export default function QuotationEditPanel({
   const { user } = useAuth();
 
   const [form, setForm] = useState({
+    company_id: quotation.company_id || '',
+    contact_id: quotation.contact_id || '',
+    application_description: '',
+    target_material_requested: '',
+    quantity_estimate: '',
+    urgency: 'within_1_month',
+    source: 'email',
     currency: 'USD',
     incoterm: '',
     payment_term: '',
@@ -51,17 +58,36 @@ export default function QuotationEditPanel({
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [members, setMembers] = useState<TeamMember[]>([]);
-  const [errors, setErrors] = useState<{ lineItems?: string }>({});
+  const [companyList, setCompanyList] = useState<any[]>([]);
+  const [contactList, setContactList] = useState<any[]>([]);
+  const [errors, setErrors] = useState<{ lineItems?: string; company_id?: string; application_description?: string }>({});
 
   useEffect(() => {
+    companies.list().then(setCompanyList);
     if (user?.role === 'admin') {
       team.list().then(setMembers).catch(() => setMembers([]));
     }
   }, [user?.role]);
 
   useEffect(() => {
+    if (form.company_id) {
+      contacts.list(form.company_id).then(setContactList);
+    } else {
+      setContactList([]);
+    }
+  }, [form.company_id]);
+
+  useEffect(() => {
     if (!quotation) return;
-    setForm({
+    setForm(prev => ({
+      ...prev,
+      company_id: quotation.company_id || '',
+      contact_id: quotation.contact_id || '',
+      application_description: quotation.application_description || '',
+      target_material_requested: quotation.target_material_requested || '',
+      quantity_estimate: quotation.quantity_estimate || '',
+      urgency: quotation.urgency || 'within_1_month',
+      source: quotation.source || 'email',
       currency: quotation.currency || 'USD',
       incoterm: quotation.incoterm || '',
       payment_term: quotation.payment_term || '',
@@ -75,7 +101,7 @@ export default function QuotationEditPanel({
       discount_percent: quotation.discount_percent || 0,
       internal_notes: quotation.internal_notes || '',
       owner_user_id: quotation.owner_user_id || '',
-    });
+    }));
     if (quotation.line_items) {
       setLineItems(quotation.line_items);
     }
@@ -123,10 +149,19 @@ export default function QuotationEditPanel({
   const total = afterDiscount + taxAmount + (form.shipping_handling || 0);
 
   const save = async () => {
+    const nextErrors: { lineItems?: string; company_id?: string; application_description?: string } = {};
+    if (isNew && !form.company_id) nextErrors.company_id = t('page.inquiryNew.companyRequired');
+    if (isNew && !form.application_description.trim()) {
+      nextErrors.application_description = t('page.inquiryNew.descriptionRequired');
+    }
     if (lineItems.length === 0) {
-      setErrors({ lineItems: t('page.quotationDetail.editPanel.noLineItems') });
+      nextErrors.lineItems = t('page.quotationDetail.editPanel.noLineItems');
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
       return;
     }
+
     setErrors({});
     setSaving(true);
     try {
@@ -154,9 +189,8 @@ export default function QuotationEditPanel({
       if (isNew) {
         savedQuotation = await quotations.create({
           ...payload,
-          company_id: quotation.company_id,
-          contact_id: quotation.contact_id,
-          inquiry_id: quotation.inquiry_id,
+          company_id: form.company_id,
+          contact_id: form.contact_id || undefined,
         });
       } else {
         savedQuotation = await quotations.update(quotation.id, payload);
@@ -183,7 +217,44 @@ export default function QuotationEditPanel({
       <div className="space-y-5 h-full flex flex-col">
         {/* Line Items — scrollable */}
         <div className="flex-1 overflow-y-auto space-y-5 -mx-5 px-5">
-          {isNew && (
+          {/* Customer & Requirements — editable for new, read-only context for edit */}
+          {isNew ? (
+            <fieldset className="border-t border-gray-100 pt-4">
+              <legend className="section-label mb-3">{t('page.inquiryDetail.customer')}</legend>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="label" htmlFor="quotation-company">{t('page.inquiryNew.company')} *</label>
+                  <select
+                    id="quotation-company"
+                    className={errors.company_id ? 'input-error' : 'input'}
+                    value={form.company_id}
+                    required
+                    aria-invalid={!!errors.company_id}
+                    onChange={e => {
+                      set('company_id', e.target.value);
+                      set('contact_id', '');
+                      if (e.target.value) setErrors(prev => ({ ...prev, company_id: undefined }));
+                    }}
+                  >
+                    <option value="">{t('page.inquiryNew.selectCompany')}</option>
+                    {companyList.map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  {errors.company_id && <p className="field-error" role="alert">{errors.company_id}</p>}
+                </div>
+                <div>
+                  <label className="label" htmlFor="quotation-contact">{t('page.inquiryNew.contact')}</label>
+                  <select id="quotation-contact" className="input" value={form.contact_id} onChange={e => set('contact_id', e.target.value)}>
+                    <option value="">{t('page.inquiryNew.selectContact')}</option>
+                    {contactList.map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </fieldset>
+          ) : (
             <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2.5 text-xs text-gray-700">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-2xs text-gray-500">{t('page.inquiryDetail.customer')}</span>
@@ -195,18 +266,68 @@ export default function QuotationEditPanel({
                   <span className="min-w-0 truncate text-gray-700">{quotation.contact_name}</span>
                 </div>
               )}
-              {(quotation.target_material_requested || quotation.quantity_estimate) && (
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 border-t border-blue-100 pt-2 text-2xs text-gray-600">
-                  {quotation.target_material_requested && (
-                    <span><span className="text-gray-400">{t('page.inquiryDetail.targetMaterial')}:</span> {quotation.target_material_requested}</span>
-                  )}
-                  {quotation.quantity_estimate && (
-                    <span><span className="text-gray-400">{t('page.inquiryDetail.quantity')}:</span> {quotation.quantity_estimate}</span>
-                  )}
-                </div>
-              )}
             </div>
           )}
+
+          {/* Requirements (editable for new, shown as context for edit) */}
+          <fieldset className="border-t border-gray-100 pt-4">
+            <legend className="section-label mb-3">{t('page.inquiryDetail.applicationDescription')}</legend>
+            <div>
+              <label className="label" htmlFor="quotation-description">{t('page.inquiryNew.applicationDescription')}{isNew ? ' *' : ''}</label>
+              <textarea
+                id="quotation-description"
+                className={errors.application_description ? 'input-error' : 'input'}
+                rows={3}
+                value={form.application_description}
+                required={isNew}
+                aria-invalid={!!errors.application_description}
+                onChange={e => {
+                  set('application_description', e.target.value);
+                  if (e.target.value.trim()) setErrors(prev => ({ ...prev, application_description: undefined }));
+                }}
+                placeholder={t('page.inquiryNew.placeholderDescription')}
+              />
+              {errors.application_description && <p className="field-error" role="alert">{errors.application_description}</p>}
+            </div>
+            <div className="grid grid-cols-1 gap-3 mt-3 sm:grid-cols-2">
+              <div>
+                <label className="label" htmlFor="quotation-target-material">{t('page.inquiryNew.targetMaterial')}</label>
+                <input id="quotation-target-material" className="input" value={form.target_material_requested}
+                  onChange={e => set('target_material_requested', e.target.value)}
+                  placeholder={t('page.inquiryNew.placeholderMaterial')} />
+              </div>
+              <div>
+                <label className="label" htmlFor="quotation-quantity">{t('page.inquiryDetail.quantity')}</label>
+                <input id="quotation-quantity" className="input" value={form.quantity_estimate}
+                  onChange={e => set('quantity_estimate', e.target.value)}
+                  placeholder={t('page.inquiryNew.placeholderQuantityKg')} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 mt-3 sm:grid-cols-2">
+              <div>
+                <label className="label" htmlFor="quotation-urgency">{t('page.inquiryNew.urgency')}</label>
+                <select id="quotation-urgency" className="input" value={form.urgency} onChange={e => set('urgency', e.target.value)}>
+                  <option value="immediate">{t('page.inquiryNew.immediate')}</option>
+                  <option value="within_2_weeks">{t('page.inquiryNew.within2Weeks')}</option>
+                  <option value="within_1_month">{t('page.inquiryNew.within1Month')}</option>
+                  <option value="no_rush">{t('page.inquiryNew.noRush')}</option>
+                </select>
+              </div>
+              <div>
+                <label className="label" htmlFor="quotation-source">{t('page.inquiryNew.source')}</label>
+                <select id="quotation-source" className="input" value={form.source} onChange={e => set('source', e.target.value)}>
+                  <option value="email">{t('page.inquiryNew.email')}</option>
+                  <option value="phone_wechat">{t('page.inquiryNew.phoneWechat')}</option>
+                  <option value="website">{t('page.inquiryNew.website')}</option>
+                  <option value="social_media">{t('page.inquiryNew.socialMedia')}</option>
+                  <option value="alibaba_platform">{t('page.inquiryNew.alibabaPlatform')}</option>
+                  <option value="trade_show">{t('page.inquiryNew.tradeShow')}</option>
+                  <option value="referral">{t('page.inquiryNew.referral')}</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
           {user?.role === 'admin' && (
             <div>
               <label className="label" htmlFor="quotation-edit-owner">{t('accountability.owner')}</label>

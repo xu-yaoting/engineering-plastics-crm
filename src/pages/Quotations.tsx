@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import Icon from '../components/shared/Icon';
 import { exportFullCsv } from '../lib/exportCsv';
 import OwnerFilter from '../components/shared/OwnerFilter';
+import QuotationEditPanel from '../components/quotations/QuotationEditPanel';
 
 export default function Quotations() {
   const { t } = useTranslation();
@@ -18,11 +19,15 @@ export default function Quotations() {
   const [sortBy, setSortBy] = useState('quotation_date_desc');
   const [ownerFilter, setOwnerFilter] = useState('all');
   const [currentUserId, setCurrentUserId] = useState('');
+  const [showNewQuotation, setShowNewQuotation] = useState(false);
   const handleCurrentUserId = useCallback((userId: string) => setCurrentUserId(userId), []);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
     quotations.list().then(setList).finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
 
   const filtered = list.filter(q =>
     (!filterStatus || q.status === filterStatus) &&
@@ -89,6 +94,11 @@ export default function Quotations() {
         <div>
           <h1 className="page-heading">{t('page.title.quotations')}</h1>
           <p className="page-summary tabular-nums">{sorted.length}{search || filterStatus ? ` / ${list.length}` : ''} {t('common.records')}</p>
+        </div>
+        <div className="page-actions">
+          <button onClick={() => setShowNewQuotation(true)} className="btn-primary btn-sm">
+            <Icon name="plus" size={15} className="mr-1.5" />{t('page.quotations.newQuotation')}
+          </button>
         </div>
       </div>
 
@@ -174,6 +184,18 @@ export default function Quotations() {
           </table>
           </div>
         </>
+      )}
+
+      {showNewQuotation && (
+        <QuotationEditPanel
+          quotation={{}}
+          onClose={() => setShowNewQuotation(false)}
+          onSaved={(saved) => {
+            setShowNewQuotation(false);
+            load();
+            if (saved?.id) navigate(`/quotations/${saved.id}`);
+          }}
+        />
       )}
     </div>
   );

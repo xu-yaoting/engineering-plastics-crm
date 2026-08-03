@@ -23,88 +23,7 @@ interface PipelineCard {
 router.get('/', (_req: Request, res: Response) => {
   const cards: PipelineCard[] = [];
 
-  // 1. Inquiry + quotation → one sales opportunity card
-  // A quotation is a commercial response to an inquiry, not a second opportunity.
-  const orderQuotationIds = new Set(
-    (db.prepare(`
-      SELECT quotation_id
-      FROM orders
-      WHERE deleted_at IS NULL AND status != 'cancelled' AND quotation_id IS NOT NULL
-    `).all() as Array<{ quotation_id: string }>).map(row => row.quotation_id),
-  );
-  const coveredInquiryIds = new Set<string>();
-  const latestQuotationForInquiry = db.prepare(`
-    SELECT q.*
-    FROM quotations q
-    WHERE q.inquiry_id = ?
-      AND q.deleted_at IS NULL
-      AND q.status NOT IN ('rejected', 'expired', 'cancelled')
-    ORDER BY q.version DESC, q.created_at DESC
-    LIMIT 1
-  `);
-
-  const inquiries = db.prepare(`
-    SELECT i.*, c.name as company_name
-    FROM inquiries i
-    LEFT JOIN companies c ON i.company_id = c.id
-    WHERE i.deleted_at IS NULL AND i.status IN ('open', 'under_review', 'quoted')
-    ORDER BY i.created_at DESC
-  `).all() as any[];
-
-  for (const i of inquiries) {
-    const quotation = latestQuotationForInquiry.get(i.id) as any | undefined;
-    if (quotation && orderQuotationIds.has(quotation.id)) {
-      // The order card is now the single active representation of this sale.
-      coveredInquiryIds.add(i.id);
-      continue;
-    }
-
-    if (quotation) {
-      const days = Math.floor((Date.now() - new Date(quotation.created_at).getTime()) / 86400000);
-      coveredInquiryIds.add(i.id);
-      cards.push({
-        id: `opp-${i.id}`,
-        entityType: 'quotation',
-        entityId: quotation.id,
-        companyName: i.company_name || '—',
-        companyId: i.company_id,
-        material: i.target_material_requested || '—',
-        value: quotation.total || 0,
-        currency: quotation.currency || i.currency || 'USD',
-        owner: quotation.assigned_to || i.assigned_to || '—',
-        status: quotation.status,
-        stage: 'quotation',
-        nextAction: quotation.status === 'draft' ? 'Finalize and send' :
-                    quotation.status === 'sent' ? 'Follow up with customer' :
-                    quotation.status === 'negotiating' ? 'Negotiate terms' :
-                    quotation.status === 'accepted' ? 'Create order' : 'Review quotation',
-        daysInStage: days,
-        urgency: i.urgency,
-      });
-      continue;
-    }
-
-    const days = Math.floor((Date.now() - new Date(i.created_at).getTime()) / 86400000);
-    coveredInquiryIds.add(i.id);
-    cards.push({
-      id: `opp-${i.id}`,
-      entityType: 'inquiry',
-      entityId: i.id,
-      companyName: i.company_name || '—',
-      companyId: i.company_id,
-      material: i.target_material_requested || '—',
-      value: i.estimated_budget || 0,
-      currency: i.currency || 'USD',
-      owner: i.assigned_to || '—',
-      status: i.status,
-      stage: 'inquiry',
-      nextAction: i.status === 'open' ? 'Review requirements' : 'Create quotation',
-      daysInStage: days,
-      urgency: i.urgency,
-    });
-  }
-
-  // 2. Standalone quotations → "Quotation" stage
+  // 1. Quotations → "Quotation" stage (primary sales entity)
   const quotations = db.prepare(`
     SELECT q.*, c.name as company_name
     FROM quotations q
@@ -114,18 +33,18 @@ router.get('/', (_req: Request, res: Response) => {
   `).all() as any[];
 
   for (const q of quotations) {
-    if (q.inquiry_id && coveredInquiryIds.has(q.inquiry_id)) continue;
     const days = Math.floor((Date.now() - new Date(q.created_at).getTime()) / 86400000);
     const nextAction = q.status === 'draft' ? 'Finalize and send' :
                        q.status === 'sent' ? 'Follow up with customer' :
-                       q.status === 'negotiating' ? 'Negotiate terms' : 'Review';
+                       q.status === 'negotiating' ? 'Negotiate terms' :
+                       q.status === 'accepted' ? 'Create order' : 'Review quotation';
     cards.push({
       id: `qt-${q.id}`,
       entityType: 'quotation',
       entityId: q.id,
       companyName: q.company_name || '—',
       companyId: q.company_id,
-      material: '—',
+      material: q.target_material_requested || '—',
       value: q.total || 0,
       currency: q.currency || 'USD',
       owner: q.assigned_to || '—',
@@ -133,6 +52,7 @@ router.get('/', (_req: Request, res: Response) => {
       stage: 'quotation',
       nextAction,
       daysInStage: days,
+      urgency: q.urgency,
     });
   }
 

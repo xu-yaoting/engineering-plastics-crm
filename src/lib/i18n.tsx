@@ -288,13 +288,6 @@ const en = {
       noRush: 'No Rush', source: 'Source', targetMaterial: 'Target Material',
       inquiryCreated: 'Inquiry created', inquiryCreateFailed: 'Failed to create inquiry',
     },
-    opportunities: {
-      new: 'New Opportunity', number: 'Opportunity', company: 'Company',
-      material: 'Material', quotation: 'Quotation', amount: 'Amount',
-      status: 'Status', owner: 'Owner', created: 'Created',
-      noQuotation: '—', search: 'Search opportunities...',
-      allStatus: 'All Status',
-    },
     inquiryDetail: {
       back: 'Back', edit: 'Edit', createQuotation: 'Create Quotation', logCall: 'Log Call',
       customer: 'Customer', contact: 'Contact', details: 'Details',
@@ -331,7 +324,7 @@ const en = {
     quotations: {
       number: 'Number', date: 'Date', company: 'Company', status: 'Status', total: 'Total',
       currency: 'Currency', validUntil: 'Valid Until', version: 'Version',
-      all: 'All', rev: 'Rev',
+      all: 'All', rev: 'Rev', newQuotation: 'New Quotation',
       quotationDateNewest: 'Quotation date: newest first',
       quotationDateOldest: 'Quotation date: oldest first',
       totalHighToLow: 'Total: high to low',
@@ -716,7 +709,7 @@ const en = {
   },
   noData: {
     companies: 'No companies found', contacts: 'No contacts found',
-    inquiries: 'No inquiries found', opportunities: 'No opportunities found', quotations: 'No quotations found',
+    inquiries: 'No inquiries found', quotations: 'No quotations found',
     orders: 'No orders yet', invoices: 'No invoices',
     activities: 'No activities found', tasks: 'No tasks',
     lineItemsFromSource: 'No line items from source quotation',
@@ -1044,13 +1037,6 @@ const zh: typeof en = {
       noRush: '不着急', source: '来源', targetMaterial: '目标物料',
       inquiryCreated: '询盘已创建', inquiryCreateFailed: '询盘创建失败',
     },
-    opportunities: {
-      new: '新建机会', number: '机会编号', company: '公司',
-      material: '物料', quotation: '报价', amount: '金额',
-      status: '状态', owner: '负责人', created: '创建时间',
-      noQuotation: '—', search: '搜索机会...',
-      allStatus: '全部状态',
-    },
     inquiryDetail: {
       back: '返回', edit: '编辑', createQuotation: '创建报价', logCall: '记录通话',
       customer: '客户', contact: '联系人', details: '详情',
@@ -1087,7 +1073,7 @@ const zh: typeof en = {
     quotations: {
       number: '编号', date: '日期', company: '公司', status: '状态', total: '总额',
       currency: '币种', validUntil: '有效期至', version: '版本',
-      all: '全部', rev: '版本',
+      all: '全部', rev: '版本', newQuotation: '新建报价',
       quotationDateNewest: '报价日期：最新优先',
       quotationDateOldest: '报价日期：最早优先',
       totalHighToLow: '金额：从高到低',
@@ -1473,7 +1459,7 @@ const zh: typeof en = {
   },
   noData: {
     companies: '暂无客户', contacts: '暂无联系人',
-    inquiries: '暂无询盘', opportunities: '暂无销售机会', quotations: '暂无报价',
+    inquiries: '暂无询盘', quotations: '暂无报价',
     orders: '暂无订单', invoices: '暂无发票',
     activities: '暂无活动', tasks: '暂无任务',
     lineItemsFromSource: '源报价单无订单行',

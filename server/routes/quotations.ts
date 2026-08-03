@@ -47,6 +47,11 @@ const QUOTATION_UPDATE_FIELDS = [
   'terms_and_conditions',
   'custom_fields',
   'owner_user_id',
+  'application_description',
+  'target_material_requested',
+  'quantity_estimate',
+  'urgency',
+  'source',
 ] as const;
 
 router.get('/', (req: Request, res: Response) => {
@@ -145,12 +150,18 @@ router.post('/', (req: Request, res: Response) => {
   db.prepare(`
     INSERT INTO quotations (id, quotation_number, company_id, contact_id, inquiry_id,
       quotation_date, valid_until, currency, subtotal, total, status, version,
-      approval_requested_at, owner_user_id, assigned_to, created_by, updated_by, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      approval_requested_at, owner_user_id, assigned_to, created_by, updated_by, created_at, updated_at,
+      application_description, target_material_requested, quantity_estimate, urgency, source)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, quotation_number, req.body.company_id, req.body.contact_id,
     req.body.inquiry_id, quotation_date, valid_until, req.body.currency || 'USD',
     req.body.subtotal || 0, total, status, 1,
-    total > 100000 ? now2 : null, ownerUserId, ownerName, req.user!.id, req.user!.id, now, now);
+    total > 100000 ? now2 : null, ownerUserId, ownerName, req.user!.id, req.user!.id, now, now,
+    req.body.application_description || '',
+    req.body.target_material_requested || '',
+    req.body.quantity_estimate || '',
+    req.body.urgency || 'within_1_month',
+    req.body.source || 'email');
 
   if (lineItems.length > 0) {
     const insert = db.prepare(`
