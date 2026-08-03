@@ -145,8 +145,9 @@ export default function InquiryDetail() {
       toast.error(t('page.inquiryDetail.quotationCreateFailed'));
     }
 
+    // Stay on the opportunity detail page after creating a quotation.
+    // The quotation block will auto-refresh with the new quotation data.
     load();
-    navigate(`/quotations/${savedQuotation.id}`);
   };
 
   const logActivity = async (type: string) => {

@@ -70,13 +70,20 @@ test('follow-up workbench uses the shared page title hierarchy', () => {
 
 test('sales sidebar exposes one Opportunities entry and keeps inquiry and quotation lists secondary', () => {
   assert.match(sidebarSource, /CalendarClock/);
+  // Pipeline has moved to the top section; Opportunities is under Sales with companies/follow-ups
   assert.match(
     sidebarSource,
-    /label: 'nav\.opportunities', path: '\/opportunities', icon: 'workflow'[\s\S]*label: 'nav\.companies', path: '\/companies'[\s\S]*label: 'page\.customerDevelopment\.workbench', path: '\/companies\/follow-ups', icon: 'calendar-clock'/,
+    /label: 'nav\.pipeline', path: '\/pipeline', icon: 'workflow'/,
   );
+  assert.match(
+    sidebarSource,
+    /label: 'nav\.companies', path: '\/companies'[\s\S]*label: 'page\.customerDevelopment\.workbench', path: '\/companies\/follow-ups', icon: 'calendar-clock'[\s\S]*label: 'nav\.opportunities', path: '\/opportunities', icon: 'inbox'/,
+  );
+  // Inquiries is no longer a primary nav entry; quotations is under Fulfillment
   assert.doesNotMatch(sidebarSource, /label: 'nav\.inquiries', path: '\/inquiries'/);
-  assert.doesNotMatch(sidebarSource, /label: 'nav\.quotations', path: '\/quotations'/);
-  assert.match(appSource, /path="\/opportunities" element=\{<Pipeline \/>\}/);
+  assert.match(sidebarSource, /label: 'nav\.quotations', path: '\/quotations', icon: 'file-text'/);
+  assert.match(appSource, /path="\/opportunities" element=\{<Opportunities \/>\}/);
+  assert.match(appSource, /path="\/pipeline" element=\{<Pipeline \/>\}/);
   assert.match(appSource, /Navigate to="\/opportunities" replace/);
   assert.match(sidebarSource, /end=\{item\.path === '\/' \|\| item\.path === '\/companies'\}/);
 });

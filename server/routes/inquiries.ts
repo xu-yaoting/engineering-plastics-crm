@@ -37,7 +37,12 @@ router.get('/', (req: Request, res: Response) => {
   const { status, company_id } = req.query;
   const q = req.query.q as string | undefined;
   let query = `SELECT i.*, c.name as company_name, owner.name as owner_name,
-    creator.name as created_by_name, updater.name as updated_by_name
+    creator.name as created_by_name, updater.name as updated_by_name,
+    (SELECT q.id FROM quotations q WHERE q.inquiry_id = i.id AND q.deleted_at IS NULL ORDER BY q.version DESC, q.created_at DESC LIMIT 1) as latest_quotation_id,
+    (SELECT q.quotation_number FROM quotations q WHERE q.inquiry_id = i.id AND q.deleted_at IS NULL ORDER BY q.version DESC, q.created_at DESC LIMIT 1) as latest_quotation_number,
+    (SELECT q.status FROM quotations q WHERE q.inquiry_id = i.id AND q.deleted_at IS NULL ORDER BY q.version DESC, q.created_at DESC LIMIT 1) as latest_quotation_status,
+    (SELECT q.total FROM quotations q WHERE q.inquiry_id = i.id AND q.deleted_at IS NULL ORDER BY q.version DESC, q.created_at DESC LIMIT 1) as latest_quotation_total,
+    (SELECT q.currency FROM quotations q WHERE q.inquiry_id = i.id AND q.deleted_at IS NULL ORDER BY q.version DESC, q.created_at DESC LIMIT 1) as latest_quotation_currency
     FROM inquiries i
     LEFT JOIN companies c ON i.company_id = c.id
     LEFT JOIN users owner ON owner.id = i.owner_user_id

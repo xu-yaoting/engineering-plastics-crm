@@ -28,6 +28,7 @@ const MaterialsToolingPage = lazy(() => import('./pages/MaterialsToolingPage'));
 const Activities = lazy(() => import('./pages/Activities'));
 const Tasks = lazy(() => import('./pages/Tasks'));
 const Pipeline = lazy(() => import('./pages/Pipeline'));
+const Opportunities = lazy(() => import('./pages/Opportunities'));
 const SettingsProfile = lazy(() => import('./pages/SettingsProfile'));
 
 function RouteLoadingFallback() {
@@ -172,7 +173,10 @@ export default function App() {
             <Suspense fallback={<RouteLoadingFallback />}>
               <Routes>
                 <Route path="/" element={<Navigate to="/opportunities" replace />} />
-                <Route path="/opportunities" element={<Pipeline />} />
+                <Route path="/opportunities" element={<Opportunities />} />
+                <Route path="/opportunities/new" element={<InquiryNew />} />
+                <Route path="/opportunities/:id" element={<InquiryDetail />} />
+                <Route path="/pipeline" element={<Pipeline />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/companies" element={<Companies />} />
                 <Route path="/companies/follow-ups" element={<FollowUpWorkbench />} />
