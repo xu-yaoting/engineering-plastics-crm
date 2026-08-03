@@ -44,3 +44,9 @@ test('quote assistant localization dictionary contains the batch keys', () => {
     assert.match(dictionarySource, new RegExp(`${key}:`));
   }
 });
+
+test('quote assistant uses a flat neutral analysis surface', () => {
+  assert.match(source, /className="data-surface p-4"/);
+  assert.match(source, /status-edge-warning/);
+  assert.doesNotMatch(source, /bg-gradient|rounded-lg/);
+});

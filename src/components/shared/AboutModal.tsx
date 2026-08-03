@@ -1,3 +1,4 @@
+import { useEffect, useId, useRef, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import Icon from './Icon';
 
@@ -8,21 +9,79 @@ const ABOUT = {
   ui: 'Attio Inspired',
 };
 
-export default function AboutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function AboutModal({
+  open,
+  onClose,
+  returnFocusRef,
+}: {
+  open: boolean;
+  onClose: () => void;
+  returnFocusRef?: RefObject<HTMLElement | null>;
+}) {
   const { t } = useTranslation();
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        onCloseRef.current();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable?.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      document.body.style.overflow = previousOverflow;
+      if (previouslyFocused?.isConnected && previouslyFocused !== document.body) previouslyFocused.focus();
+      else returnFocusRef?.current?.focus();
+    };
+  }, [open, returnFocusRef]);
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={onClose}>
       <div
-        className="bg-white rounded-xl shadow-2xl w-[320px] overflow-hidden"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="modal-surface w-[320px] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 px-5 py-6 text-center">
+        <div className="bg-blue-600 px-5 py-6 text-center">
           <Icon name="target" size={28} className="text-white/90 inline-block mb-2" />
-          <h2 className="text-lg font-semibold text-white">Basepoint</h2>
+          <h2 id={titleId} className="text-lg font-semibold text-white">Basepoint</h2>
           <p className="text-xs text-blue-200 mt-0.5">{t('about.subtitle')}</p>
         </div>
 
@@ -44,8 +103,10 @@ export default function AboutModal({ open, onClose }: { open: boolean; onClose: 
         {/* Footer */}
         <div className="border-t border-gray-100 px-5 py-3">
           <button
+            ref={closeButtonRef}
+            type="button"
             onClick={onClose}
-            className="w-full py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            className="btn-secondary w-full"
           >
             {t('common.close')}
           </button>

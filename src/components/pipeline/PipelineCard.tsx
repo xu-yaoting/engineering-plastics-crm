@@ -31,14 +31,14 @@ export default function PipelineCard({
     <div
       draggable
       onDragStart={e => onDragStart(e, card)}
-      className={`group cursor-grab rounded-lg border border-gray-200 bg-white p-3 shadow-[0_1px_1px_rgba(15,23,42,0.03)] transition hover:border-gray-300 hover:bg-gray-50/70 active:cursor-grabbing ${
+      className={`group cursor-grab rounded border border-gray-200 bg-white p-3 transition-colors hover:border-gray-300 hover:bg-gray-50 active:cursor-grabbing ${
         isDragOver ? 'opacity-50' : ''
       }`}
       onClick={handleClick}
     >
       {/* Material + Days */}
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="max-w-[65%] truncate text-2xs font-450 text-blue-600">
+        <span className="max-w-[65%] truncate text-2xs font-450 text-gray-500">
           {card.material}
         </span>
         <span className="flex-shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-2xs text-gray-400">
@@ -74,7 +74,7 @@ export default function PipelineCard({
       </div>
 
       {/* Next Action — shown on hover */}
-      <div className="mt-1.5 truncate text-2xs text-blue-600 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="mt-1.5 truncate text-2xs text-gray-400 opacity-0 transition-all group-hover:text-gray-600 group-hover:opacity-100">
         {card.nextAction}
       </div>
     </div>

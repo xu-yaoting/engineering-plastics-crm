@@ -42,7 +42,7 @@ export default function PipelineColumn({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`flex min-w-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white transition-colors ${
+      className={`flex min-w-0 flex-col overflow-hidden rounded border border-gray-200 bg-white transition-colors ${
         isOver ? 'border-blue-300 bg-blue-50/40 ring-2 ring-blue-100 ring-inset' : ''
       }`}
     >
@@ -67,7 +67,7 @@ export default function PipelineColumn({
         isOver ? 'bg-blue-50/40' : 'bg-gray-50/50'
       }`}>
         {cards.length === 0 ? (
-          <div className={`rounded-lg border border-dashed px-3 py-8 text-center text-2xs transition-colors ${
+          <div className={`rounded border border-dashed px-3 py-8 text-center text-2xs transition-colors ${
             isOver ? 'border-blue-300 bg-blue-50 text-blue-500' : 'border-gray-200 bg-white/70 text-gray-300'
           }`}>
             {isOver ? t('page.pipeline.releaseToDrop') : t('page.pipeline.dropItemsHere')}

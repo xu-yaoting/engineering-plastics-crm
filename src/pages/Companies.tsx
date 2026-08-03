@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { exportFullCsv } from '../lib/exportCsv';
-import { companies } from '../lib/api';
+import { auth, companies, team, type TeamMember } from '../lib/api';
 import StatusBadge from '../components/shared/StatusBadge';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
 import Icon from '../components/shared/Icon';
 import SidePanel from '../components/shared/SidePanel';
 import toast from 'react-hot-toast';
@@ -15,9 +16,15 @@ export default function Companies() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', company_type: 'end_user', industry: '', country: 'US', city: '', notes: '', customer_code: '' });
+  const [createErrors, setCreateErrors] = useState<{ name?: string }>({});
+  const createNameInputRef = useRef<HTMLInputElement>(null);
   const [editTarget, setEditTarget] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', company_type: 'end_user', industry: '', country: 'US', city: '', status: 'active', classification: 'C' });
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', company_type: 'end_user', industry: '', country: 'US', city: '', status: 'active', classification: 'C', owner_user_id: '' });
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [currentUserId, setCurrentUserId] = useState('');
+  const [ownerFilter, setOwnerFilter] = useState('all');
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -27,11 +34,19 @@ export default function Companies() {
 
   const load = () => companies.list().then(setList).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    team.list().then(setMembers).catch(() => setMembers([]));
+    auth.me().then(({ user }) => setCurrentUserId(user.id)).catch(() => setCurrentUserId(''));
+  }, []);
 
-  const filtered = list.filter(c =>
-    c.name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.city?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = list.filter(c => {
+    const matchesSearch = c.name?.toLowerCase().includes(search.toLowerCase()) || c.city?.toLowerCase().includes(search.toLowerCase());
+    const matchesOwner = ownerFilter === 'all'
+      || (ownerFilter === 'mine' && c.owner_user_id === currentUserId)
+      || (ownerFilter === 'unassigned' && !c.owner_user_id)
+      || c.owner_user_id === ownerFilter;
+    return matchesSearch && matchesOwner;
+  });
 
   const companyTypeLabel = (type: string) => {
     const key = type === 'end_user' ? 'endUser'
@@ -47,6 +62,12 @@ export default function Companies() {
       : t('page.companies.emerging');
 
   const create = async () => {
+    if (!form.name.trim()) {
+      setCreateErrors({ name: t('page.companies.companyNameRequired') });
+      createNameInputRef.current?.focus();
+      return;
+    }
+    setCreateErrors({});
     try {
       await companies.create(form);
       toast.success(t('page.companies.companyCreated'));
@@ -58,6 +79,11 @@ export default function Companies() {
     }
   };
 
+  const closeCreatePanel = () => {
+    setCreateErrors({});
+    setShowForm(false);
+  };
+
   const openEdit = (c: any) => {
     setEditForm({
       name: c.name || '',
@@ -67,6 +93,7 @@ export default function Companies() {
       city: c.city || '',
       status: c.status || 'active',
       classification: c.classification || 'C',
+      owner_user_id: c.owner_user_id || '',
     });
     setEditTarget(c);
     setOpenMenu(null);
@@ -74,7 +101,7 @@ export default function Companies() {
 
   const saveEdit = async () => {
     if (!editTarget) return;
-    await companies.update(editTarget.id, editForm);
+    await companies.update(editTarget.id, { ...editForm, owner_user_id: editForm.owner_user_id || null });
     toast.success(t('page.companies.companyUpdated'));
     setEditTarget(null);
     load();
@@ -94,26 +121,70 @@ export default function Companies() {
 
   const handleRowClick = (id: string) => { navigate(`/companies/${id}`); };
 
-  const remove = async (id: string) => {
-    await companies.delete(id);
-    setConfirmDelete(null);
-    setOpenMenu(null);
-    load();
+  const remove = async () => {
+    if (!deleteTarget?.id) return;
+    setDeleting(true);
+    try {
+      await companies.delete(deleteTarget.id);
+      setDeleteTarget(null);
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('page.companies.companySaveFailed'));
+    } finally {
+      setDeleting(false);
+    }
   };
 
+  const closeImport = () => {
+    if (importing) return;
+    setShowImport(false);
+    setImportResult(null);
+    setImportFile(null);
+  };
+
+  const renderCompanyActions = (company: any) => (
+    <div className="relative" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+      <button onClick={() => setOpenMenu(openMenu === company.id ? null : company.id)} className="icon-btn" aria-label={t('common.moreActions')} title={t('common.moreActions')}>
+        <Icon name="more" size={16} />
+      </button>
+      {openMenu === company.id && (
+        <div className="menu-surface absolute right-0 top-full mt-1 w-36">
+          <button onClick={() => openEdit(company)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"><Icon name="square-pen" size={13} />{t('common.edit')}</button>
+          <button onClick={() => duplicate(company)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"><Icon name="copy" size={13} />{t('common.duplicate')}</button>
+          <button onClick={() => { setDeleteTarget(company); setOpenMenu(null); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"><Icon name="delete" size={13} />{t('common.delete')}</button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="page-shell">
       {/* New Company Panel */}
-      <SidePanel open={showForm} onClose={() => setShowForm(false)} title={t('page.companies.new')}>
+      <SidePanel open={showForm} onClose={closeCreatePanel} title={t('page.companies.new')}>
         <div className="space-y-4">
           <div>
-            <label className="label">{t('page.companies.companyName')} *</label>
-            <input className="input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Acme Aerospace Corp" />
+            <label className="label" htmlFor="company-create-name">{t('page.companies.companyName')} *</label>
+            <input
+              ref={createNameInputRef}
+              id="company-create-name"
+              className={createErrors.name ? 'input-error' : 'input'}
+              value={form.name}
+              onChange={e => {
+                setForm({...form, name: e.target.value});
+                if (e.target.value.trim()) setCreateErrors({});
+              }}
+              placeholder="Acme Aerospace Corp"
+              required
+              autoComplete="organization"
+              aria-invalid={!!createErrors.name}
+              aria-describedby={createErrors.name ? 'company-create-name-error' : undefined}
+            />
+            {createErrors.name && <p id="company-create-name-error" className="field-error" role="alert">{createErrors.name}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">{t('page.companies.type')}</label>
-              <select className="input" value={form.company_type} onChange={e => setForm({...form, company_type: e.target.value})}>
+              <label className="label" htmlFor="company-create-type">{t('page.companies.type')}</label>
+              <select id="company-create-type" className="input" value={form.company_type} onChange={e => setForm({...form, company_type: e.target.value})}>
                 <option value="end_user">{t('page.companies.endUser')}</option>
                 <option value="distributor">{t('page.companies.distributor')}</option>
                 <option value="oem">OEM</option>
@@ -121,76 +192,79 @@ export default function Companies() {
               </select>
             </div>
             <div>
-              <label className="label">{t('page.companies.industry')}</label>
-              <input className="input" value={form.industry} onChange={e => setForm({...form, industry: e.target.value})} placeholder={t('page.companies.placeholderIndustry')} />
+              <label className="label" htmlFor="company-create-industry">{t('page.companies.industry')}</label>
+              <input id="company-create-industry" className="input" value={form.industry} onChange={e => setForm({...form, industry: e.target.value})} placeholder={t('page.companies.placeholderIndustry')} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">{t('page.companies.country')}</label>
-              <input className="input" value={form.country} onChange={e => setForm({...form, country: e.target.value})} />
+              <label className="label" htmlFor="company-create-country">{t('page.companies.country')}</label>
+              <input id="company-create-country" className="input" value={form.country} onChange={e => setForm({...form, country: e.target.value})} autoComplete="country-name" />
             </div>
             <div>
-              <label className="label">{t('page.companies.city')}</label>
-              <input className="input" value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder={t('page.companies.placeholderCity')} />
+              <label className="label" htmlFor="company-create-city">{t('page.companies.city')}</label>
+              <input id="company-create-city" className="input" value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder={t('page.companies.placeholderCity')} autoComplete="address-level2" />
             </div>
           </div>
           <div>
-            <label className="label">{t('page.companies.customerCode')}</label>
-            <input className="input font-mono uppercase" value={form.customer_code} onChange={e => setForm({...form, customer_code: e.target.value.toUpperCase()})} placeholder="SMP" maxLength={10} />
-            <span className="text-2xs text-gray-400">{t('page.companies.orderNumberHint')}</span>
+            <label className="label" htmlFor="company-create-customer-code">{t('page.companies.customerCode')}</label>
+            <input id="company-create-customer-code" className="input tabular-nums uppercase" value={form.customer_code} onChange={e => setForm({...form, customer_code: e.target.value.toUpperCase()})} placeholder="SMP" maxLength={10} aria-describedby="company-create-customer-code-help" />
+            <span id="company-create-customer-code-help" className="text-2xs text-gray-400">{t('page.companies.orderNumberHint')}</span>
           </div>
           <div className="flex gap-2 pt-4 border-t border-gray-100">
             <button onClick={create} className="btn-primary flex-1">{t('common.create')}</button>
-            <button onClick={() => setShowForm(false) } className="btn-secondary">{t('common.cancel')}</button>
+            <button onClick={closeCreatePanel} className="btn-secondary">{t('common.cancel')}</button>
           </div>
         </div>
       </SidePanel>
 
-      {/* Edit Modal */}
-      {editTarget && (
-        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-[480px]">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">{t('page.companies.editCompany')} — {editTarget.name}</h3>
-            <div className="space-y-4">
+      <SidePanel open={!!editTarget} onClose={() => setEditTarget(null)} title={t('page.companies.editCompany')} subtitle={editTarget?.name}>
+        <div className="space-y-4">
               <div>
-                <label className="label">{t('page.companies.companyName')}</label>
-                <input className="input" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
+                <label className="label" htmlFor="company-list-edit-name">{t('page.companies.companyName')}</label>
+                <input id="company-list-edit-name" className="input" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} autoComplete="organization" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">{t('page.companies.type')}</label>
-                  <select className="input" value={editForm.company_type} onChange={e => setEditForm({...editForm, company_type: e.target.value})}>
+                  <label className="label" htmlFor="company-list-edit-type">{t('page.companies.type')}</label>
+                  <select id="company-list-edit-type" className="input" value={editForm.company_type} onChange={e => setEditForm({...editForm, company_type: e.target.value})}>
                     <option value="end_user">{t('page.companies.endUser')}</option><option value="distributor">{t('page.companies.distributor')}</option>
                     <option value="oem">OEM</option><option value="trading_company">{t('page.companies.trading')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="label">{t('page.companies.industry')}</label>
-                  <input className="input" value={editForm.industry} onChange={e => setEditForm({...editForm, industry: e.target.value})} />
+                  <label className="label" htmlFor="company-list-edit-industry">{t('page.companies.industry')}</label>
+                  <input id="company-list-edit-industry" className="input" value={editForm.industry} onChange={e => setEditForm({...editForm, industry: e.target.value})} />
+                </div>
+              </div>
+              <div>
+                <label className="label" htmlFor="company-list-edit-owner">{t('accountability.owner')}</label>
+                <select id="company-list-edit-owner" className="input" value={editForm.owner_user_id} onChange={e => setEditForm({...editForm, owner_user_id: e.target.value})}>
+                  <option value="">{t('accountability.unassigned')}</option>
+                  {members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label" htmlFor="company-list-edit-country">{t('page.companies.country')}</label>
+                  <input id="company-list-edit-country" className="input" value={editForm.country} onChange={e => setEditForm({...editForm, country: e.target.value})} autoComplete="country-name" />
+                </div>
+                <div>
+                  <label className="label" htmlFor="company-list-edit-city">{t('page.companies.city')}</label>
+                  <input id="company-list-edit-city" className="input" value={editForm.city} onChange={e => setEditForm({...editForm, city: e.target.value})} autoComplete="address-level2" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">{t('page.companies.country')}</label>
-                  <input className="input" value={editForm.country} onChange={e => setEditForm({...editForm, country: e.target.value})} />
-                </div>
-                <div>
-                  <label className="label">{t('page.companies.city')}</label>
-                  <input className="input" value={editForm.city} onChange={e => setEditForm({...editForm, city: e.target.value})} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">{t('page.companies.status')}</label>
-                  <select className="input" value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}>
+                  <label className="label" htmlFor="company-list-edit-status">{t('page.companies.status')}</label>
+                  <select id="company-list-edit-status" className="input" value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}>
                     <option value="active">{t('status.active')}</option><option value="on_hold">{t('status.onHold')}</option>
                     <option value="dormant">{t('status.dormant')}</option><option value="blacklisted">{t('status.blacklisted')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="label">{t('page.companies.classification')}</label>
-                  <select className="input" value={editForm.classification} onChange={e => setEditForm({...editForm, classification: e.target.value})}>
+                  <label className="label" htmlFor="company-list-edit-classification">{t('page.companies.classification')}</label>
+                  <select id="company-list-edit-classification" className="input" value={editForm.classification} onChange={e => setEditForm({...editForm, classification: e.target.value})}>
                     <option value="A">A — {t('page.companies.strategic')}</option><option value="B">B — {t('page.companies.regular')}</option><option value="C">C — {t('page.companies.emerging')}</option>
                   </select>
                 </div>
@@ -199,20 +273,18 @@ export default function Companies() {
                 <button onClick={saveEdit} className="btn-primary flex-1">{t('page.companies.saveChanges')}</button>
                 <button onClick={() => setEditTarget(null) } className="btn-secondary">{t('common.cancel')}</button>
               </div>
-            </div>
-          </div>
         </div>
-      )}
+      </SidePanel>
 
-      {/* Import Modal */}
-      {showImport && (
-        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) setShowImport(false); }}>
-          <div className="bg-white rounded-xl shadow-lg p-6 w-[520px] max-h-[80vh] overflow-y-auto">
-            <h3 className="text-sm font-semibold text-gray-900 mb-1">{t('page.companies.importCompanies')}</h3>
-            <p className="text-xs text-gray-500 mb-4">{t('page.companies.importHelp')}</p>
-
-            {/* Template */}
-            <div className="bg-gray-50 rounded-lg p-3 mb-4 text-xs">
+      <SidePanel
+        open={showImport}
+        onClose={closeImport}
+        title={t('page.companies.importCompanies')}
+        subtitle={t('page.companies.importHelp')}
+        width="w-[min(560px,calc(100vw-1rem))]"
+      >
+        {/* Template */}
+        <div className="bg-gray-50 rounded-lg p-3 mb-4 text-xs">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-gray-700">{t('page.companies.templateFormat')}</span>
                 <button
@@ -227,13 +299,13 @@ export default function Companies() {
                   className="text-blue-600 hover:underline font-medium"
                 >{t('page.companies.downloadTemplate')}</button>
               </div>
-              <div className="font-mono text-2xs text-gray-500 leading-relaxed">
+              <div className="tabular-nums text-2xs text-gray-500 leading-relaxed">
                 Name*,Type,Industry,Country,City,Phone,Email,Website,Status,Classification<br />
                 <span className="text-gray-300">CustomerCode,RegistrationNo,Address1,Address2,State,PostalCode</span>
               </div>
-            </div>
+        </div>
 
-            <div className="space-y-4">
+        <div className="space-y-4">
               <div>
                 <label className="label">{t('page.companies.file')}</label>
                 <div className="flex items-center gap-3">
@@ -283,43 +355,58 @@ export default function Companies() {
                   )}
                 </div>
               )}
-            </div>
-
-            <div className="flex justify-end mt-4">
-              <button onClick={() => { setShowImport(false); setImportResult(null); setImportFile(null); }} className="btn-secondary btn-sm">{t('common.close')}</button>
-            </div>
-          </div>
         </div>
-      )}
 
-      <div className="flex items-center justify-between mb-4">
+        <div className="sticky bottom-0 z-10 -mx-5 mt-4 flex justify-end border-t border-gray-200 bg-white px-5 pt-4">
+          <button onClick={closeImport} disabled={importing} className="btn-secondary btn-sm">{t('common.close')}</button>
+        </div>
+      </SidePanel>
+
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">{t('page.title.companies')}</h1>
-          <p className="text-sm text-gray-500">{list.length} {t('page.title.companies')}</p>
+          <h1 className="page-heading">{t('page.title.companies')}</h1>
+          <p className="page-summary tabular-nums">{filtered.length}{search ? ` / ${list.length}` : ''} {t('common.records')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setShowForm(true)} className="btn-primary btn-sm"><Icon name="plus" size={16} className="mr-1.5" />{t('page.companies.new')}</button>
-          <button onClick={() => setShowImport(true)} className="btn-secondary btn-sm"><Icon name="upload" size={14} className="mr-1" />{t('page.companies.import')}</button>
-          <button onClick={() => exportFullCsv('/api/companies', 'companies')} className="btn-secondary btn-sm"><Icon name="download" size={14} className="mr-1" />CSV</button>
+        <div className="page-actions">
+          <button onClick={() => { setCreateErrors({}); setShowForm(true); }} className="btn-primary"><Icon name="plus" size="toolbar" />{t('page.companies.new')}</button>
         </div>
       </div>
 
-      <div className="mb-4">
-        <input className="input max-w-sm" placeholder={t("common.search")} value={search} onChange={e => setSearch(e.target.value)} />
+      <div className="toolbar">
+        <div className="relative min-w-[220px] flex-1 sm:max-w-sm">
+          <label className="sr-only" htmlFor="company-search">{t('common.searchCompanies')}</label>
+          <Icon name="search" size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input id="company-search" className="input pl-8" placeholder={t('common.searchCompanies')} value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <div className="ml-auto flex items-center gap-1.5">
+          <select className="input w-auto min-w-[130px]" value={ownerFilter} onChange={e => setOwnerFilter(e.target.value)} aria-label={t('accountability.owner')}>
+            <option value="all">{t('accountability.allOwners')}</option>
+            <option value="mine">{t('accountability.myCustomers')}</option>
+            <option value="unassigned">{t('accountability.unassigned')}</option>
+            {members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
+          </select>
+          <button onClick={() => setShowImport(true)} className="btn-secondary btn-sm"><Icon name="upload" size="inline" />{t('page.companies.import')}</button>
+          <button onClick={() => exportFullCsv('/api/companies', 'companies')} className="btn-secondary btn-sm"><Icon name="download" size="inline" />CSV</button>
+        </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">{t('common.loading')}</div>
+        <div className="data-surface border-t-0 rounded-t-none p-3" aria-label={t('common.loading')}>
+          <div className="animate-pulse space-y-2">
+            {[0, 1, 2, 3, 4, 5].map(row => <div key={row} className="h-10 rounded-md bg-gray-100" />)}
+          </div>
+        </div>
       ) : (
-        <div className="card">
-          <table className="w-full">
-            <thead>
+            <div className="hidden data-surface md:block">
+              <table className="w-full">
+            <thead className="sticky top-0 z-10">
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="table-header">{t("page.companies.name")}</th>
                 <th className="table-header hidden sm:table-cell">{t('page.companies.code')}</th>
                 <th className="table-header hidden sm:table-cell">{t("page.companies.type")}</th>
                 <th className="table-header hidden md:table-cell">{t("page.companies.industry")}</th>
                 <th className="table-header hidden md:table-cell">{t("page.companies.location")}</th>
+                <th className="table-header hidden lg:table-cell">{t('accountability.owner')}</th>
                 <th className="table-header">{t("page.companies.status")}</th>
                 <th className="table-header">{t("page.companies.classification")}</th>
                 <th className="table-header w-12"></th>
@@ -340,37 +427,78 @@ export default function Companies() {
                   <td className="table-cell hidden sm:table-cell text-gray-500">{companyTypeLabel(c.company_type)}</td>
                   <td className="table-cell hidden md:table-cell text-gray-500">{c.industry || '—'}</td>
                   <td className="table-cell hidden md:table-cell text-gray-500">{c.city ? `${c.city}, ${c.country}` : c.country}</td>
+                  <td className="table-cell hidden lg:table-cell text-gray-500">{c.owner_name || t('accountability.unassigned')}</td>
                   <td className="table-cell"><StatusBadge status={c.status} /></td>
                   <td className="table-cell">{c.classification || 'C'} — {classificationLabel(c.classification || 'C')}</td>
-                  <td className="table-cell" onClick={e => e.stopPropagation()}>
-                    <div className="relative">
-                      <button onClick={() => setOpenMenu(openMenu === c.id ? null : c.id)} className="btn-ghost btn-sm text-xs px-1">⋮</button>
-                      {openMenu === c.id && (
-                        <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-md z-20 py-1">
-                          <button onClick={() => openEdit(c)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"><Icon name="square-pen" size={13} />{t('common.edit')}</button>
-                          <button onClick={() => duplicate(c)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"><Icon name="copy" size={13} />{t('common.duplicate')}</button>
-                          {confirmDelete !== c.id ? (
-                            <button onClick={() => setConfirmDelete(c.id)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"><Icon name="delete" size={13} />{t('common.delete')}</button>
-                          ) : (
-                            <div className="px-3 py-2">
-                              <p className="text-2xs text-red-600 mb-1">{t('common.confirmDelete')}</p>
-                              <div className="flex gap-1">
-                                <button onClick={() => remove(c.id)} className="text-xs bg-red-600 text-white px-2 py-0.5 rounded">{t('common.yes')}</button>
-                                <button onClick={() => setConfirmDelete(null)} className="text-xs text-gray-500 px-2 py-0.5">{t('common.no')}</button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      <td className="table-cell">{renderCompanyActions(c)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filtered.length === 0 && <div className="empty-state">{t('noData.companies')}</div>}
+            </div>
+          )}
+          {!loading && (
+            <div className="data-surface md:hidden divide-y divide-gray-100">
+              {filtered.map(c => (
+                <article
+                  key={c.id}
+                  role="button"
+                  tabIndex={0}
+                  className="p-3 text-left transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600"
+                  onClick={() => handleRowClick(c.id)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleRowClick(c.id);
+                    }
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-xs font-medium text-blue-600">
+                      {c.name?.slice(0, 2).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-gray-900">{c.name}</div>
+                      <div className="mt-0.5 truncate text-2xs text-gray-500">
+                        {companyTypeLabel(c.company_type)} · {c.city ? `${c.city}, ${c.country}` : c.country}
+                      </div>
                     </div>
-                  </td>
-                </tr>
+                    {renderCompanyActions(c)}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <StatusBadge status={c.status} />
+                    <span className="text-2xs text-gray-500">{c.classification || 'C'} — {classificationLabel(c.classification || 'C')}</span>
+                  </div>
+
+                  <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-gray-100 pt-3 text-xs">
+                    <div className="min-w-0">
+                      <dt className="text-2xs text-gray-400">{t('page.companies.industry')}</dt>
+                      <dd className="mt-0.5 truncate text-gray-700">{c.industry || '—'}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-2xs text-gray-400">{t('accountability.owner')}</dt>
+                      <dd className="mt-0.5 truncate text-gray-700">{c.owner_name || t('accountability.unassigned')}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-2xs text-gray-400">{t('page.companies.code')}</dt>
+                      <dd className="mt-0.5 truncate tabular-nums text-gray-700">{c.customer_code || '—'}</dd>
+                    </div>
+                  </dl>
+                </article>
               ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && <div className="text-center py-12 text-gray-400 text-sm">{t('noData.companies')}</div>}
-        </div>
-      )}
+              {filtered.length === 0 && <div className="empty-state">{t('noData.companies')}</div>}
+            </div>
+          )}
+          <ConfirmDialog
+        open={!!deleteTarget}
+        title={t('common.delete')}
+        description={<>{t('common.confirmDelete')} <strong>{deleteTarget?.name}</strong></>}
+        busy={deleting}
+        onConfirm={remove}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

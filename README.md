@@ -36,6 +36,27 @@ npm run db:seed      # seed local demo data
 npm run backup       # create a local database backup
 ```
 
+## Materials & Tooling Module
+
+A document-driven materials and tooling management module with full online approval, offline signatures, monthly ledgers, and tooling custody history.
+
+**Location:** Sidebar → `/materials-tooling` (below Inventory)
+
+**Key features:**
+
+- Material master data with computed current quantity (no direct edits)
+- Document workflow: Draft → Submit → Approve → Execute → Signed Copy → Complete
+- Purchase receipt with actual price history (for future supplier negotiation)
+- Monthly receipt/issue/balance ledger with Excel and A3 PDF export
+- Tooling lifecycle with state machine: issue, return, loan, transfer, repair, disposal, loss
+- Atomic void-and-replacement for executed documents
+- Immutable version snapshots, append-only movements, and full audit trail
+- Private attachments with server-enforced price/sensitive-data permissions
+- Cutover import for opening balances
+- Integrated backup/restore with attachments (`npm run backup` / `npm run restore`)
+
+See the [Operator Guide](docs/materials-tooling-operator-guide.md) for daily use instructions.
+
 ## One-Click Local Start
 
 ```bash

@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Icon from '../shared/Icon';
 
-export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
+export default function TopBar({
+  onToggleSidebar,
+  navigationExpanded,
+}: {
+  onToggleSidebar: () => void;
+  navigationExpanded: boolean;
+}) {
   const [search, setSearch] = useState('');
   const { t } = useTranslation();
   const [overdueCount, setOverdueCount] = useState(0);
@@ -28,21 +34,26 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
   return (
     <header className="h-14 bg-white border-b border-gray-200 flex items-center gap-4 px-4 flex-shrink-0">
       <button
+        type="button"
         onClick={onToggleSidebar}
-        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 flex-shrink-0"
+        className="icon-btn"
+        aria-label={t('nav.workspace')}
+        aria-expanded={navigationExpanded}
       >
         <Icon name="menu" size={18} />
       </button>
 
       <div className="flex-1 max-w-lg relative">
         <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <label className="sr-only" htmlFor="top-bar-search">{t('common.search')}</label>
         <input
+          id="top-bar-search"
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && search.trim()) navigate('/companies'); }}
           placeholder={t('nav.customers') + ', ' + t('nav.contacts') + ', ' + t('nav.quotations') + '...'}
-          className="w-full h-9 pl-9 pr-3 rounded-lg border border-gray-300 text-sm text-gray-700 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-0"
+          className="input h-9 pl-9"
         />
       </div>
 
@@ -50,7 +61,7 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
         {/* Alert indicator */}
         <button
           onClick={() => navigate('/tasks')}
-          className={`relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors ${
+          className={`icon-btn relative ${
             totalAlerts > 0 ? 'text-red-500' : 'text-gray-400'
           }`}
           title={`${overdueCount} ${t('status.overdue')}, ${expiringCount} ${t('page.dashboard.expiringQuotes')}`}

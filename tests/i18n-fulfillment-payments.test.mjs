@@ -15,6 +15,203 @@ const source = files
   .replace(/\/\/[^\n]*/g, '');
 
 const dictionarySource = readFileSync(new URL('../src/lib/i18n.tsx', import.meta.url), 'utf8');
+const paymentsSource = readFileSync(new URL('../src/pages/Payments.tsx', import.meta.url), 'utf8');
+const shipmentsSource = readFileSync(new URL('../src/pages/Shipments.tsx', import.meta.url), 'utf8');
+const shipmentDetailSource = readFileSync(new URL('../src/pages/ShipmentDetail.tsx', import.meta.url), 'utf8');
+const responsiveWorkspaceSource = readFileSync(new URL('../src/components/shared/ResponsiveWorkspace.tsx', import.meta.url), 'utf8');
+const companiesSource = readFileSync(new URL('../src/pages/Companies.tsx', import.meta.url), 'utf8');
+const inquiryDetailSource = readFileSync(new URL('../src/pages/InquiryDetail.tsx', import.meta.url), 'utf8');
+const inventorySource = readFileSync(new URL('../src/pages/InventoryPage.tsx', import.meta.url), 'utf8');
+const orderDetailSource = readFileSync(new URL('../src/pages/OrderDetail.tsx', import.meta.url), 'utf8');
+const quotationDetailSource = readFileSync(new URL('../src/pages/QuotationDetail.tsx', import.meta.url), 'utf8');
+
+test('payment and shipment forms are grouped and responsive', () => {
+  for (const formSource of [paymentsSource, shipmentsSource]) {
+    assert.match(formSource, /<fieldset/);
+    assert.match(formSource, /<legend/);
+    assert.match(formSource, /sm:grid-cols-2/);
+    assert.match(formSource, /className="data-surface p-4/);
+  }
+
+  assert.match(paymentsSource, /role="dialog"/);
+  assert.match(paymentsSource, /aria-modal="true"/);
+  assert.match(paymentsSource, /w-\[min\(400px,calc\(100vw-2rem\)\)\]/);
+});
+
+test('payment create and edit controls have persistent label associations', () => {
+  for (const fieldId of [
+    'payment-invoice-order',
+    'payment-invoice-total',
+    'payment-invoice-due-date',
+    'payment-edit-total',
+    'payment-edit-due-date',
+    'payment-edit-notes',
+  ]) {
+    assert.match(paymentsSource, new RegExp(`htmlFor="${fieldId}"`));
+    assert.match(paymentsSource, new RegExp(`id="${fieldId}"`));
+  }
+  assert.match(paymentsSource, /id="payment-invoice-order"[\s\S]*required/);
+  assert.match(paymentsSource, /id="payment-invoice-total"[\s\S]*required/);
+});
+
+test('shipment create controls have persistent label associations', () => {
+  for (const fieldId of [
+    'shipment-create-order',
+    'shipment-create-ship-date',
+    'shipment-create-type',
+    'shipment-create-status',
+    'shipment-create-carrier',
+    'shipment-create-reference',
+    'shipment-create-container',
+    'shipment-create-vessel',
+    'shipment-create-voyage',
+    'shipment-create-etd',
+    'shipment-create-eta',
+    'shipment-create-airline',
+    'shipment-create-express-provider',
+    'shipment-create-estimated-delivery',
+    'shipment-create-pickup-address',
+    'shipment-create-notes',
+  ]) {
+    assert.match(shipmentsSource, new RegExp(`htmlFor="${fieldId}"`));
+    assert.match(shipmentsSource, new RegExp(`id="${fieldId}"`));
+  }
+  assert.match(shipmentsSource, /id="shipment-create-order"[\s\S]*required/);
+  assert.match(shipmentsSource, /id="shipment-create-pickup-address"[\s\S]*autoComplete="street-address"/);
+});
+
+test('shipment edit controls have persistent label associations', () => {
+  for (const fieldId of [
+    'shipment-edit-type',
+    'shipment-edit-ship-date',
+    'shipment-edit-reference',
+    'shipment-edit-carrier',
+    'shipment-edit-container',
+    'shipment-edit-vessel',
+    'shipment-edit-voyage',
+    'shipment-edit-etd',
+    'shipment-edit-eta',
+    'shipment-edit-airline',
+    'shipment-edit-air-tracking',
+    'shipment-edit-express-provider',
+    'shipment-edit-estimated-delivery',
+    'shipment-edit-truck-tracking',
+    'shipment-edit-pickup-address',
+    'shipment-edit-notes',
+  ]) {
+    assert.match(shipmentDetailSource, new RegExp(`htmlFor="${fieldId}"`));
+    assert.match(shipmentDetailSource, new RegExp(`id="${fieldId}"`));
+  }
+  assert.match(shipmentDetailSource, /id="shipment-edit-pickup-address"[\s\S]*autoComplete="street-address"/);
+});
+
+test('company and payment create and edit flows use side panels while payment recording stays modal', () => {
+  for (const pageSource of [companiesSource, paymentsSource]) {
+    assert.match(pageSource, /import SidePanel from '\.\.\/components\/shared\/SidePanel'/);
+  }
+
+  assert.match(companiesSource, /<SidePanel open=\{!!editTarget\}/);
+  assert.doesNotMatch(companiesSource, /\{\/\* Edit Modal \*\/\}/);
+  assert.match(paymentsSource, /<SidePanel open=\{showForm\}/);
+  assert.match(paymentsSource, /<SidePanel open=\{!!editTarget\}/);
+  assert.doesNotMatch(paymentsSource, /\{\/\* Edit Modal \*\/\}/);
+  assert.match(paymentsSource, /aria-labelledby=\{paymentDialogTitleId\}/);
+  assert.match(paymentsSource, /id=\{paymentDialogTitleId\}[\s\S]*t\('page\.payments\.recordPayment'\)/);
+});
+
+test('inquiry and shipment detail editors use side panels instead of centered long-form modals', () => {
+  for (const detailSource of [inquiryDetailSource, shipmentDetailSource]) {
+    assert.match(detailSource, /import SidePanel from '\.\.\/components\/shared\/SidePanel'/);
+    assert.match(detailSource, /<SidePanel\s+open=\{showEditPanel\}/);
+    assert.doesNotMatch(detailSource, /\{\/\* Edit Modal \*\/\}/);
+    assert.doesNotMatch(detailSource, /fixed inset-0 bg-black\/20 z-50 flex items-center justify-center/);
+  }
+});
+
+test('shipment and inventory list forms use side panels instead of expanding inside list content', () => {
+  for (const pageSource of [shipmentsSource, inventorySource]) {
+    assert.match(pageSource, /import SidePanel from '\.\.\/components\/shared\/SidePanel'/);
+    assert.match(pageSource, /<SidePanel\s+open=\{showForm\}/);
+    assert.doesNotMatch(pageSource, /\{showForm && \(/);
+  }
+});
+
+test('order editing and quotation sample requests use side panels instead of centered long-form modals', () => {
+  for (const detailSource of [orderDetailSource, quotationDetailSource]) {
+    assert.match(detailSource, /import SidePanel from '\.\.\/components\/shared\/SidePanel'/);
+  }
+
+  assert.match(orderDetailSource, /<SidePanel\s+open=\{showEditPanel\}/);
+  assert.doesNotMatch(orderDetailSource, /\{\/\* Edit Modal \*\/\}/);
+  assert.match(quotationDetailSource, /<SidePanel\s+open=\{showSamplePanel\}/);
+  assert.doesNotMatch(quotationDetailSource, /showSamplePanel && \(/);
+});
+
+test('shipment detail and responsive workspace use accessible record interactions', () => {
+  assert.match(shipmentDetailSource, /className="page-header mb-0/);
+  assert.match(shipmentDetailSource, /className="page-heading/);
+  assert.match(shipmentDetailSource, /className="page-actions/);
+  assert.match(shipmentDetailSource, /<Icon name="back"/);
+  assert.match(shipmentDetailSource, /<Icon name="more"/);
+  assert.match(shipmentDetailSource, /className="data-surface overflow-x-auto"/);
+  assert.match(shipmentDetailSource, /className="sticky top-0 z-10"/);
+  assert.match(shipmentDetailSource, /animate-pulse/);
+  assert.doesNotMatch(shipmentDetailSource, />⋮</);
+
+  assert.match(responsiveWorkspaceSource, /aria-label=\{resolvedRightPanelLabel\}/);
+  assert.match(responsiveWorkspaceSource, /aria-expanded=\{rightOpen\}/);
+  assert.match(responsiveWorkspaceSource, /<Icon name="close"/);
+  assert.match(responsiveWorkspaceSource, /<Icon name="chevron-down"/);
+  assert.match(responsiveWorkspaceSource, /h-dvh/);
+  assert.doesNotMatch(responsiveWorkspaceSource, />✕</);
+  assert.doesNotMatch(responsiveWorkspaceSource, />\s*▼\s*</);
+});
+
+test('shipment detail leads with a compact fulfillment summary', () => {
+  assert.match(shipmentDetailSource, /commercial-summary/);
+  assert.match(shipmentDetailSource, /commercial-summary[\s\S]*shipment\.shipment_number[\s\S]*shipment\.company_name/);
+  assert.match(shipmentDetailSource, /shipmentReference\(shipment\) \|\| '—'/);
+  assert.match(shipmentDetailSource, /tracking_number \|\| shipment\.awb/);
+  assert.doesNotMatch(shipmentDetailSource, /tabular-nums text-blue-600">\{shipment\.tracking_number/);
+  assert.doesNotMatch(shipmentDetailSource, /rounded-xl/);
+});
+
+test('shipment details use sentence-case labels and neutral order context', () => {
+  assert.match(shipmentDetailSource, /section-label/);
+  assert.doesNotMatch(shipmentDetailSource, /uppercase tracking-\[0\.08em\]/);
+  assert.match(shipmentsSource, /border border-gray-200 bg-gray-50/);
+  assert.doesNotMatch(shipmentsSource, /bg-blue-50 rounded-lg p-3 mb-4/);
+});
+
+test('payments and shipments use the shared operational list surfaces', () => {
+  for (const pageSource of [paymentsSource, shipmentsSource]) {
+    assert.match(pageSource, /className="page-shell/);
+    assert.match(pageSource, /className="page-header"/);
+    assert.match(pageSource, /className="toolbar/);
+    assert.match(pageSource, /className="(?:hidden )?data-surface overflow-x-auto(?: md:block)?"/);
+    assert.match(pageSource, /className="sticky top-0 z-10"/);
+    assert.match(pageSource, /<Icon name="search"/);
+    assert.match(pageSource, /animate-pulse/);
+    assert.match(pageSource, /<Icon name="more"/);
+    assert.doesNotMatch(pageSource, />⋮</);
+  }
+});
+
+test('payment and shipment overlays and empty states use shared surfaces', () => {
+  for (const pageSource of [paymentsSource, shipmentsSource]) {
+    assert.match(pageSource, /menu-surface/);
+    assert.match(pageSource, /empty-state/);
+    assert.doesNotMatch(pageSource, /shadow-md/);
+  }
+  assert.equal((paymentsSource.match(/modal-surface/g) || []).length, 1);
+  assert.match(shipmentsSource, /className="data-surface p-4 mb-6"/);
+});
+
+test('payment status filters use the shared compact segmented control', () => {
+  assert.match(paymentsSource, /segmented-control/);
+  assert.match(paymentsSource, /segmented-option-active/);
+  assert.doesNotMatch(paymentsSource, /rounded-lg text-xs font-medium/);
+});
 
 test('payments and shipment pages no longer render obvious hard-coded English UI labels', () => {
   const forbidden = [

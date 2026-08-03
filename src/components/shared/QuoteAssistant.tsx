@@ -121,7 +121,7 @@ export default function QuoteAssistant({
   if (!productGrade) {
     return (
       <div className="card p-4 bg-gray-50 border-gray-200">
-        <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-2">{t('page.quoteAssistant.quoteAssistant')}</h3>
+        <h3 className="section-label mb-2">{t('page.quoteAssistant.quoteAssistant')}</h3>
         <p className="text-xs text-gray-400">{t('page.quoteAssistant.addProductGrade')}</p>
       </div>
     );
@@ -130,18 +130,18 @@ export default function QuoteAssistant({
   const sym = currency === 'USD' ? '$' : '¥';
 
   return (
-    <div className="card p-4 bg-gradient-to-br from-blue-50 to-white border-blue-100">
-      <h3 className="text-xs font-450 text-blue-600 uppercase tracking-[0.08em] mb-3">
+    <div className="data-surface p-4">
+      <h3 className="section-label mb-3">
         {t('page.quoteAssistant.quoteAssistant')}
       </h3>
 
       <div className="space-y-3">
         {/* Suggested Price */}
-        <div className="bg-white rounded-lg p-3 border border-blue-100">
+        <div className="border-t border-gray-200 py-3">
           <div className="text-2xs text-gray-400 mb-1">{t('page.quoteAssistant.suggestedPrice')}</div>
           <div className="flex items-end justify-between">
             <div>
-              <span className="text-xl font-semibold text-blue-600 font-mono">
+              <span className="text-xl font-semibold text-blue-600 tabular-nums">
                 {sym}{insights.suggestedPrice?.toFixed(2)}
               </span>
               <span className="text-xs text-gray-400 ml-1">/kg</span>
@@ -164,12 +164,12 @@ export default function QuoteAssistant({
 
         {/* Margin Analysis */}
         {costPrice && (
-          <div className="bg-white rounded-lg p-3 border border-gray-100">
+          <div className="border-t border-gray-200 py-3">
             <div className="text-2xs text-gray-400 mb-1">{t('page.quoteAssistant.marginAnalysis')}</div>
             {insights.marginAtSuggested !== null && (
               <div className="flex items-center justify-between text-sm mb-1">
                 <span className="text-gray-600">{t('page.quoteAssistant.atSuggestedPrice')}</span>
-                <span className={`font-mono font-semibold ${
+                <span className={`tabular-nums font-semibold ${
                   insights.marginAtSuggested >= 20 ? 'text-green-600' :
                   insights.marginAtSuggested >= 10 ? 'text-yellow-600' : 'text-red-600'
                 }`}>
@@ -180,7 +180,7 @@ export default function QuoteAssistant({
             {insights.marginAtTarget !== null && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">{t('page.quoteAssistant.atTargetPrice')} ({sym}{targetPrice})</span>
-                <span className={`font-mono font-semibold ${
+                <span className={`tabular-nums font-semibold ${
                   insights.marginAtTarget >= 20 ? 'text-green-600' :
                   insights.marginAtTarget >= 10 ? 'text-yellow-600' : 'text-red-600'
                 }`}>
@@ -193,7 +193,7 @@ export default function QuoteAssistant({
         )}
 
         {/* Volume Discount Tiers */}
-        <div className="bg-white rounded-lg p-3 border border-gray-100">
+        <div className="border-t border-gray-200 py-3">
           <div className="text-2xs text-gray-400 mb-2">{t('page.quoteAssistant.volumeDiscountSuggestions')}</div>
           <div className="space-y-1">
             {insights.volumeDiscount.map((vd, i) => (
@@ -216,7 +216,7 @@ export default function QuoteAssistant({
         </div>
 
         {/* Standard Discounts */}
-        <div className="bg-white rounded-lg p-3 border border-gray-100">
+        <div className="border-t border-gray-200 py-3">
           <div className="text-2xs text-gray-400 mb-2">{t('page.quoteAssistant.quickDiscounts')}</div>
           <div className="flex flex-wrap gap-1.5">
             {insights.discountSuggestions.map(d => (
@@ -233,7 +233,7 @@ export default function QuoteAssistant({
 
         {/* Notes */}
         {insights.notes.length > 0 && (
-          <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-100">
+          <div className="status-edge-warning rounded px-3 py-2.5">
             <div className="text-2xs text-yellow-700 font-medium mb-1">{t('page.quoteAssistant.insights')}</div>
             <ul className="space-y-0.5">
               {insights.notes.map((note, i) => (

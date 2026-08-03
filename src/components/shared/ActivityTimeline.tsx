@@ -128,7 +128,7 @@ export default function ActivityTimeline({
   return (
     <div>
       {/* Quick action buttons */}
-      <div className="flex items-center gap-1.5 mb-3">
+      <div className="flex flex-wrap items-center gap-1.5 mb-3">
         <button onClick={() => { setShowInput(!showInput); }} className="btn-ghost btn-sm text-xs"><Icon name="edit" size={13} className="mr-1" />{t('page.activityTimeline.note')}</button>
         <button onClick={() => logActivity('call')} disabled={logging} className="btn-ghost btn-sm text-xs"><Icon name="phone" size={13} className="mr-1" />{t('page.activityTimeline.call')}</button>
         <button onClick={() => logActivity('email')} disabled={logging} className="btn-ghost btn-sm text-xs"><Icon name="mail" size={13} className="mr-1" />{t('page.activityTimeline.email')}</button>
@@ -137,16 +137,18 @@ export default function ActivityTimeline({
 
       {/* Quick capture input */}
       {showInput && (
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-col gap-2 mb-4 sm:flex-row">
+          <label className="sr-only" htmlFor="activity-timeline-note">{t('page.activityTimeline.typeNote')}</label>
           <input
-            className="input flex-1"
+            id="activity-timeline-note"
+            className="input w-full flex-1 sm:w-auto"
             value={noteText}
             onChange={e => setNoteText(e.target.value)}
             placeholder={t('page.activityTimeline.typeNote')}
             autoFocus
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); logActivity('note'); } }}
           />
-          <button onClick={() => logActivity('note')} disabled={!noteText.trim() || logging} className="btn-primary btn-sm">
+          <button onClick={() => logActivity('note')} disabled={!noteText.trim() || logging} className="btn-primary btn-sm w-full sm:w-auto">
             {t('common.save')}
           </button>
         </div>
@@ -154,21 +156,23 @@ export default function ActivityTimeline({
 
       {/* Follow-up prompt */}
       {showFollowUp && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Icon name="calendar" size={14} className="text-gray-400" />
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-medium text-yellow-800">{t('page.activityTimeline.scheduleFollowUp')}</p>
               <p className="text-2xs text-yellow-600">{t('page.activityTimeline.followUpHelp')}</p>
             </div>
+            <label className="sr-only" htmlFor="activity-timeline-follow-up-date">{t('page.activityTimeline.scheduleFollowUp')}</label>
             <input
+              id="activity-timeline-follow-up-date"
               type="date"
               value={followUpDate}
               onChange={e => setFollowUpDate(e.target.value)}
-              className="text-xs border border-yellow-300 rounded px-2 py-1 bg-white ml-2"
+              className="w-full sm:w-auto text-xs border border-yellow-300 rounded px-2 py-1 bg-white ml-0 sm:ml-2"
             />
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-end gap-1 self-end sm:self-auto">
             <button onClick={scheduleFollowUp} className="text-xs font-medium text-yellow-800 bg-yellow-100 px-2.5 py-1 rounded hover:bg-yellow-200">
               {t('page.activityTimeline.schedule')}
             </button>
@@ -193,7 +197,7 @@ export default function ActivityTimeline({
               <div key={dateLabel}>
                 <div className="flex items-center gap-3 my-4">
                   <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em]">{dateLabel}</span>
+                  <span className="section-label">{dateLabel}</span>
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
                 {items.map((a, idx) => (
@@ -201,8 +205,8 @@ export default function ActivityTimeline({
                     <div className={`absolute left-1 top-1.5 w-3.5 h-3.5 rounded-full border-2 border-white ${
                       idx === 0 && dateLabel === todayLabel ? 'bg-blue-600' : 'bg-gray-300'
                     }`} />
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-0.5">
+                    <div className="flex min-w-0 items-start justify-between gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-gray-500 mb-0.5">
                         <Icon name={(activityIcons[a.activity_type] || 'edit') as any} size={14} className="text-gray-400" />
                         <span className="font-medium text-gray-700 capitalize">{activityTypeLabel(a.activity_type)}</span>
                         <span>·</span>
@@ -210,15 +214,15 @@ export default function ActivityTimeline({
                         {a.duration_minutes && <span>· {a.duration_minutes} min</span>}
                       </div>
                       {a.direction && (
-                        <span className={`text-2xs px-1 py-0.5 rounded ${
+                        <span className={`shrink-0 text-2xs px-1 py-0.5 rounded ${
                           a.direction === 'inbound' ? 'bg-green-50 text-green-600' :
                           a.direction === 'outbound' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'
                         }`}>{a.direction}</span>
                       )}
                     </div>
-                    <p className={`${compact ? 'text-xs' : 'text-sm'} text-gray-700 ml-6`}>{a.subject}</p>
+                    <p className={`${compact ? 'text-xs' : 'text-sm'} break-words text-gray-700 ml-6`}>{a.subject}</p>
                     {a.description && !compact && (
-                      <p className="text-xs text-gray-400 ml-6 mt-0.5">{a.description}</p>
+                      <p className="break-words text-xs text-gray-400 ml-6 mt-0.5">{a.description}</p>
                     )}
                   </div>
                 ))}

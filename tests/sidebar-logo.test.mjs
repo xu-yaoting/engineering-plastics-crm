@@ -11,7 +11,9 @@ test('sidebar logo has a dedicated Basepoint mark', () => {
   assert.match(sidebarSource, /alt="Basepoint"/);
   assert.match(sidebarSource, /className="w-8 h-8 rounded-full flex-shrink-0 object-cover"/);
   assert.match(logoSource, /viewBox="0 0 768\.000000 768\.000000"/);
-  assert.match(logoSource, /fill="#000000"/);
+  assert.match(logoSource, /fill="#2563EB"/);
+  assert.match(sidebarSource, /bg-blue-50 text-blue-600/);
+  assert.doesNotMatch(sidebarSource, /text-\[#[0-9A-Fa-f]{6}\]/);
 });
 
 test('collapsed sidebar centers the logo horizontally', () => {

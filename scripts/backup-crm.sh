@@ -1,13 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="${CRM_ROOT_DIR:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
 DB_PATH="$ROOT_DIR/crm.db"
 BACKUP_DIR="$ROOT_DIR/backups"
 TIMESTAMP="$(date +"%Y%m%d-%H%M%S")"
-BACKUP_DB="$BACKUP_DIR/crm-$TIMESTAMP.db"
-BACKUP_GZ="$BACKUP_DB.gz"
-CHECKSUM_FILE="$BACKUP_GZ.sha256"
+BACKUP_TAR="$BACKUP_DIR/crm-$TIMESTAMP.tar.gz"
+CHECKSUM_FILE="$BACKUP_TAR.sha256"
 
 if ! command -v sqlite3 >/dev/null 2>&1; then
   echo "sqlite3 is required to create a consistent CRM backup." >&2
@@ -21,11 +20,23 @@ fi
 
 mkdir -p "$BACKUP_DIR"
 
-sqlite3 "$DB_PATH" ".backup '$BACKUP_DB'"
-gzip -f "$BACKUP_DB"
-shasum -a 256 "$BACKUP_GZ" > "$CHECKSUM_FILE"
+# Create consistent database snapshot
+STAGING_DIR="$(mktemp -d)"
+trap 'rm -rf "$STAGING_DIR"' EXIT
+sqlite3 "$DB_PATH" ".backup '$STAGING_DIR/crm.db'"
+
+# Include materials-tooling attachments if present
+ATTACHMENTS_SRC="$ROOT_DIR/data/materials-tooling"
+if [ -d "$ATTACHMENTS_SRC" ]; then
+  mkdir -p "$STAGING_DIR/data"
+  cp -r "$ATTACHMENTS_SRC" "$STAGING_DIR/data/materials-tooling"
+fi
+
+# Create tar archive
+(cd "$STAGING_DIR" && tar -czf "$BACKUP_TAR" .)
+shasum -a 256 "$BACKUP_TAR" > "$CHECKSUM_FILE"
 
 echo "CRM backup created:"
-echo "$BACKUP_GZ"
+echo "$BACKUP_TAR"
 echo "Checksum:"
 echo "$CHECKSUM_FILE"

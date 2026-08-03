@@ -5,6 +5,7 @@ import XLSX from 'xlsx';
 import db from '../db.js';
 import { validate } from '../validate.js';
 import { updateProductWeight, getMaterialDensity } from '../weight.js';
+import { computeChanges, writeAudit } from '../audit.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 const router = Router();
@@ -38,6 +39,12 @@ const PRODUCT_UPDATE_FIELDS = [
 function txnWeight(product_id: string, qty: number): number {
   const prod = db.prepare("SELECT unit_weight_kg FROM products WHERE id = ?").get(product_id) as any;
   return Math.abs(qty) * (prod?.unit_weight_kg || 0);
+}
+
+function currentStock(productId: string): number {
+  const row = db.prepare("SELECT COALESCE(SUM(quantity), 0) AS current FROM inventory_transactions WHERE product_id = ?")
+    .get(productId) as { current: number };
+  return row?.current || 0;
 }
 
 // ─── Materials ───
@@ -106,19 +113,24 @@ router.post('/products', (req: Request, res: Response) => {
   const existing = db.prepare("SELECT id FROM products WHERE sku = ? AND deleted_at IS NULL").get(req.body.sku);
   if (existing) return res.status(400).json({ error: 'SKU already exists' });
   const id = uuidv4(); const now = new Date().toISOString();
-  db.prepare(`
+  db.transaction(() => {
+    db.prepare(`
     INSERT INTO products (id, sku, name, category, product_type, stock_tracking_mode,
       length_mm, width_mm, thickness_mm, diameter_mm, outer_diameter_mm, inner_diameter_mm,
-      unit_weight_kg, material_id, unit, safety_stock_qty, safety_stock_weight_kg, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      unit_weight_kg, material_id, unit, safety_stock_qty, safety_stock_weight_kg,
+      created_by, updated_by, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, req.body.sku, req.body.name, req.body.category || null,
     req.body.product_type || 'part', req.body.stock_tracking_mode || 'piece',
     req.body.length_mm || null, req.body.width_mm || null, req.body.thickness_mm || null,
     req.body.diameter_mm || null, req.body.outer_diameter_mm || null, req.body.inner_diameter_mm || null,
     req.body.unit_weight_kg || 0, req.body.material_id || null, req.body.unit || 'pc',
-    req.body.safety_stock_qty || 0, req.body.safety_stock_weight_kg || 0, now, now);
-  // Auto-calculate weight
-  updateProductWeight(id);
+      req.body.safety_stock_qty || 0, req.body.safety_stock_weight_kg || 0,
+      req.user!.id, req.user!.id, now, now);
+    updateProductWeight(id);
+    const created = db.prepare("SELECT * FROM products WHERE id = ?").get(id) as Record<string, unknown>;
+    writeAudit(req, 'product', id, 'create', computeChanges(null, created));
+  })();
   res.status(201).json(db.prepare("SELECT * FROM products WHERE id = ?").get(id));
 });
 
@@ -135,20 +147,28 @@ router.put('/products/:id', (req: Request, res: Response) => {
   if (updateFields.length === 0) return res.status(400).json({ error: 'No valid fields to update' });
   const fields = updateFields.map((field) => `${field} = ?`).join(', ');
   const values = updateFields.map((field) => req.body[field]);
-  const result = db.prepare(`UPDATE products SET ${fields}, updated_at = ? WHERE id = ? AND deleted_at IS NULL`)
-    .run(...values, now, req.params.id);
-  if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
-  // Recalculate weight if dimensions or material changed
+  const before = db.prepare("SELECT * FROM products WHERE id = ? AND deleted_at IS NULL").get(req.params.id) as Record<string, unknown> | undefined;
+  if (!before) return res.status(404).json({ error: 'Not found' });
   const dimFields = ['product_type', 'length_mm', 'width_mm', 'thickness_mm', 'diameter_mm', 'outer_diameter_mm', 'inner_diameter_mm', 'material_id', 'unit_weight_kg'];
-  if (dimFields.some(f => f in req.body)) updateProductWeight(req.params.id);
+  db.transaction(() => {
+    db.prepare(`UPDATE products SET ${fields}, updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL`)
+      .run(...values, req.user!.id, now, req.params.id);
+    if (dimFields.some(f => f in req.body)) updateProductWeight(req.params.id);
+    const after = db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id) as Record<string, unknown>;
+    writeAudit(req, 'product', req.params.id, 'update', computeChanges(before, after));
+  })();
   res.json(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id));
 });
 
 router.delete('/products/:id', (req: Request, res: Response) => {
   const now = new Date().toISOString();
-  const result = db.prepare("UPDATE products SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL")
-    .run(now, now, req.params.id);
-  if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
+  const before = db.prepare("SELECT * FROM products WHERE id = ? AND deleted_at IS NULL").get(req.params.id) as Record<string, unknown> | undefined;
+  if (!before) return res.status(404).json({ error: 'Not found' });
+  db.transaction(() => {
+    db.prepare("UPDATE products SET deleted_at = ?, updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL")
+      .run(now, req.user!.id, now, req.params.id);
+    writeAudit(req, 'product', req.params.id, 'delete', { sku: before.sku, name: before.name });
+  })();
   res.status(204).send();
 });
 
@@ -231,15 +251,22 @@ router.post('/stock-in', (req: Request, res: Response) => {
   const txnNumber = `SI-${now.slice(2,4)}-${String(count).padStart(5, '0')}`;
   const qty = Math.abs(req.body.quantity);
   const weight = txnWeight(req.body.product_id, qty);
-  db.prepare(`INSERT INTO inventory_transactions (id, transaction_number, transaction_type,
+  const beforeQuantity = currentStock(req.body.product_id);
+  db.transaction(() => {
+    db.prepare(`INSERT INTO inventory_transactions (id, transaction_number, transaction_type,
     product_id, warehouse_id, quantity, unit, total_weight_kg, reference_type, reference_id,
-    notes, operator, transaction_date, created_at, updated_at)
-    VALUES (?, ?, 'stock_in', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    notes, operator, created_by, transaction_date, created_at, updated_at)
+    VALUES (?, ?, 'stock_in', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(id, txnNumber, req.body.product_id, req.body.warehouse_id || null,
       qty, req.body.unit || 'pc', weight,
       req.body.reference_type || null, req.body.reference_id || null,
-      req.body.notes || null, req.body.operator || null,
+      req.body.notes || null, req.user!.name, req.user!.id,
       req.body.transaction_date || now.slice(0, 10), now, now);
+    writeAudit(req, 'inventory_transaction', id, 'stock_in', {
+      product_id: req.body.product_id, transaction_number: txnNumber,
+      before_quantity: beforeQuantity, change_quantity: qty, after_quantity: beforeQuantity + qty,
+    });
+  })();
   res.status(201).json(db.prepare("SELECT * FROM inventory_transactions WHERE id = ?").get(id));
 });
 
@@ -250,25 +277,30 @@ router.post('/stock-out', (req: Request, res: Response) => {
   if (err) return res.status(400).json({ error: err });
   const product = db.prepare("SELECT id, name, sku FROM products WHERE id = ? AND deleted_at IS NULL").get(req.body.product_id) as any;
   if (!product) return res.status(404).json({ error: 'Product not found' });
-  const stockRow = db.prepare("SELECT COALESCE(SUM(quantity), 0) as current FROM inventory_transactions WHERE product_id = ?").get(req.body.product_id) as any;
-  const currentStock = stockRow?.current || 0;
+  const beforeQuantity = currentStock(req.body.product_id);
   const requestedQty = Math.abs(req.body.quantity);
-  if (currentStock < requestedQty) {
-    return res.status(400).json({ error: 'Insufficient inventory', product_sku: product.sku, product_name: product.name, currentStock, requestedQuantity: requestedQty });
+  if (beforeQuantity < requestedQty) {
+    return res.status(400).json({ error: 'Insufficient inventory', product_sku: product.sku, product_name: product.name, currentStock: beforeQuantity, requestedQuantity: requestedQty });
   }
   const id = uuidv4(); const now = new Date().toISOString();
   const count = (db.prepare("SELECT COUNT(*) as c FROM inventory_transactions").get() as any).c + 1;
   const txnNumber = `SO-${now.slice(2,4)}-${String(count).padStart(5, '0')}`;
   const weight = txnWeight(req.body.product_id, requestedQty);
-  db.prepare(`INSERT INTO inventory_transactions (id, transaction_number, transaction_type,
+  db.transaction(() => {
+    db.prepare(`INSERT INTO inventory_transactions (id, transaction_number, transaction_type,
     product_id, warehouse_id, quantity, unit, total_weight_kg, reference_type, reference_id,
-    notes, operator, transaction_date, created_at, updated_at)
-    VALUES (?, ?, 'stock_out', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    notes, operator, created_by, transaction_date, created_at, updated_at)
+    VALUES (?, ?, 'stock_out', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(id, txnNumber, req.body.product_id, req.body.warehouse_id || null,
       -requestedQty, req.body.unit || 'pc', -weight,
       req.body.reference_type || null, req.body.reference_id || null,
-      req.body.notes || null, req.body.operator || null,
+      req.body.notes || null, req.user!.name, req.user!.id,
       req.body.transaction_date || now.slice(0, 10), now, now);
+    writeAudit(req, 'inventory_transaction', id, 'stock_out', {
+      product_id: req.body.product_id, transaction_number: txnNumber,
+      before_quantity: beforeQuantity, change_quantity: -requestedQty, after_quantity: beforeQuantity - requestedQty,
+    });
+  })();
   res.status(201).json(db.prepare("SELECT * FROM inventory_transactions WHERE id = ?").get(id));
 });
 
@@ -280,14 +312,22 @@ router.post('/adjustment', (req: Request, res: Response) => {
   const id = uuidv4(); const now = new Date().toISOString();
   const count = (db.prepare("SELECT COUNT(*) as c FROM inventory_transactions").get() as any).c + 1;
   const txnNumber = `ADJ-${now.slice(2,4)}-${String(count).padStart(5, '0')}`;
-  const weight = txnWeight(req.body.product_id, req.body.quantity);
-  db.prepare(`INSERT INTO inventory_transactions (id, transaction_number, transaction_type,
-    product_id, warehouse_id, quantity, unit, total_weight_kg, notes, operator, transaction_date, created_at, updated_at)
-    VALUES (?, ?, 'adjustment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+  const quantity = Number(req.body.quantity);
+  const weight = Math.sign(quantity) * txnWeight(req.body.product_id, quantity);
+  const beforeQuantity = currentStock(req.body.product_id);
+  db.transaction(() => {
+    db.prepare(`INSERT INTO inventory_transactions (id, transaction_number, transaction_type,
+    product_id, warehouse_id, quantity, unit, total_weight_kg, notes, operator, created_by, transaction_date, created_at, updated_at)
+    VALUES (?, ?, 'adjustment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(id, txnNumber, req.body.product_id, req.body.warehouse_id || null,
-      req.body.quantity, req.body.unit || 'pc', weight,
-      req.body.notes || null, req.body.operator || null,
+      quantity, req.body.unit || 'pc', weight,
+      req.body.notes || null, req.user!.name, req.user!.id,
       req.body.transaction_date || now.slice(0, 10), now, now);
+    writeAudit(req, 'inventory_transaction', id, 'adjustment', {
+      product_id: req.body.product_id, transaction_number: txnNumber,
+      before_quantity: beforeQuantity, change_quantity: quantity, after_quantity: beforeQuantity + quantity,
+    });
+  })();
   res.status(201).json(db.prepare("SELECT * FROM inventory_transactions WHERE id = ?").get(id));
 });
 

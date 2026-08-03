@@ -1,46 +1,89 @@
-import { useState, ReactNode } from 'react';
+import { useEffect, useRef, useState, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBreakpoint } from '../../lib/useMediaQuery';
+import Icon from './Icon';
 
 /**
  * Attio-style responsive workspace layout.
  *
- * >1200px: 3-column (Left | Center | Right)
- * 768-1200px: 2-column (Left | Center), Right panel slides in as overlay
- * <768px: Accordion sections stacked vertically
+ * >=1200px: 3-column (Left | Center | Right)
+ * 960-1200px: 2-column (Left | Center), Right panel slides in as overlay
+ * <960px: Accordion sections stacked vertically
  */
 export default function ResponsiveWorkspace({
   leftPanel,
   centerPanel,
   rightPanel,
   rightPanelLabel,
-  rightPanelIcon = '',
 }: {
   leftPanel: ReactNode;
   centerPanel: ReactNode;
   rightPanel: ReactNode;
   rightPanelLabel?: string;
-  rightPanelIcon?: string;
 }) {
   const { t } = useTranslation();
   const { isWide, isMedium, isNarrow } = useBreakpoint();
   const [rightOpen, setRightOpen] = useState(false);
   const [activeAccordion, setActiveAccordion] = useState<string | null>('center');
   const resolvedRightPanelLabel = rightPanelLabel || t('workspace.details');
+  const rightPanelRef = useRef<HTMLElement>(null);
+  const rightPanelTriggerRef = useRef<HTMLButtonElement>(null);
+  const rightPanelCloseRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isMedium || !rightOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    rightPanelCloseRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setRightOpen(false);
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+      const focusable = rightPanelRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable?.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      document.body.style.overflow = previousOverflow;
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+      else rightPanelTriggerRef.current?.focus();
+    };
+  }, [isMedium, rightOpen]);
 
   if (isWide) {
     // ── 3-column layout ──
     return (
-      <div className="flex h-full">
-        <div className="w-[280px] flex-shrink-0 border-r border-gray-200 overflow-y-auto bg-white">
+      <div className="grid h-full min-h-0 grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)_minmax(16rem,19rem)]">
+        <aside className="overflow-y-auto border-r border-gray-200 bg-white p-4">
           {leftPanel}
-        </div>
-        <div className="flex-1 overflow-y-auto bg-white min-w-0">
+        </aside>
+        <main className="min-w-0 overflow-y-auto bg-white p-4">
           {centerPanel}
-        </div>
-        <div className="w-[300px] flex-shrink-0 border-l border-gray-200 overflow-y-auto bg-white">
+        </main>
+        <aside className="overflow-y-auto border-l border-gray-200 bg-white p-4">
           {rightPanel}
-        </div>
+        </aside>
       </div>
     );
   }
@@ -48,23 +91,29 @@ export default function ResponsiveWorkspace({
   if (isMedium) {
     // ── 2-column + slide-over right panel ──
     return (
-      <div className="flex h-full relative">
+      <div className="relative grid h-full min-h-0 grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)]">
         {/* Left panel */}
-        <div className="w-[280px] flex-shrink-0 border-r border-gray-200 overflow-y-auto bg-white">
+        <aside className="overflow-y-auto border-r border-gray-200 bg-white p-4">
           {leftPanel}
-        </div>
+        </aside>
         {/* Center panel */}
-        <div className="flex-1 overflow-y-auto bg-white min-w-0">
+        <main className="min-w-0 overflow-y-auto bg-white p-4">
           {centerPanel}
-        </div>
+        </main>
 
         {/* Floating button to open right panel */}
         <button
+          ref={rightPanelTriggerRef}
+          type="button"
           onClick={() => setRightOpen(true)}
-          className="fixed right-4 bottom-4 z-20 w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
+          className="fixed right-4 bottom-4 z-20 flex size-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-colors hover:bg-blue-700"
+          style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+          aria-label={resolvedRightPanelLabel}
+          aria-expanded={rightOpen}
+          aria-controls="workspace-right-panel"
           title={resolvedRightPanelLabel}
         >
-          {rightPanelIcon}
+          <Icon name="menu" size={18} />
         </button>
 
         {/* Right panel overlay */}
@@ -74,14 +123,17 @@ export default function ResponsiveWorkspace({
               className="fixed inset-0 bg-black/20 z-30"
               onClick={() => setRightOpen(false)}
             />
-            <aside className="fixed right-0 top-0 h-full w-[380px] bg-white shadow-[-4px_0_12px_rgba(0,0,0,0.1)] z-40 flex flex-col animate-[slideIn_200ms_ease-out]">
+            <aside ref={rightPanelRef} id="workspace-right-panel" role="dialog" aria-modal="true" aria-label={resolvedRightPanelLabel} className="modal-surface fixed right-0 top-0 z-40 flex h-dvh w-[min(380px,calc(100vw-1rem))] flex-col rounded-none border-y-0 border-r-0 animate-[slideIn_200ms_ease-out]">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{resolvedRightPanelLabel}</h3>
+                <h3 className="section-label">{resolvedRightPanelLabel}</h3>
                 <button
+                  ref={rightPanelCloseRef}
+                  type="button"
                   onClick={() => setRightOpen(false)}
-                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-400"
+                  className="icon-btn"
+                  aria-label={t('common.close')}
                 >
-                  ✕
+                  <Icon name="close" size={16} />
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-4">
@@ -111,11 +163,10 @@ export default function ResponsiveWorkspace({
               <button
                 onClick={() => setActiveAccordion(isOpen ? null : section.key)}
                 className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors"
+                aria-expanded={isOpen}
               >
                 <span>{section.label}</span>
-                <span className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
-                  ▼
-                </span>
+                <Icon name="chevron-down" size={16} className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
               {isOpen && (
                 <div className="px-4 pb-4">

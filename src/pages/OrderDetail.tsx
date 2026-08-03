@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
+import SidePanel from '../components/shared/SidePanel';
 import StatusBadge from '../components/shared/StatusBadge';
 import Icon from '../components/shared/Icon';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../lib/currency';
+import AccountabilityPanel from '../components/shared/AccountabilityPanel';
+import { team, type TeamMember } from '../lib/api';
+import { useAuth } from '../lib/auth';
 
 const statusFlow = [
   { key: 'draft', labelKey: 'status.draft' },
@@ -16,8 +21,86 @@ const statusFlow = [
   { key: 'delivered', labelKey: 'status.delivered' },
 ];
 
+function OrderDetailSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-label={label} className="flex h-full flex-col">
+      <div aria-hidden="true" className="flex h-full flex-col animate-pulse motion-reduce:animate-none">
+        <header className="flex-shrink-0 border-b border-gray-200 bg-white px-5 py-3">
+          <div className="flex min-h-8 items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="h-8 w-8 rounded-md bg-gray-200" />
+              <div className="h-5 w-36 rounded bg-gray-200" />
+              <div className="h-5 w-20 rounded bg-gray-100" />
+              <div className="h-5 w-16 rounded bg-gray-100" />
+            </div>
+            <div className="h-8 w-44 rounded-md bg-gray-200" />
+          </div>
+          <div className="mt-2 h-3 w-72 max-w-full rounded bg-gray-100" />
+        </header>
+
+        <main className="min-h-0 flex-1 overflow-y-auto bg-gray-50">
+          <div className="mx-auto max-w-5xl space-y-6 p-6">
+            <section className="commercial-summary rounded-md border border-gray-200 bg-white p-5">
+              <div className="flex flex-wrap items-start justify-between gap-5">
+                <div className="space-y-3">
+                  <div className="h-3 w-20 rounded bg-gray-100" />
+                  <div className="h-8 w-44 rounded bg-gray-200" />
+                </div>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                  <div className="h-3 w-24 rounded bg-gray-100" />
+                  <div className="h-3 w-20 rounded bg-gray-100" />
+                  <div className="h-4 w-28 rounded bg-gray-200" />
+                  <div className="h-4 w-24 rounded bg-gray-200" />
+                </div>
+              </div>
+            </section>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <section className="space-y-5 lg:col-span-2">
+                <div className="rounded-md border border-gray-200 bg-white">
+                  <div className="border-b border-gray-200 px-4 py-3">
+                    <div className="h-3 w-24 rounded bg-gray-200" />
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {Array.from({ length: 4 }, (_, index) => (
+                      <div key={index} className="grid grid-cols-[minmax(0,2fr)_repeat(3,minmax(56px,1fr))] gap-3 px-4 py-4">
+                        <div className="h-4 w-4/5 rounded bg-gray-200" />
+                        <div className="h-4 rounded bg-gray-100" />
+                        <div className="h-4 rounded bg-gray-100" />
+                        <div className="h-4 rounded bg-gray-200" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="h-28 rounded-md border border-gray-200 bg-white p-4">
+                  <div className="h-3 w-20 rounded bg-gray-200" />
+                  <div className="mt-4 h-4 w-3/4 rounded bg-gray-100" />
+                </div>
+              </section>
+
+              <aside className="space-y-4">
+                {[144, 176, 112].map((height, index) => (
+                  <div key={index} className="rounded-md border border-gray-200 bg-white p-4" style={{ height }}>
+                    <div className="h-3 w-24 rounded bg-gray-200" />
+                    <div className="mt-4 space-y-3">
+                      <div className="h-3 w-full rounded bg-gray-100" />
+                      <div className="h-3 w-4/5 rounded bg-gray-100" />
+                      <div className="h-3 w-2/3 rounded bg-gray-100" />
+                    </div>
+                  </div>
+                ))}
+              </aside>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
 export default function OrderDetail() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [order, setOrder] = useState<any>(null);
@@ -28,12 +111,20 @@ export default function OrderDetail() {
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [members, setMembers] = useState<TeamMember[]>([]);
   const [editingShipQty, setEditingShipQty] = useState<Record<string, number>>({});
   const [editForm, setEditForm] = useState({
     customer_po_number: '', incoterm: '', payment_term: '', confirmed_delivery_date: '', shipping_address: '',
-    order_date: '', order_number: '',
+    order_date: '', order_number: '', owner_user_id: '',
   });
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      team.list().then(setMembers).catch(() => setMembers([]));
+    }
+  }, [user?.role]);
 
   const load = () => {
     if (!id) return;
@@ -113,33 +204,54 @@ export default function OrderDetail() {
 
   const remove = async () => {
     if (!id) return;
+    setDeleting(true);
     try {
       await fetch(`/api/orders/${id}`, { method: 'DELETE' });
       navigate('/orders');
-    } catch (e) { toast.error(t('page.orderDetail.deleteFailed')); }
+    } catch (e) {
+      toast.error(t('page.orderDetail.deleteFailed'));
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  if (!order) return <div className="p-6 text-gray-400">{t('common.loading')}</div>;
+  const updateLineItemUnit = async (lineItemId: string, newUnit: string) => {
+    try {
+      const res = await fetch(`/api/orders/line-items/${lineItemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unit_of_measure: newUnit }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      toast.success(t('page.orderDetail.unitUpdated'));
+      load();
+    } catch {
+      toast.error(t('page.orderDetail.unitUpdateFailed'));
+    }
+  };
+
+  if (!order) return <OrderDetailSkeleton label={t('common.loading')} />;
 
   const currentIdx = statusFlow.findIndex(s => s.key === order.status);
   const subtotal = lineItems.reduce((s: number, i: any) => s + (i.line_total || 0), 0);
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col overflow-x-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 py-3 flex-shrink-0">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-3 min-w-0">
-            <button onClick={() => navigate(-1)} className="text-xs text-gray-400 hover:text-gray-600 flex-shrink-0">{t('common.back')}</button>
-            <h1 className="text-2xl font-semibold text-gray-900 truncate">{order.order_number}</h1>
+      <div className="flex-shrink-0 border-b border-gray-200 bg-white px-5 py-3">
+        <div className="page-header mb-0 min-h-0 items-stretch sm:items-center">
+          <div className="flex min-w-0 items-start gap-2 sm:items-center sm:gap-3">
+            <button onClick={() => navigate(-1)} className="icon-btn" aria-label={t('common.back')} title={t('common.back')}><Icon name="back" size={16} /></button>
+            <h1 className="page-heading min-w-0 flex-1 text-lg sm:text-2xl tabular-nums">{order.order_number}</h1>
             <StatusBadge status={order.status} />
             <StatusBadge status={order.payment_status} />
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="page-actions w-full max-w-none flex-nowrap overflow-x-auto whitespace-nowrap pb-1 sm:w-auto sm:max-w-[58%] sm:flex-wrap [&>*]:shrink-0">
             <button onClick={() => {
               setEditForm({
                 customer_po_number: order.customer_po_number || '',
                 order_number: order.order_number || '',
                 order_date: order.order_date?.slice(0, 10) || '',
+                owner_user_id: order.owner_user_id || '',
                 incoterm: order.incoterm || '',
                 payment_term: order.payment_term || '',
                 confirmed_delivery_date: order.confirmed_delivery_date || '',
@@ -167,21 +279,11 @@ export default function OrderDetail() {
               } catch (e) { toast.error(t('page.orderDetail.invoiceCreateFailed')); }
             }} className="btn-secondary btn-sm"><Icon name="file-down" size={14} className="mr-1.5" />{t('page.orderDetail.invoice')}</button>
             <div className="relative">
-              <button onClick={() => setShowActions(!showActions)} className="btn-ghost btn-sm">⋮</button>
+              <button onClick={() => setShowActions(!showActions)} className="icon-btn" aria-label={t('common.moreActions')} title={t('common.moreActions')}><Icon name="more" size={16} /></button>
               {showActions && (
-                <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-md z-10 py-1">
+                <div className="menu-surface absolute right-0 top-full mt-1 w-40">
                   <button onClick={() => { setShowActions(false); duplicate(); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"><Icon name="copy" size={13} />{t('common.duplicate')}</button>
-                  {!confirmDelete ? (
-                    <button onClick={() => setConfirmDelete(true)} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"><Icon name="delete" size={13} />{t('common.delete')}</button>
-                  ) : (
-                    <div className="px-3 py-2">
-                      <p className="text-2xs text-red-600 mb-1.5">{t('common.confirmDelete')}</p>
-                      <div className="flex gap-1">
-                        <button onClick={remove} className="text-xs bg-red-600 text-white px-2 py-1 rounded">{t('common.yes')}</button>
-                        <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500 px-2 py-1">{t('common.no')}</button>
-                      </div>
-                    </div>
-                  )}
+                  <button onClick={() => { setShowActions(false); setConfirmDelete(true); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"><Icon name="delete" size={13} />{t('common.delete')}</button>
                 </div>
               )}
             </div>
@@ -199,54 +301,78 @@ export default function OrderDetail() {
         </div>
       </div>
 
-      {/* Edit Modal */}
-      {showEditPanel && (
-        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-[480px]">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">{t('common.edit')} — {order.order_number}</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">{t('page.orderDetail.poNumber')}</label>
-                  <input className="input" value={editForm.customer_po_number} onChange={e => setEditForm({...editForm, customer_po_number: e.target.value})} />
-                </div>
-                <div>
-                  <label className="label">{t('page.orderDetail.orderNumber')}</label>
-                  <input className="input tabular-nums" value={editForm.order_number} onChange={e => setEditForm({...editForm, order_number: e.target.value})} />
-                </div>
-                <div>
-                  <label className="label">{t('page.orderDetail.incoterm')}</label>
-                  <input className="input" value={editForm.incoterm} onChange={e => setEditForm({...editForm, incoterm: e.target.value})} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">{t('page.orderDetail.orderDate')}</label>
-                  <input className="input" type="date" value={editForm.order_date} onChange={e => setEditForm({...editForm, order_date: e.target.value})} />
-                </div>
-                <div>
-                  <label className="label">{t('page.orderDetail.deliveryDate')}</label>
-                  <input className="input" type="date" value={editForm.confirmed_delivery_date} onChange={e => setEditForm({...editForm, confirmed_delivery_date: e.target.value})} />
-                </div>
-              </div>
-              <div>
-                <label className="label">{t('page.orderDetail.paymentTerms')}</label>
-                <input className="input" value={editForm.payment_term} onChange={e => setEditForm({...editForm, payment_term: e.target.value})} />
-              </div>
-              <div>
-                <label className="label">{t('page.orderDetail.shippingAddress')}</label>
-                <input className="input" value={editForm.shipping_address} onChange={e => setEditForm({...editForm, shipping_address: e.target.value})} />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button onClick={saveEdit} disabled={savingEdit} className="btn-primary flex-1">
-                  {savingEdit ? t('page.orderDetail.saving') : t('common.save')}
-                </button>
-                <button onClick={() => setShowEditPanel(false)} disabled={savingEdit} className="btn-secondary">{t('common.cancel')}</button>
-              </div>
+      <SidePanel
+        open={showEditPanel}
+        onClose={() => {
+          if (!savingEdit) setShowEditPanel(false);
+        }}
+        title={t('common.edit')}
+        subtitle={order.order_number}
+        width="w-[min(500px,calc(100vw-1rem))]"
+      >
+        <div className="space-y-4">
+          {user?.role === 'admin' && (
+            <div>
+              <label className="label" htmlFor="order-edit-owner">{t('accountability.owner')}</label>
+              <select
+                id="order-edit-owner"
+                className="input"
+                value={editForm.owner_user_id}
+                onChange={e => setEditForm({ ...editForm, owner_user_id: e.target.value })}
+              >
+                <option value="">{t('accountability.unassigned')}</option>
+                {members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
+              </select>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label" htmlFor="order-edit-po-number">{t('page.orderDetail.poNumber')}</label>
+              <input id="order-edit-po-number" className="input" value={editForm.customer_po_number} onChange={e => setEditForm({...editForm, customer_po_number: e.target.value})} />
+            </div>
+            <div>
+              <label className="label" htmlFor="order-edit-order-number">{t('page.orderDetail.orderNumber')}</label>
+              <input id="order-edit-order-number" className="input tabular-nums" value={editForm.order_number} onChange={e => setEditForm({...editForm, order_number: e.target.value})} />
+            </div>
+            <div>
+              <label className="label" htmlFor="order-edit-incoterm">{t('page.orderDetail.incoterm')}</label>
+              <input id="order-edit-incoterm" className="input" value={editForm.incoterm} onChange={e => setEditForm({...editForm, incoterm: e.target.value})} />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label" htmlFor="order-edit-order-date">{t('page.orderDetail.orderDate')}</label>
+              <input id="order-edit-order-date" className="input" type="date" value={editForm.order_date} onChange={e => setEditForm({...editForm, order_date: e.target.value})} />
+            </div>
+            <div>
+              <label className="label" htmlFor="order-edit-delivery-date">{t('page.orderDetail.deliveryDate')}</label>
+              <input id="order-edit-delivery-date" className="input" type="date" value={editForm.confirmed_delivery_date} onChange={e => setEditForm({...editForm, confirmed_delivery_date: e.target.value})} />
+            </div>
+          </div>
+          <div>
+            <label className="label" htmlFor="order-edit-payment-terms">{t('page.orderDetail.paymentTerms')}</label>
+            <input id="order-edit-payment-terms" className="input" value={editForm.payment_term} onChange={e => setEditForm({...editForm, payment_term: e.target.value})} />
+          </div>
+          <div>
+            <label className="label" htmlFor="order-edit-shipping-address">{t('page.orderDetail.shippingAddress')}</label>
+            <input id="order-edit-shipping-address" className="input" value={editForm.shipping_address} onChange={e => setEditForm({...editForm, shipping_address: e.target.value})} autoComplete="street-address" />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button onClick={saveEdit} disabled={savingEdit} className="btn-primary flex-1">
+              {savingEdit ? t('page.orderDetail.saving') : t('common.save')}
+            </button>
+            <button onClick={() => setShowEditPanel(false)} disabled={savingEdit} className="btn-secondary">{t('common.cancel')}</button>
+          </div>
         </div>
-      )}
+      </SidePanel>
+      <ConfirmDialog
+        open={confirmDelete}
+        title={t('common.delete')}
+        description={<>{t('common.confirmDelete')} <strong>{order.order_number}</strong></>}
+        busy={deleting}
+        onConfirm={remove}
+        onCancel={() => setConfirmDelete(false)}
+      />
 
       {/* Progress Bar */}
       <div className="bg-white border-b border-gray-200 px-5 py-4">
@@ -272,9 +398,18 @@ export default function OrderDetail() {
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-5xl mx-auto space-y-6">
           {/* ── Order Summary ── */}
-          <div className="card p-5">
-            <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-4">{t('page.orderDetail.orderSummary')}</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
+          <div className="section-band commercial-summary p-5">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+              <div>
+                <p className="section-label text-gray-400">{t('page.orderDetail.totalAmount')}</p>
+                <p className="mt-1 text-2xl font-semibold text-gray-900 tabular-nums">{formatCurrency(order.total || subtotal, order.currency)}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <StatusBadge status={order.status} />
+                <StatusBadge status={order.payment_status} />
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-gray-200 pt-4 md:grid-cols-4">
               <SummaryField label={t('page.inquiryDetail.customer')} value={
                 <Link to={`/companies/${order.company_id}`} className="text-blue-600 hover:underline">{order.company_name}</Link>
               } />
@@ -287,7 +422,6 @@ export default function OrderDetail() {
               <SummaryField label={t('page.quotationDetail.currency')} value={order.currency || 'USD'} />
               <SummaryField label={t('page.orderDetail.paymentTerms')} value={order.payment_term || '—'} />
               <SummaryField label={t('page.orderDetail.deliveryDate')} value={order.confirmed_delivery_date || '—'} />
-              <SummaryField label={t('page.orderDetail.totalAmount')} value={<span className="text-lg font-semibold text-gray-900 tabular-nums">{formatCurrency(order.total || subtotal, order.currency)}</span>} />
               <SummaryField label={t('page.orderDetail.source')} value={
                 order.quotation_id
                   ? <Link to={`/quotations/${order.quotation_id}`} className="text-blue-600 hover:underline">{t('page.orderDetail.viewOriginalQuotation')}</Link>
@@ -296,60 +430,54 @@ export default function OrderDetail() {
             </div>
           </div>
 
+          <div className="section-band p-4">
+            <AccountabilityPanel entityType="order" entityId={id!} record={order} />
+          </div>
+
           {/* ── Line Items ── */}
-          <div className="card">
+          <div className="data-surface overflow-x-auto">
             <div className="px-4 py-3 border-b border-gray-200">
-              <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.orderDetail.lineItems')}</h3>
+              <h3 className="section-label">{t('page.orderDetail.lineItems')}</h3>
             </div>
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="table-header">#</th>
-                  <th className="table-header">{t('page.orderDetail.product')}</th>
-                  <th className="table-header text-right">{t('page.orderDetail.ordered')}</th>
-                  <th className="table-header text-right">{t('page.orderDetail.shipped')}</th>
-                  <th className="table-header">{t('page.orderDetail.unit')}</th>
-                  <th className="table-header text-right">{t('page.orderDetail.price')}</th>
-                  <th className="table-header text-right">{t('page.orderDetail.lineTotal')}</th>
-                  <th className="table-header text-right">{t('page.orderDetail.shippedTotal')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lineItems.map((item: any) => {
-                  const sq = editingShipQty[item.id] ?? item.quantity_shipped ?? 0;
-                  const shippedTotal = (item.unit_price || 0) * sq;
-                  return (
-                    <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="table-cell text-xs text-gray-400">{item.line_number}</td>
-                      <td className="table-cell text-sm text-gray-900">{item.product_grade_snapshot || '—'}</td>
-                      <td className="table-cell text-right tabular-nums text-sm">{item.quantity_ordered}</td>
-                      <td className="table-cell text-right">
+            <div className="space-y-2 p-3 md:hidden">
+              {lineItems.map((item: any) => {
+                const sq = editingShipQty[item.id] ?? item.quantity_shipped ?? 0;
+                const shippedTotal = (item.unit_price || 0) * sq;
+                return (
+                  <div key={item.id} className="rounded-md border border-gray-200 bg-white p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-2xs font-medium uppercase tracking-wide text-gray-400">#{item.line_number}</p>
+                        <p className="mt-1 truncate text-sm font-medium text-gray-900">{item.product_grade_snapshot || '—'}</p>
+                      </div>
+                      <p className="shrink-0 text-sm font-semibold tabular-nums text-gray-900">{formatCurrency(item.line_total || 0, order.currency)}</p>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-gray-100 pt-3">
+                      <div>
+                        <p className="section-label">{t('page.orderDetail.ordered')}</p>
+                        <p className="mt-1 text-sm tabular-nums text-gray-700">{item.quantity_ordered}</p>
+                      </div>
+                      <div>
+                        <label className="section-label" htmlFor={`order-line-mobile-${item.id}-shipped-quantity`}>
+                          {t('page.orderDetail.shipped')}
+                        </label>
                         <input
-                          className="input text-right tabular-nums text-sm w-20 h-7"
+                          id={`order-line-mobile-${item.id}-shipped-quantity`}
+                          className="input mt-1 h-8 w-full text-right tabular-nums text-sm"
                           type="number" min="0"
                           value={sq}
                           onChange={e => setEditingShipQty(prev => ({...prev, [item.id]: parseFloat(e.target.value) || 0}))}
                         />
-                      </td>
-                      <td className="table-cell">
+                      </div>
+                      <div>
+                        <label className="section-label" htmlFor={`order-line-mobile-${item.id}-unit`}>
+                          {t('page.orderDetail.unit')}
+                        </label>
                         <select
-                          className="input text-xs h-7 py-0 px-1.5"
+                          id={`order-line-mobile-${item.id}-unit`}
+                          className="input mt-1 h-8 w-full px-1.5 text-xs"
                           value={item.unit_of_measure || ''}
-                          onChange={async (e) => {
-                            const newUnit = e.target.value;
-                            try {
-                              const res = await fetch(`/api/orders/line-items/${item.id}`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ unit_of_measure: newUnit }),
-                              });
-                              if (!res.ok) throw new Error('Failed');
-                              toast.success(t('page.orderDetail.unitUpdated'));
-                              load();
-                            } catch {
-                              toast.error(t('page.orderDetail.unitUpdateFailed'));
-                            }
-                          }}
+                          onChange={e => updateLineItemUnit(item.id, e.target.value)}
                         >
                           <option value="kg">kg</option>
                           <option value="lb">lb</option>
@@ -357,18 +485,85 @@ export default function OrderDetail() {
                           <option value="sheet">sheet</option>
                           <option value="pc">pc</option>
                         </select>
-                      </td>
-                      <td className="table-cell text-right tabular-nums text-sm">{formatCurrency(item.unit_price || 0, order.currency)}</td>
-                      <td className="table-cell text-right tabular-nums text-sm font-medium">{formatCurrency(item.line_total || 0, order.currency)}</td>
-                      <td className="table-cell text-right tabular-nums text-sm font-medium text-blue-600">{formatCurrency(shippedTotal, order.currency)}</td>
-                    </tr>
-                  );
-                })}
-                {lineItems.length === 0 && (
-                  <tr><td colSpan={8} className="text-center py-8 text-xs text-gray-400">{t('noData.lineItemsFromSource')}</td></tr>
-                )}
-              </tbody>
-            </table>
+                      </div>
+                      <div>
+                        <p className="section-label">{t('page.orderDetail.price')}</p>
+                        <p className="mt-1 text-sm tabular-nums text-gray-700">{formatCurrency(item.unit_price || 0, order.currency)}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 text-xs">
+                      <span className="text-gray-500">{t('page.orderDetail.shippedTotal')}</span>
+                      <span className="font-medium tabular-nums text-blue-600">{formatCurrency(shippedTotal, order.currency)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {lineItems.length === 0 && <div className="empty-state">{t('noData.lineItemsFromSource')}</div>}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[920px]">
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="table-header">#</th>
+                    <th className="table-header">{t('page.orderDetail.product')}</th>
+                    <th className="table-header text-right">{t('page.orderDetail.ordered')}</th>
+                    <th className="table-header text-right">{t('page.orderDetail.shipped')}</th>
+                    <th className="table-header">{t('page.orderDetail.unit')}</th>
+                    <th className="table-header text-right">{t('page.orderDetail.price')}</th>
+                    <th className="table-header text-right">{t('page.orderDetail.lineTotal')}</th>
+                    <th className="table-header text-right">{t('page.orderDetail.shippedTotal')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lineItems.map((item: any) => {
+                    const sq = editingShipQty[item.id] ?? item.quantity_shipped ?? 0;
+                    const shippedTotal = (item.unit_price || 0) * sq;
+                    return (
+                      <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="table-cell text-xs text-gray-400">{item.line_number}</td>
+                        <td className="table-cell text-sm text-gray-900">{item.product_grade_snapshot || '—'}</td>
+                        <td className="table-cell text-right tabular-nums text-sm">{item.quantity_ordered}</td>
+                        <td className="table-cell text-right relative">
+                          <label className="sr-only" htmlFor={`order-line-${item.id}-shipped-quantity`}>
+                            {t('page.orderDetail.shipped')}
+                          </label>
+                          <input
+                            id={`order-line-${item.id}-shipped-quantity`}
+                            className="input text-right tabular-nums text-sm w-20 h-7"
+                            type="number" min="0"
+                            value={sq}
+                            onChange={e => setEditingShipQty(prev => ({...prev, [item.id]: parseFloat(e.target.value) || 0}))}
+                          />
+                        </td>
+                        <td className="table-cell relative">
+                          <label className="sr-only" htmlFor={`order-line-${item.id}-unit`}>
+                            {t('page.orderDetail.unit')}
+                          </label>
+                          <select
+                            id={`order-line-${item.id}-unit`}
+                            className="input text-xs h-7 py-0 px-1.5"
+                            value={item.unit_of_measure || ''}
+                            onChange={e => updateLineItemUnit(item.id, e.target.value)}
+                          >
+                            <option value="kg">kg</option>
+                            <option value="lb">lb</option>
+                            <option value="m">m</option>
+                            <option value="sheet">sheet</option>
+                            <option value="pc">pc</option>
+                          </select>
+                        </td>
+                        <td className="table-cell text-right tabular-nums text-sm">{formatCurrency(item.unit_price || 0, order.currency)}</td>
+                        <td className="table-cell text-right tabular-nums text-sm font-medium">{formatCurrency(item.line_total || 0, order.currency)}</td>
+                        <td className="table-cell text-right tabular-nums text-sm font-medium text-blue-600">{formatCurrency(shippedTotal, order.currency)}</td>
+                      </tr>
+                    );
+                  })}
+                  {lineItems.length === 0 && (
+                    <tr><td colSpan={8}><div className="empty-state">{t('noData.lineItemsFromSource')}</div></td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
             <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button onClick={async () => {
@@ -409,7 +604,7 @@ export default function OrderDetail() {
 
           <div className="card p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.orderDetail.shipment')} ({shipments.length})</h3>
+              <h3 className="section-label">{t('page.orderDetail.shipment')} ({shipments.length})</h3>
               <Link to="/shipments" className="text-xs text-blue-600 hover:underline font-medium">{t('common.edit')}</Link>
             </div>
             {shipments.length === 0 ? (
@@ -417,7 +612,7 @@ export default function OrderDetail() {
             ) : (
               <div className="space-y-3">
                 {shipments.map((s: any) => (
-                  <div key={s.id} className="border border-gray-100 rounded-lg p-3">
+                  <div key={s.id} className="rounded border border-gray-200 bg-white p-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-gray-900">{s.shipment_number}</span>
@@ -435,7 +630,7 @@ export default function OrderDetail() {
           {/* ── Invoices Summary ── */}
           <div className="card p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.payments.invoices')} ({invoices.length})</h3>
+              <h3 className="section-label">{t('page.payments.invoices')} ({invoices.length})</h3>
               <button onClick={() => navigate('/payments')} className="text-xs text-blue-600 hover:underline">{t('page.orderDetail.viewAll')}</button>
             </div>
             {invoices.length === 0 ? (

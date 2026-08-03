@@ -17,8 +17,8 @@ export function useMediaQuery(query: string): boolean {
 
 export function useBreakpoint() {
   const isWide = useMediaQuery('(min-width: 1200px)');
-  const isMedium = useMediaQuery('(min-width: 768px) and (max-width: 1199px)');
-  const isNarrow = useMediaQuery('(max-width: 767px)');
+  const isMedium = useMediaQuery('(min-width: 960px) and (max-width: 1199px)');
+  const isNarrow = useMediaQuery('(max-width: 959px)');
 
   return { isWide, isMedium, isNarrow };
 }

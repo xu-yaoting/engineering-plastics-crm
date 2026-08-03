@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { tasks as tasksApi } from '../../lib/api';
+import { useEffect, useState } from 'react';
+import { tasks as tasksApi, team, type TeamMember } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import Icon from './Icon';
 
 interface Task {
   id: string;
@@ -11,6 +12,8 @@ interface Task {
   due_date?: string;
   entity_type?: string;
   entity_id?: string;
+  assigned_to_user_id?: string;
+  assignee_name?: string;
 }
 
 export default function TaskSection({
@@ -31,6 +34,12 @@ export default function TaskSection({
   const [newTask, setNewTask] = useState('');
   const [showInput, setShowInput] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [assigneeId, setAssigneeId] = useState('');
+
+  useEffect(() => {
+    team.list().then(setMembers).catch(() => setMembers([]));
+  }, []);
 
   // Sync when prop changes
   if (initialTasks !== list) {
@@ -48,8 +57,10 @@ export default function TaskSection({
         status: 'pending',
         entity_type: entityType || null,
         entity_id: entityId || null,
+        assigned_to_user_id: assigneeId || undefined,
       });
       setNewTask('');
+      setAssigneeId('');
       setShowInput(false);
       onTaskChanged?.();
     } catch (e) {
@@ -80,9 +91,9 @@ export default function TaskSection({
 
   const priorityDot = (task: Task) => {
     if (task.status === 'completed') return null;
-    if (isOverdue(task.due_date)) return <span className="text-red-500 text-xs mt-0.5 flex-shrink-0" title={t('page.tasks.overdue')}></span>;
-    if (isDueSoon(task.due_date)) return <span className="text-yellow-500 text-xs mt-0.5 flex-shrink-0" title={t('page.tasks.dueSoon')}>●</span>;
-    return <span className="text-gray-300 text-xs mt-0.5 flex-shrink-0"></span>;
+    if (isOverdue(task.due_date)) return <span className="mt-1.5 size-1.5 flex-shrink-0 rounded-full bg-red-500" title={t('page.tasks.overdue')} />;
+    if (isDueSoon(task.due_date)) return <span className="mt-1.5 size-1.5 flex-shrink-0 rounded-full bg-yellow-500" title={t('page.tasks.dueSoon')} />;
+    return <span className="mt-1.5 size-1.5 flex-shrink-0 rounded-full bg-gray-300" />;
   };
 
   const openTasks = list.filter(t => t.status !== 'completed');
@@ -94,24 +105,27 @@ export default function TaskSection({
           <div key={task.id} className="flex items-start gap-2 p-1.5 rounded-lg hover:bg-gray-50 group">
             <button
               onClick={() => toggleTask(task)}
-              className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
+              aria-label={`${task.status === 'completed' ? t('page.tasks.completed') : t('page.tasks.open')}: ${task.subject}`}
+              className={`size-4 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
                 task.status === 'completed' ? 'bg-blue-600 border-blue-600' : 'border-gray-300 hover:border-blue-600'
               }`}
             >
-              {task.status === 'completed' && <span className="text-white text-[10px]">✓</span>}
+              {task.status === 'completed' && <Icon name="check" size={11} className="text-white" />}
             </button>
             {priorityDot(task)}
             <div className="flex-1 min-w-0">
-              <p className={`${compact ? 'text-xs' : 'text-sm'} ${
+              <p className={`min-w-0 break-words ${compact ? 'text-xs' : 'text-sm'} ${
                 task.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-700'
               }`}>
                 {task.subject}
               </p>
-              {task.due_date && (
-                <p className={`text-2xs mt-0.5 ${
+              {(task.due_date || task.assignee_name) && (
+                <p className={`break-words text-2xs mt-0.5 ${
                   isOverdue(task.due_date) && task.status !== 'completed' ? 'text-red-500 font-medium' : 'text-gray-400'
                 }`}>
-                  {isOverdue(task.due_date) && task.status !== 'completed' ? `${t('page.tasks.overdue')}: ${task.due_date}` : `${t('page.tasks.due')}: ${task.due_date}`}
+                  {task.due_date && (isOverdue(task.due_date) && task.status !== 'completed' ? `${t('page.tasks.overdue')}: ${task.due_date}` : `${t('page.tasks.due')}: ${task.due_date}`)}
+                  {task.due_date && task.assignee_name && ' · '}
+                  {task.assignee_name && `${t('accountability.owner')}: ${task.assignee_name}`}
                 </p>
               )}
             </div>
@@ -124,21 +138,31 @@ export default function TaskSection({
 
       {/* Quick add */}
       {showInput ? (
-        <div className="flex gap-2 mt-3">
-          <input
-            className="input flex-1 text-sm"
-            value={newTask}
-            onChange={e => setNewTask(e.target.value)}
-            placeholder={t('page.tasks.addTaskPlaceholder')}
-            autoFocus
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTask(); } }}
-          />
-          <button onClick={addTask} disabled={!newTask.trim() || saving} className="btn-primary btn-sm">{t('page.tasks.add')}</button>
-          <button onClick={() => setShowInput(false)} className="btn-ghost btn-sm text-xs">✕</button>
+          <div className="mt-3 space-y-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <label className="sr-only" htmlFor="task-section-subject">{t('page.tasks.addTaskPlaceholder')}</label>
+              <input
+                id="task-section-subject"
+                className="input w-full flex-1 text-sm"
+              value={newTask}
+              onChange={e => setNewTask(e.target.value)}
+              placeholder={t('page.tasks.addTaskPlaceholder')}
+              autoFocus
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTask(); } }}
+            />
+              <div className="flex gap-2 sm:shrink-0">
+                <button onClick={addTask} disabled={!newTask.trim() || saving} className="btn-primary btn-sm flex-1 sm:flex-none">{t('page.tasks.add')}</button>
+                <button onClick={() => setShowInput(false)} className="icon-btn shrink-0" aria-label={t('common.close')} title={t('common.close')}><Icon name="close" size={14} /></button>
+              </div>
+          </div>
+          <select className="input w-full text-xs" value={assigneeId} onChange={e => setAssigneeId(e.target.value)} aria-label={t('accountability.owner')}>
+            <option value="">{t('accountability.defaultToMe')}</option>
+            {members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
+          </select>
         </div>
       ) : (
         <button onClick={() => setShowInput(true)} className="text-xs text-blue-600 hover:text-blue-700 mt-2 inline-flex items-center gap-1">
-          {t('page.tasks.addTask')}
+          <Icon name="plus" size={13} />{t('page.tasks.addTask')}
         </button>
       )}
     </div>

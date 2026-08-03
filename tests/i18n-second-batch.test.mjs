@@ -105,6 +105,8 @@ test('second localization batch has dictionary entries for inquiry and quotation
     'totalLowToHigh',
     'pendingApproval',
     'approved',
+    'companyRequired',
+    'descriptionRequired',
   ];
 
   for (const key of requiredKeys) {
@@ -124,12 +126,55 @@ test('inquiry edit save checks backend errors before closing the modal', () => {
   assert.match(inquiryDetailSource, /disabled=\{savingEdit\}/);
 });
 
+test('inquiry edit fields have persistent labels and accessible description validation', () => {
+  const inquiryDetailSource = readFileSync(new URL('../src/pages/InquiryDetail.tsx', import.meta.url), 'utf8');
+
+  for (const fieldId of [
+    'inquiry-edit-owner',
+    'inquiry-edit-description',
+    'inquiry-edit-material',
+    'inquiry-edit-quantity',
+    'inquiry-edit-urgency',
+    'inquiry-edit-source',
+  ]) {
+    assert.match(inquiryDetailSource, new RegExp(`htmlFor="${fieldId}"`));
+    assert.match(inquiryDetailSource, new RegExp(`id="${fieldId}"`));
+  }
+  assert.match(inquiryDetailSource, /aria-invalid=\{!!editDescriptionError\}/);
+  assert.match(inquiryDetailSource, /aria-describedby=\{editDescriptionError \? 'inquiry-edit-description-error' : undefined\}/);
+  assert.match(inquiryDetailSource, /id="inquiry-edit-description-error"[\s\S]*role="alert"/);
+  assert.match(inquiryDetailSource, /descriptionInputRef\.current\?\.focus\(\)/);
+});
+
 test('new inquiry create surfaces backend errors and locks cancel while saving', () => {
   const inquiryNewSource = readFileSync(new URL('../src/pages/InquiryNew.tsx', import.meta.url), 'utf8');
 
   assert.match(inquiryNewSource, /toast\.error\(e instanceof Error \? e\.message : t\('page\.inquiries\.inquiryCreateFailed'\)\)/);
-  assert.match(inquiryNewSource, /disabled=\{saving \|\| !form\.company_id \|\| !form\.application_description\}/);
+  assert.match(inquiryNewSource, /disabled=\{saving\}/);
   assert.match(inquiryNewSource, /<button onClick=\{\(\) => navigate\(-1\)\} disabled=\{saving\} className="btn-secondary">/);
+});
+
+test('new inquiry fields have persistent labels and accessible required-field errors', () => {
+  const inquiryNewSource = readFileSync(new URL('../src/pages/InquiryNew.tsx', import.meta.url), 'utf8');
+
+  for (const fieldId of [
+    'inquiry-company',
+    'inquiry-contact',
+    'inquiry-source',
+    'inquiry-urgency',
+    'inquiry-description',
+    'inquiry-material',
+    'inquiry-quantity',
+  ]) {
+    assert.match(inquiryNewSource, new RegExp(`htmlFor="${fieldId}"`));
+    assert.match(inquiryNewSource, new RegExp(`id="${fieldId}"`));
+  }
+  assert.match(inquiryNewSource, /aria-invalid=\{!!errors\.company_id\}/);
+  assert.match(inquiryNewSource, /aria-describedby=\{errors\.company_id \? 'inquiry-company-error' : undefined\}/);
+  assert.match(inquiryNewSource, /aria-invalid=\{!!errors\.application_description\}/);
+  assert.match(inquiryNewSource, /aria-describedby=\{errors\.application_description \? 'inquiry-description-error' : undefined\}/);
+  assert.match(inquiryNewSource, /id="inquiry-company-error"[\s\S]*role="alert"/);
+  assert.match(inquiryNewSource, /id="inquiry-description-error"[\s\S]*role="alert"/);
 });
 
 test('quotations list defaults to quotation date sorting and exposes sort options', () => {

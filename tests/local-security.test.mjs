@@ -28,6 +28,37 @@ test('authentication requires a hashed PIN instead of passwordless name registra
   assert.doesNotMatch(authRouteSource, /return existing user/);
 });
 
+test('initial setup only trusts the direct loopback socket address', () => {
+  assert.match(authRouteSource, /function isDirectLoopbackAddress/);
+  assert.match(authRouteSource, /req\.socket\.remoteAddress/);
+  assert.match(authRouteSource, /127\.0\.0\.1/);
+  assert.match(authRouteSource, /::ffff:127\.0\.0\.1/);
+  assert.match(authRouteSource, /::1/);
+  assert.match(authRouteSource, /res\.status\(403\)\.json/);
+  assert.doesNotMatch(authRouteSource, /x-forwarded-for/i);
+
+  const setupStart = authRouteSource.indexOf("router.post('/setup'");
+  const setupEnd = authRouteSource.indexOf("router.post('/login'");
+  const setupRoute = authRouteSource.slice(setupStart, setupEnd);
+  assert.ok(setupRoute.indexOf('isDirectLoopbackAddress') < setupRoute.indexOf('hashPin('));
+});
+
+test('login rate limiting blocks before PIN hashing and clears after success', () => {
+  assert.match(authRouteSource, /const LOGIN_FAILURE_LIMIT = 5/);
+  assert.match(authRouteSource, /const RATE_LIMIT_WINDOW_MS = 15 \* 60 \* 1000/);
+  assert.match(authRouteSource, /name\.trim\(\)\.toLocaleLowerCase\(\)/);
+  assert.match(authRouteSource, /res\.status\(429\)\.json/);
+  assert.match(authRouteSource, /const usernameKey = normalizedName/);
+  assert.match(authRouteSource, /loginUsernameFailures\.delete\(usernameKey\)/);
+  assert.match(authRouteSource, /loginIpFailures\.delete\(clientIp\)/);
+  assert.doesNotMatch(authRouteSource, /`\$\{clientIp\}:\$\{normalizedName\}`/);
+
+  const loginStart = authRouteSource.indexOf("router.post('/login'");
+  const loginEnd = authRouteSource.indexOf("router.post('/register'");
+  const loginRoute = authRouteSource.slice(loginStart, loginEnd);
+  assert.ok(loginRoute.indexOf('isRateLimited') < loginRoute.indexOf('pinMatches('));
+});
+
 test('only administrators can list and create colleague accounts', () => {
   assert.match(authRouteSource, /function requireAdmin/);
   assert.match(authRouteSource, /res\.status\(403\)\.json/);

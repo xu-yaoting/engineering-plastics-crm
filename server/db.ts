@@ -2,9 +2,10 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
+import { ensureMaterialsToolingSchema } from './materials-tooling/schema.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, '..', 'crm.db');
+const dbPath = process.env.CRM_DB_PATH || path.join(__dirname, '..', 'crm.db');
 
 const db = new Database(dbPath);
 
@@ -35,6 +36,8 @@ db.exec(`
     lead_source TEXT,
     first_contact_date TEXT,
     last_activity_at TEXT,
+    development_stage TEXT NOT NULL DEFAULT 'uncontacted'
+      CHECK (development_stage IN ('uncontacted', 'contacted', 'replied', 'qualified', 'converted', 'nurturing', 'stopped')),
     tags TEXT DEFAULT '[]',
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -54,6 +57,7 @@ db.exec(`
     email TEXT NOT NULL,
     phone_direct TEXT,
     phone_mobile TEXT,
+    wechat_id TEXT,
     is_primary_contact INTEGER DEFAULT 0,
     is_decision_maker INTEGER DEFAULT 0,
     communication_language TEXT DEFAULT 'en',
@@ -75,6 +79,7 @@ db.exec(`
     subject TEXT NOT NULL,
     description TEXT,
     direction TEXT,
+    outcome TEXT CHECK (outcome IS NULL OR outcome IN ('no_response', 'replied', 'interested', 'no_current_need', 'not_interested')),
     channel TEXT,
     duration_minutes INTEGER,
     linked_entity_type TEXT,
@@ -100,6 +105,7 @@ db.exec(`
     recurring_rule TEXT,
     entity_type TEXT,
     entity_id TEXT,
+    contact_id TEXT REFERENCES contacts(id),
     reminder_at TEXT,
     reminder_sent INTEGER DEFAULT 0,
     tags TEXT DEFAULT '[]',
@@ -496,5 +502,147 @@ db.exec(`
 db.prepare(`INSERT OR IGNORE INTO system_config (key, value, description, updated_at)
   VALUES ('company_prefix', 'JEK', 'Company prefix for order numbers (JEK-SMP-2606-01)', datetime('now'))
 `).run();
+
+// ── 6. Users (multi-user support) ──
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    pin_hash TEXT,
+    pin_salt TEXT,
+    role TEXT NOT NULL DEFAULT 'member',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    last_seen_at TEXT
+  )
+`);
+migrate("ALTER TABLE users ADD COLUMN pin_hash TEXT");
+migrate("ALTER TABLE users ADD COLUMN pin_salt TEXT");
+migrate("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'member'");
+migrate("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_name_nocase ON users(name COLLATE NOCASE)");
+
+// ── 7. Audit log (full change history) ──
+db.exec(`
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id TEXT PRIMARY KEY,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    user_id TEXT,
+    user_name TEXT NOT NULL,
+    action TEXT NOT NULL,
+    changes TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+db.exec("CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)");
+db.exec("CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id)");
+
+ensureMaterialsToolingSchema(db);
+
+// ── 8. Team ownership and automatic actor metadata ──
+// Additive migrations preserve all existing local data. Historical rows remain unassigned.
+for (const table of ['companies', 'inquiries', 'quotations', 'sample_requests', 'orders']) {
+  migrate(`ALTER TABLE ${table} ADD COLUMN owner_user_id TEXT`);
+}
+
+for (const table of [
+  'companies', 'contacts', 'activities', 'tasks', 'inquiries', 'quotations',
+  'sample_requests', 'orders', 'shipments', 'invoices', 'payment_records',
+  'products', 'inventory_transactions',
+]) {
+  migrate(`ALTER TABLE ${table} ADD COLUMN created_by TEXT`);
+}
+
+for (const table of [
+  'companies', 'contacts', 'activities', 'tasks', 'inquiries', 'quotations',
+  'sample_requests', 'orders', 'shipments', 'invoices', 'products',
+]) {
+  migrate(`ALTER TABLE ${table} ADD COLUMN updated_by TEXT`);
+}
+
+migrate("ALTER TABLE tasks ADD COLUMN assigned_to_user_id TEXT");
+migrate("ALTER TABLE contacts ADD COLUMN wechat_id TEXT");
+migrate("CREATE INDEX IF NOT EXISTS idx_companies_owner_user ON companies(owner_user_id)");
+migrate("CREATE INDEX IF NOT EXISTS idx_inquiries_owner_user ON inquiries(owner_user_id)");
+migrate("CREATE INDEX IF NOT EXISTS idx_quotations_owner_user ON quotations(owner_user_id)");
+migrate("CREATE INDEX IF NOT EXISTS idx_orders_owner_user ON orders(owner_user_id)");
+migrate("CREATE INDEX IF NOT EXISTS idx_tasks_assigned_user ON tasks(assigned_to_user_id)");
+
+// ── 9. Customer development and follow-up ──
+const companyColumnsBeforeDevelopmentMigration = db.prepare("PRAGMA table_info(companies)").all() as { name: string }[];
+const needsDevelopmentStageInitialization = !companyColumnsBeforeDevelopmentMigration.some(
+  (column) => column.name === 'development_stage',
+);
+
+migrate(`
+  ALTER TABLE companies ADD COLUMN development_stage TEXT NOT NULL DEFAULT 'uncontacted'
+    CHECK (development_stage IN ('uncontacted', 'contacted', 'replied', 'qualified', 'converted', 'nurturing', 'stopped'))
+`);
+migrate(`
+  ALTER TABLE activities ADD COLUMN outcome TEXT
+    CHECK (outcome IS NULL OR outcome IN ('no_response', 'replied', 'interested', 'no_current_need', 'not_interested'))
+`);
+migrate("ALTER TABLE tasks ADD COLUMN contact_id TEXT REFERENCES contacts(id)");
+
+if (needsDevelopmentStageInitialization) {
+  db.exec(`
+    UPDATE companies
+    SET development_stage = CASE
+      WHEN EXISTS (
+        SELECT 1 FROM inquiries
+        WHERE inquiries.company_id = companies.id
+          AND inquiries.deleted_at IS NULL
+      ) OR EXISTS (
+        SELECT 1 FROM orders
+        WHERE orders.company_id = companies.id
+          AND orders.deleted_at IS NULL
+      ) THEN 'converted'
+      WHEN EXISTS (
+        SELECT 1 FROM activities
+        WHERE activities.entity_type = 'company'
+          AND activities.entity_id = companies.id
+          AND activities.activity_type IN ('email', 'call', 'meeting')
+          AND activities.direction = 'inbound'
+          AND activities.deleted_at IS NULL
+      ) THEN 'replied'
+      WHEN EXISTS (
+        SELECT 1 FROM activities
+        WHERE activities.entity_type = 'company'
+          AND activities.entity_id = companies.id
+          AND activities.activity_type IN ('email', 'call', 'meeting')
+          AND activities.direction = 'outbound'
+          AND activities.deleted_at IS NULL
+      ) THEN 'contacted'
+      ELSE 'uncontacted'
+    END
+    WHERE companies.deleted_at IS NULL
+  `);
+}
+
+migrate(`
+  CREATE INDEX IF NOT EXISTS idx_companies_development_stage
+  ON companies(development_stage)
+  WHERE deleted_at IS NULL
+`);
+migrate(`
+  CREATE INDEX IF NOT EXISTS idx_tasks_follow_up_due
+  ON tasks(due_date, assigned_to_user_id, entity_id)
+  WHERE task_type = 'follow_up'
+    AND status IN ('pending', 'in_progress')
+    AND deleted_at IS NULL
+`);
+migrate(`
+  CREATE INDEX IF NOT EXISTS idx_tasks_contact_id
+  ON tasks(contact_id)
+  WHERE contact_id IS NOT NULL
+`);
+migrate(`
+  CREATE INDEX IF NOT EXISTS idx_activities_company_outcome
+  ON activities(entity_id, created_at)
+  WHERE entity_type = 'company'
+    AND outcome IS NOT NULL
+    AND deleted_at IS NULL
+`);
 
 export default db;

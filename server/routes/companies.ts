@@ -4,6 +4,7 @@ import multer from 'multer';
 import XLSX from 'xlsx';
 import db from '../db.js';
 import { validate } from '../validate.js';
+import { computeChanges, writeAudit } from '../audit.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -34,25 +35,36 @@ const COMPANY_UPDATE_FIELDS = [
   'tags',
   'notes',
   'customer_code',
+  'owner_user_id',
 ] as const;
 
 router.get('/', (req: Request, res: Response) => {
   const q = req.query.q as string | undefined;
-  let sql = "SELECT * FROM companies WHERE deleted_at IS NULL";
+  let sql = `SELECT c.*, owner.name AS owner_name, creator.name AS created_by_name, updater.name AS updated_by_name
+    FROM companies c
+    LEFT JOIN users owner ON owner.id = c.owner_user_id
+    LEFT JOIN users creator ON creator.id = c.created_by
+    LEFT JOIN users updater ON updater.id = c.updated_by
+    WHERE c.deleted_at IS NULL`;
   const params: string[] = [];
   if (q) {
-    sql += " AND (name LIKE ? OR email LIKE ? OR phone LIKE ? OR city LIKE ? OR country LIKE ?)";
+    sql += " AND (c.name LIKE ? OR c.email LIKE ? OR c.phone LIKE ? OR c.city LIKE ? OR c.country LIKE ?)";
     const like = `%${q}%`;
     params.push(like, like, like, like, like);
   }
-  sql += " ORDER BY updated_at DESC";
+  sql += " ORDER BY c.updated_at DESC";
   const companies = db.prepare(sql).all(...params);
   res.json(companies);
 });
 
 router.get('/:id', (req: Request, res: Response) => {
   const company = db.prepare(
-    "SELECT * FROM companies WHERE id = ? AND deleted_at IS NULL"
+    `SELECT c.*, owner.name AS owner_name, creator.name AS created_by_name, updater.name AS updated_by_name
+     FROM companies c
+     LEFT JOIN users owner ON owner.id = c.owner_user_id
+     LEFT JOIN users creator ON creator.id = c.created_by
+     LEFT JOIN users updater ON updater.id = c.updated_by
+     WHERE c.id = ? AND c.deleted_at IS NULL`
   ).get(req.params.id);
   if (!company) return res.status(404).json({ error: 'Not found' });
   res.json(company);
@@ -78,18 +90,25 @@ router.post('/', (req: Request, res: Response) => {
     classification, lead_source, first_contact_date, notes
   } = req.body;
 
-  db.prepare(`
+  const createCompany = db.transaction(() => {
+    db.prepare(`
     INSERT INTO companies (id, name, company_type, industry, registration_number,
       website, phone, email, address_line_1, address_line_2, city, state_province,
       country, postal_code, region, credit_term, credit_limit, status,
-      classification, lead_source, first_contact_date, notes, customer_code, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      classification, lead_source, first_contact_date, notes, customer_code, owner_user_id,
+      created_by, updated_by, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, name, company_type || 'end_user', industry, registration_number,
     website, phone, email, address_line_1, address_line_2, city, state_province,
     country || 'US', postal_code, region, credit_term, credit_limit, status || 'active',
-    classification || 'C', lead_source, first_contact_date || now, notes, code || null, now, now
-  );
+      classification || 'C', lead_source, first_contact_date || now, notes, code || null,
+      req.user!.id, req.user!.id, req.user!.id, now, now
+    );
+    const created = db.prepare("SELECT * FROM companies WHERE id = ?").get(id) as Record<string, unknown>;
+    writeAudit(req, 'company', id, 'create', computeChanges(null, created));
+  });
+  createCompany();
 
   const company = db.prepare("SELECT * FROM companies WHERE id = ?").get(id);
   res.status(201).json(company);
@@ -109,6 +128,23 @@ router.put('/:id', (req: Request, res: Response) => {
     req.body.customer_code = clean || null;
   }
 
+  const before = db.prepare("SELECT * FROM companies WHERE id = ? AND deleted_at IS NULL").get(req.params.id) as Record<string, unknown> | undefined;
+  if (!before) return res.status(404).json({ success: false, message: 'Record not found' });
+
+  if (Object.prototype.hasOwnProperty.call(req.body, 'owner_user_id')) {
+    const requestedOwnerId = req.body.owner_user_id || null;
+    req.body.owner_user_id = requestedOwnerId;
+
+    if (requestedOwnerId !== (before.owner_user_id || null) && req.user!.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Only administrators can transfer company ownership' });
+    }
+
+    if (requestedOwnerId && req.user!.role === 'admin') {
+      const owner = db.prepare('SELECT id FROM users WHERE id = ? AND is_active = 1').get(requestedOwnerId);
+      if (!owner) return res.status(400).json({ success: false, message: 'Invalid or inactive owner' });
+    }
+  }
+
   const updateFields = COMPANY_UPDATE_FIELDS.filter((field) =>
     Object.prototype.hasOwnProperty.call(req.body, field)
   );
@@ -120,17 +156,25 @@ router.put('/:id', (req: Request, res: Response) => {
   const fields = updateFields.map((field) => `${field} = ?`).join(', ');
   const values = updateFields.map((field) => req.body[field]);
 
-  const result = db.prepare(`UPDATE companies SET ${fields}, updated_at = ? WHERE id = ? AND deleted_at IS NULL`)
-    .run(...values, now, req.params.id);
-  if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });
+  db.transaction(() => {
+    db.prepare(`UPDATE companies SET ${fields}, updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL`)
+      .run(...values, req.user!.id, now, req.params.id);
+    const after = db.prepare("SELECT * FROM companies WHERE id = ?").get(req.params.id) as Record<string, unknown>;
+    writeAudit(req, 'company', req.params.id, 'update', computeChanges(before, after));
+  })();
 
   const company = db.prepare("SELECT * FROM companies WHERE id = ?").get(req.params.id);
   res.json(company);
 });
 
 router.delete('/:id', (req: Request, res: Response) => {
-  db.prepare("UPDATE companies SET deleted_at = ? WHERE id = ?")
-    .run(new Date().toISOString(), req.params.id);
+  const before = db.prepare("SELECT * FROM companies WHERE id = ? AND deleted_at IS NULL").get(req.params.id) as Record<string, unknown> | undefined;
+  if (!before) return res.status(404).json({ error: 'Not found' });
+  db.transaction(() => {
+    db.prepare("UPDATE companies SET deleted_at = ?, updated_by = ? WHERE id = ?")
+      .run(new Date().toISOString(), req.user!.id, req.params.id);
+    writeAudit(req, 'company', req.params.id, 'delete', { name: before.name });
+  })();
   res.status(204).send();
 });
 
@@ -180,12 +224,14 @@ router.post('/import', upload.single('file'), (req: Request, res: Response) => {
       }
 
       const id = uuidv4();
-      db.prepare(`
+      db.transaction(() => {
+        db.prepare(`
         INSERT INTO companies (id, name, company_type, industry, registration_number,
           website, phone, email, address_line_1, address_line_2, city, state_province,
           country, postal_code, region, credit_term, credit_limit, status,
-          classification, lead_source, first_contact_date, notes, customer_code, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          classification, lead_source, first_contact_date, notes, customer_code, owner_user_id,
+          created_by, updated_by, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         id, name,
         (row.Type || row.company_type || 'end_user').toString().replace(' ', '_').toLowerCase(),
@@ -203,8 +249,11 @@ router.post('/import', upload.single('file'), (req: Request, res: Response) => {
         null, null, null,
         (row.Status || row.status || 'active').toString().toLowerCase(),
         (row.Classification || row.classification || 'C').toString().toUpperCase(),
-        null, null, null, customerCode, now, now
-      );
+          null, null, null, customerCode, req.user!.id, req.user!.id, req.user!.id, now, now
+        );
+        const createdCompany = db.prepare("SELECT * FROM companies WHERE id = ?").get(id) as Record<string, unknown>;
+        writeAudit(req, 'company', id, 'import', computeChanges(null, createdCompany));
+      })();
       created++;
       results.push({ name, action: 'created' });
     }

@@ -77,21 +77,21 @@ export default function CustomerSummary({
   return (
     <div className="space-y-3">
       {/* Briefing Card */}
-      <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl border border-blue-100 p-4">
-        <h3 className="text-2xs font-450 text-blue-600 uppercase tracking-[0.08em] mb-3">
+      <div className="data-surface p-4">
+        <h3 className="section-label mb-3">
           {t('page.customerSummary.customerBriefing')}
         </h3>
 
         {/* Key metrics grid */}
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <Metric label={t('page.customerSummary.ytdRevenue')} value={formatCurrency(summary.totalRevenue, summary.revenueCurrency)} color="text-green-600" />
+          <Metric label={t('page.customerSummary.ytdRevenue')} value={formatCurrency(summary.totalRevenue, summary.revenueCurrency)} />
           <Metric
             label={t('page.customerSummary.lastActivity')}
             value={summary.daysSinceLastActivity !== null ? t('page.customerSummary.daysAgo', { count: summary.daysSinceLastActivity }) : t('page.customerSummary.never')}
-            color={summary.daysSinceLastActivity !== null && summary.daysSinceLastActivity > 30 ? 'text-red-600' : 'text-gray-700'}
+            color={summary.daysSinceLastActivity !== null && summary.daysSinceLastActivity > 30 ? 'text-red-700' : 'text-gray-700'}
           />
-          <Metric label={t('page.customerSummary.openOpportunities')} value={(summary.openInquiries.length + summary.openQuotes.length).toString()} color="text-blue-600" />
-          <Metric label={t('page.customerSummary.activeOrders')} value={summary.openOrders.length.toString()} color="text-yellow-600" />
+          <Metric label={t('page.customerSummary.openOpportunities')} value={(summary.openInquiries.length + summary.openQuotes.length).toString()} />
+          <Metric label={t('page.customerSummary.activeOrders')} value={summary.openOrders.length.toString()} />
         </div>
 
         {/* Product focus */}
@@ -104,7 +104,7 @@ export default function CustomerSummary({
 
         {/* Overdue warning */}
         {summary.overdueTasks.length > 0 && (
-          <div className="bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3">
+          <div className="status-edge-danger mb-3 rounded px-3 py-2">
             <span className="text-xs font-medium text-red-700">
               {t('page.customerSummary.overdueTask', { count: summary.overdueTasks.length })}
             </span>
@@ -113,7 +113,7 @@ export default function CustomerSummary({
 
         {/* Dormant warning */}
         {summary.daysSinceLastActivity !== null && summary.daysSinceLastActivity > 30 && (
-          <div className="bg-yellow-50 border border-yellow-100 rounded-lg px-3 py-2 mb-3">
+          <div className="status-edge-warning mb-3 rounded px-3 py-2">
             <span className="text-xs font-medium text-yellow-700">
               {t('page.customerSummary.noActivityFor', { count: summary.daysSinceLastActivity })}
             </span>
@@ -123,7 +123,7 @@ export default function CustomerSummary({
         {/* Next Best Action */}
         <Link
           to={summary.nextActionLink}
-          className="block bg-blue-600 text-white rounded-lg px-3 py-2 text-xs font-medium text-center hover:bg-blue-700 transition-colors"
+          className="btn-primary btn-sm flex w-full"
         >
           {summary.nextAction}
         </Link>
@@ -131,8 +131,8 @@ export default function CustomerSummary({
 
       {/* Recent Activity Preview */}
       {summary.recentActivity.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-3">
-          <h4 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-2">{t('page.customerSummary.recentActivity')}</h4>
+        <div className="data-surface p-3">
+          <h4 className="section-label mb-2">{t('page.customerSummary.recentActivity')}</h4>
           <div className="space-y-1.5">
             {summary.recentActivity.map((a: any) => (
               <div key={a.id} className="text-xs text-gray-600 flex items-start gap-1.5">
@@ -150,8 +150,8 @@ export default function CustomerSummary({
       )}
 
       {/* Pipeline Summary */}
-      <div className="bg-white rounded-xl border border-gray-200 p-3">
-        <h4 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-2">{t('page.customerSummary.pipelineSummary')}</h4>
+      <div className="data-surface p-3">
+        <h4 className="section-label mb-2">{t('page.customerSummary.pipelineSummary')}</h4>
         <div className="space-y-1.5 text-xs">
           <div className="flex justify-between">
             <span className="text-gray-500">{t('page.customerSummary.openInquiries')}</span>
@@ -177,9 +177,9 @@ export default function CustomerSummary({
   );
 }
 
-function Metric({ label, value, color }: { label: string; value: string; color: string }) {
+function Metric({ label, value, color = 'text-gray-800' }: { label: string; value: string; color?: string }) {
   return (
-    <div className="bg-white/80 rounded-lg px-2.5 py-2">
+    <div className="border-t border-gray-100 px-1 py-2.5">
       <div className="text-2xs text-gray-400">{label}</div>
       <div className={`text-sm font-semibold ${color}`}>{value}</div>
     </div>

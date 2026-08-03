@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import Database from 'better-sqlite3';
 
 const PORT = 3101;
@@ -10,8 +10,17 @@ const smokeUserId = randomUUID();
 const smokeAuthToken = randomUUID();
 const smokeMemberId = randomUUID();
 const smokeMemberToken = randomUUID();
+let activeSmokeMemberToken = smokeMemberToken;
+const smokeMemberName = `Smoke Member ${runId}`;
+const smokeMemberPin = '135790';
+const smokeMemberPinSalt = randomBytes(16).toString('hex');
+const smokeMemberPinHash = scryptSync(smokeMemberPin, smokeMemberPinSalt, 64).toString('hex');
 const otherMemberId = randomUUID();
 const otherMemberToken = randomUUID();
+const otherMemberName = `Other Smoke Member ${runId}`;
+const otherMemberPin = '246802';
+const otherMemberPinSalt = randomBytes(16).toString('hex');
+const otherMemberPinHash = scryptSync(otherMemberPin, otherMemberPinSalt, 64).toString('hex');
 const created = {
   companyId: null,
   contactId: null,
@@ -179,6 +188,43 @@ async function cleanup() {
 }
 
 async function runSmoke() {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await expectRequestFailureAs('', '/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ name: `  ${smokeMemberName.toUpperCase()}  `, pin: '000000' }),
+    }, 401);
+  }
+  const successfulLogin = await requestAs('', '/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ name: smokeMemberName, pin: smokeMemberPin }),
+  });
+  assert.equal(successfulLogin.user.id, smokeMemberId);
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await expectRequestFailureAs('', '/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ name: smokeMemberName, pin: '000000' }),
+    }, 401);
+  }
+  const cleanupLogin = await requestAs('', '/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ name: smokeMemberName, pin: smokeMemberPin }),
+  });
+  assert.equal(cleanupLogin.user.id, smokeMemberId);
+  activeSmokeMemberToken = cleanupLogin.token;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await expectRequestFailureAs('', '/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ name: otherMemberName, pin: '000000' }),
+    }, 401);
+  }
+  const limitedLogin = await expectRequestFailureAs('', '/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ name: otherMemberName, pin: otherMemberPin }),
+  }, 429);
+  assert.match(limitedLogin.error, /too many/i);
+
   const company = await request('/companies', {
     method: 'POST',
     body: JSON.stringify({
@@ -354,7 +400,7 @@ async function runSmoke() {
   ownershipDb.prepare('UPDATE orders SET owner_user_id = ? WHERE id = ?').run(smokeMemberId, created.orderId);
   ownershipDb.close();
 
-  await expectRequestFailureAs(smokeMemberToken, '/payments', {
+  await expectRequestFailureAs(activeSmokeMemberToken, '/payments', {
     method: 'POST',
     body: JSON.stringify({
       order_id: created.orderId,
@@ -363,7 +409,7 @@ async function runSmoke() {
     }),
   }, 400);
 
-  const invoice = await requestAs(smokeMemberToken, '/payments', {
+  const invoice = await requestAs(activeSmokeMemberToken, '/payments', {
     method: 'POST',
     body: JSON.stringify({
       order_id: created.orderId,
@@ -382,7 +428,7 @@ async function runSmoke() {
     body: JSON.stringify({ due_date: '2026-09-01' }),
   }, 403);
 
-  const editedInvoice = await requestAs(smokeMemberToken, `/payments/${created.invoiceId}`, {
+  const editedInvoice = await requestAs(activeSmokeMemberToken, `/payments/${created.invoiceId}`, {
     method: 'PUT',
     body: JSON.stringify({
       total: 120,
@@ -400,7 +446,7 @@ async function runSmoke() {
     body: JSON.stringify({ amount: 1, payment_method: 'wire' }),
   }, 403);
 
-  await expectRequestFailureAs(smokeMemberToken, `/payments/${created.invoiceId}/pay`, {
+  await expectRequestFailureAs(activeSmokeMemberToken, `/payments/${created.invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({
       amount: -10,
@@ -409,7 +455,7 @@ async function runSmoke() {
     }),
   }, 400);
 
-  const partiallyPaidInvoice = await requestAs(smokeMemberToken, `/payments/${created.invoiceId}/pay`, {
+  const partiallyPaidInvoice = await requestAs(activeSmokeMemberToken, `/payments/${created.invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({
       amount: 40,
@@ -421,7 +467,7 @@ async function runSmoke() {
   assert.equal(partiallyPaidInvoice.amount_paid, 40);
   assert.equal(partiallyPaidInvoice.amount_due, 80);
 
-  await expectRequestFailureAs(smokeMemberToken, `/payments/${created.invoiceId}/pay`, {
+  await expectRequestFailureAs(activeSmokeMemberToken, `/payments/${created.invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({
       amount: 81,
@@ -430,7 +476,7 @@ async function runSmoke() {
     }),
   }, 400);
 
-  const paidInvoice = await requestAs(smokeMemberToken, `/payments/${created.invoiceId}/pay`, {
+  const paidInvoice = await requestAs(activeSmokeMemberToken, `/payments/${created.invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({
       amount: 80,
@@ -442,7 +488,7 @@ async function runSmoke() {
   assert.equal(paidInvoice.amount_paid, 120);
   assert.equal(paidInvoice.amount_due, 0);
 
-  await expectRequestFailureAs(smokeMemberToken, `/payments/${created.invoiceId}/pay`, {
+  await expectRequestFailureAs(activeSmokeMemberToken, `/payments/${created.invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({
       amount: 1,
@@ -578,10 +624,10 @@ async function runSmoke() {
 const authDb = new Database(new URL('../crm.db', import.meta.url).pathname);
 authDb.prepare("INSERT INTO users (id, name, token, role, is_active, created_at) VALUES (?, ?, ?, 'admin', 1, datetime('now'))")
   .run(smokeUserId, `Smoke Admin ${runId}`, smokeAuthToken);
-authDb.prepare("INSERT INTO users (id, name, token, role, is_active, created_at) VALUES (?, ?, ?, 'member', 1, datetime('now'))")
-  .run(smokeMemberId, `Smoke Member ${runId}`, smokeMemberToken);
-authDb.prepare("INSERT INTO users (id, name, token, role, is_active, created_at) VALUES (?, ?, ?, 'member', 1, datetime('now'))")
-  .run(otherMemberId, `Other Smoke Member ${runId}`, otherMemberToken);
+authDb.prepare("INSERT INTO users (id, name, token, pin_hash, pin_salt, role, is_active, created_at) VALUES (?, ?, ?, ?, ?, 'member', 1, datetime('now'))")
+  .run(smokeMemberId, smokeMemberName, smokeMemberToken, smokeMemberPinHash, smokeMemberPinSalt);
+authDb.prepare("INSERT INTO users (id, name, token, pin_hash, pin_salt, role, is_active, created_at) VALUES (?, ?, ?, ?, ?, 'member', 1, datetime('now'))")
+  .run(otherMemberId, otherMemberName, otherMemberToken, otherMemberPinHash, otherMemberPinSalt);
 authDb.close();
 
 const server = spawn(process.execPath, ['dist-server/index.js'], {

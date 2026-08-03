@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import SidePanel from '../shared/SidePanel';
-import { quotations } from '../../lib/api';
+import { quotations, team, type TeamMember } from '../../lib/api';
 import { formatCurrency } from '../../lib/currency';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import Icon from '../shared/Icon';
+import { useAuth } from '../../lib/auth';
 
 interface LineItem {
   id: string;
@@ -24,9 +26,10 @@ export default function QuotationEditPanel({
 }: {
   quotation: any;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (savedQuotation?: any) => void | Promise<void>;
 }) {
   const isNew = !quotation?.id;
+  const { user } = useAuth();
 
   const [form, setForm] = useState({
     currency: 'USD',
@@ -41,11 +44,20 @@ export default function QuotationEditPanel({
     shipping_handling: 0,
     discount_percent: 0,
     internal_notes: '',
+    owner_user_id: '',
   });
 
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [errors, setErrors] = useState<{ lineItems?: string }>({});
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      team.list().then(setMembers).catch(() => setMembers([]));
+    }
+  }, [user?.role]);
 
   useEffect(() => {
     if (!quotation) return;
@@ -62,6 +74,7 @@ export default function QuotationEditPanel({
       shipping_handling: quotation.shipping_handling || 0,
       discount_percent: quotation.discount_percent || 0,
       internal_notes: quotation.internal_notes || '',
+      owner_user_id: quotation.owner_user_id || '',
     });
     if (quotation.line_items) {
       setLineItems(quotation.line_items);
@@ -71,9 +84,10 @@ export default function QuotationEditPanel({
   const set = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
 
   const addLine = () => {
+    setErrors({});
     setLineItems(prev => [...prev, {
       id: uuidv4(),
-      product_grade_snapshot: '',
+      product_grade_snapshot: quotation.target_material_requested || '',
       unit_of_measure: 'kg',
       quantity: 1,
       unit_price: 0,
@@ -109,6 +123,11 @@ export default function QuotationEditPanel({
   const total = afterDiscount + taxAmount + (form.shipping_handling || 0);
 
   const save = async () => {
+    if (lineItems.length === 0) {
+      setErrors({ lineItems: t('page.quotationDetail.editPanel.noLineItems') });
+      return;
+    }
+    setErrors({});
     setSaving(true);
     try {
       const payload = {
@@ -131,19 +150,20 @@ export default function QuotationEditPanel({
         })),
       };
 
+      let savedQuotation;
       if (isNew) {
-        await quotations.create({
+        savedQuotation = await quotations.create({
           ...payload,
           company_id: quotation.company_id,
           contact_id: quotation.contact_id,
           inquiry_id: quotation.inquiry_id,
         });
       } else {
-        await quotations.update(quotation.id, payload);
+        savedQuotation = await quotations.update(quotation.id, payload);
       }
 
       toast.success(isNew ? t('page.quotationDetail.quotationCreated') : t('page.quotationDetail.quotationUpdated'));
-      onSaved();
+      await onSaved(savedQuotation);
       onClose();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('page.quotationDetail.quotationSaveFailed'));
@@ -157,17 +177,53 @@ export default function QuotationEditPanel({
       open={true}
       onClose={onClose}
       title={isNew ? t('page.quotationDetail.editPanel.newQuotation') : t('page.quotationDetail.editPanel.editQuotation')}
-      subtitle={quotation?.quotation_number}
-      width="w-[560px]"
+      subtitle={quotation?.quotation_number || quotation?.inquiry_number}
+      width="w-[min(560px,calc(100vw-1rem))]"
     >
       <div className="space-y-5 h-full flex flex-col">
         {/* Line Items — scrollable */}
         <div className="flex-1 overflow-y-auto space-y-5 -mx-5 px-5">
+          {isNew && (
+            <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2.5 text-xs text-gray-700">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-2xs text-gray-500">{t('page.inquiryDetail.customer')}</span>
+                <span className="min-w-0 truncate font-medium text-gray-900">{quotation.company_name || '—'}</span>
+              </div>
+              {quotation.contact_name && (
+                <div className="mt-1 flex items-baseline justify-between gap-3">
+                  <span className="text-2xs text-gray-500">{t('page.inquiryDetail.contact')}</span>
+                  <span className="min-w-0 truncate text-gray-700">{quotation.contact_name}</span>
+                </div>
+              )}
+              {(quotation.target_material_requested || quotation.quantity_estimate) && (
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 border-t border-blue-100 pt-2 text-2xs text-gray-600">
+                  {quotation.target_material_requested && (
+                    <span><span className="text-gray-400">{t('page.inquiryDetail.targetMaterial')}:</span> {quotation.target_material_requested}</span>
+                  )}
+                  {quotation.quantity_estimate && (
+                    <span><span className="text-gray-400">{t('page.inquiryDetail.quantity')}:</span> {quotation.quantity_estimate}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          {user?.role === 'admin' && (
+            <div>
+              <label className="label" htmlFor="quotation-edit-owner">{t('accountability.owner')}</label>
+              <select id="quotation-edit-owner" className="input" value={form.owner_user_id} onChange={e => set('owner_user_id', e.target.value)}>
+                <option value="">{t('accountability.unassigned')}</option>
+                {members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
+              </select>
+            </div>
+          )}
           {/* Line Items Section */}
-          <div>
+          <div
+            id="quotation-line-items"
+            aria-describedby={errors.lineItems ? 'quotation-line-items-error' : undefined}
+          >
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.quotationDetail.editPanel.lineItems')}</h4>
-              <button onClick={addLine} className="btn-ghost btn-sm text-xs">{t('page.quotationDetail.editPanel.add')}</button>
+              <h4 className="section-label">{t('page.quotationDetail.editPanel.lineItems')}</h4>
+              <button type="button" onClick={addLine} className="btn-ghost btn-sm text-xs">{t('page.quotationDetail.editPanel.add')}</button>
             </div>
 
             <div className="space-y-2">
@@ -176,19 +232,19 @@ export default function QuotationEditPanel({
                   <div className="flex items-center justify-between">
                     <span className="text-2xs text-gray-400">#{idx + 1}</span>
                     {lineItems.length > 1 && (
-                      <button onClick={() => removeLine(item.id)} className="text-2xs text-red-400 hover:text-red-600">✕</button>
+                      <button onClick={() => removeLine(item.id)} className="icon-btn text-red-400 hover:text-red-600" aria-label={t('common.delete')} title={t('common.delete')}><Icon name="delete" size={13} /></button>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="col-span-2">
-                      <label className="text-2xs text-gray-400 block">{t('page.quotationDetail.editPanel.productGrade')}</label>
-                      <input className="input text-sm mt-0.5" value={item.product_grade_snapshot}
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-grade-${idx}`}>{t('page.quotationDetail.editPanel.productGrade')}</label>
+                      <input id={`quotation-edit-grade-${idx}`} className="input text-sm mt-0.5" value={item.product_grade_snapshot}
                         onChange={e => updateLine(item.id, 'product_grade_snapshot', e.target.value)}
                         placeholder={t('page.quotationDetail.editPanel.placeholderProduct')} />
                     </div>
                     <div>
-                      <label className="text-2xs text-gray-400 block">{t('page.quotationDetail.editPanel.unit')}</label>
-                      <select className="input text-sm mt-0.5" value={item.unit_of_measure}
+                      <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-unit-${idx}`}>{t('page.quotationDetail.editPanel.unit')}</label>
+                      <select id={`quotation-edit-unit-${idx}`} className="input text-sm mt-0.5" value={item.unit_of_measure}
                         onChange={e => updateLine(item.id, 'unit_of_measure', e.target.value)}>
                         <option value="kg">kg</option>
                         <option value="lb">lb</option>
@@ -198,85 +254,87 @@ export default function QuotationEditPanel({
                       </select>
                     </div>
                     <div>
-                      <label className="text-2xs text-gray-400 block">{t('page.quotationDetail.editPanel.qty')}</label>
-                      <input className="input text-sm mt-0.5" type="number" min="0" step="0.001" value={item.quantity}
+                      <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-quantity-${idx}`}>{t('page.quotationDetail.editPanel.qty')}</label>
+                      <input id={`quotation-edit-quantity-${idx}`} className="input text-sm mt-0.5" type="number" min="0" step="0.001" value={item.quantity}
                         onChange={e => updateLine(item.id, 'quantity', parseFloat(e.target.value) || 0)} />
                     </div>
                     <div>
-                      <label className="text-2xs text-gray-400 block">{t('page.quotationDetail.editPanel.unitPrice')}</label>
-                      <input className="input text-sm mt-0.5 tabular-nums" type="number" min="0" step="0.01" value={item.unit_price}
+                      <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-unit-price-${idx}`}>{t('page.quotationDetail.editPanel.unitPrice')}</label>
+                      <input id={`quotation-edit-unit-price-${idx}`} className="input text-sm mt-0.5 tabular-nums" type="number" min="0" step="0.01" value={item.unit_price}
                         onChange={e => updateLine(item.id, 'unit_price', parseFloat(e.target.value) || 0)} />
                     </div>
                     <div>
-                      <label className="text-2xs text-gray-400 block">{t('page.quotationDetail.editPanel.discPercent')}</label>
-                      <input className="input text-sm mt-0.5" type="number" min="0" max="100" value={item.discount_percent}
+                      <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-discount-${idx}`}>{t('page.quotationDetail.editPanel.discPercent')}</label>
+                      <input id={`quotation-edit-discount-${idx}`} className="input text-sm mt-0.5" type="number" min="0" max="100" value={item.discount_percent}
                         onChange={e => updateLine(item.id, 'discount_percent', parseFloat(e.target.value) || 0)} />
                     </div>
-                    <div className="col-span-2">
-                      <label className="text-2xs text-gray-400 block">{t('page.quotationDetail.editPanel.lineTotal')}</label>
-                      <div className="text-sm tabular-nums text-gray-900 mt-0.5 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="sm:col-span-2">
+                      <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-line-total-${idx}`}>{t('page.quotationDetail.editPanel.lineTotal')}</label>
+                      <output id={`quotation-edit-line-total-${idx}`} className="block text-sm tabular-nums text-gray-900 mt-0.5 px-3 py-2 bg-gray-50 rounded-lg">
                         {formatCurrency(item.line_total || 0, form.currency)}
-                      </div>
+                      </output>
                     </div>
                   </div>
                 </div>
               ))}
 
               {lineItems.length === 0 && (
-                <div className="text-center py-6 text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg">
-                  {t('page.quotationDetail.editPanel.noLineItems')}
-                </div>
+                errors.lineItems ? (
+                  <p id="quotation-line-items-error" className="field-error" role="alert">{errors.lineItems}</p>
+                ) : (
+                  <div className="text-center py-6 text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg">
+                    {t('page.quotationDetail.editPanel.noLineItems')}
+                  </div>
+                )
               )}
             </div>
           </div>
 
           {/* Terms */}
-          <div className="border-t border-gray-100 pt-4">
-            <h4 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.quotationDetail.editPanel.terms')}</h4>
-            <div className="grid grid-cols-2 gap-3">
+          <fieldset className="border-t border-gray-100 pt-4">
+            <legend className="section-label mb-3">{t('page.quotationDetail.editPanel.terms')}</legend>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="label">{t('page.quotationDetail.editPanel.currency')}</label>
-                <select className="input" value={form.currency} onChange={e => set('currency', e.target.value)}>
+                <label className="label" htmlFor="quotation-edit-currency">{t('page.quotationDetail.editPanel.currency')}</label>
+                <select id="quotation-edit-currency" className="input" value={form.currency} onChange={e => set('currency', e.target.value)}>
                   <option value="USD">USD</option>
                   <option value="CNY">CNY</option>
                 </select>
               </div>
               <div>
-                <label className="label">{t('page.quotationDetail.editPanel.incoterm')}</label>
-                <input className="input" value={form.incoterm} onChange={e => set('incoterm', e.target.value)} placeholder={t('page.quotationDetail.editPanel.placeholderIncoterm')} />
+                <label className="label" htmlFor="quotation-edit-incoterm">{t('page.quotationDetail.editPanel.incoterm')}</label>
+                <input id="quotation-edit-incoterm" className="input" value={form.incoterm} onChange={e => set('incoterm', e.target.value)} placeholder={t('page.quotationDetail.editPanel.placeholderIncoterm')} />
               </div>
-              <div className="col-span-2">
-                <label className="label">{t('page.quotationDetail.editPanel.paymentTerms')}</label>
-                <input className="input" value={form.payment_term} onChange={e => set('payment_term', e.target.value)} placeholder={t('page.quotationDetail.editPanel.placeholderPayment')} />
+              <div className="sm:col-span-2">
+                <label className="label" htmlFor="quotation-edit-payment-terms">{t('page.quotationDetail.editPanel.paymentTerms')}</label>
+                <input id="quotation-edit-payment-terms" className="input" value={form.payment_term} onChange={e => set('payment_term', e.target.value)} placeholder={t('page.quotationDetail.editPanel.placeholderPayment')} />
               </div>
-              <div className="col-span-2">
-                <label className="label">{t('page.quotationDetail.editPanel.deliveryTerms')}</label>
-                <input className="input" value={form.delivery_term} onChange={e => set('delivery_term', e.target.value)} placeholder={t('page.quotationDetail.editPanel.placeholderDelivery')} />
+              <div className="sm:col-span-2">
+                <label className="label" htmlFor="quotation-edit-delivery-terms">{t('page.quotationDetail.editPanel.deliveryTerms')}</label>
+                <input id="quotation-edit-delivery-terms" className="input" value={form.delivery_term} onChange={e => set('delivery_term', e.target.value)} placeholder={t('page.quotationDetail.editPanel.placeholderDelivery')} />
               </div>
-              <div className="col-span-2">
-                <label className="label">{t('page.quotationDetail.quotationDate')}</label>
-                <input className="input" type="date" value={form.quotation_date} onChange={e => set('quotation_date', e.target.value)} />
+              <div className="sm:col-span-2">
+                <label className="label" htmlFor="quotation-edit-quotation-date">{t('page.quotationDetail.quotationDate')}</label>
+                <input id="quotation-edit-quotation-date" className="input" type="date" value={form.quotation_date} onChange={e => set('quotation_date', e.target.value)} />
               </div>
-              <div className="col-span-2">
-                <label className="label">{t('page.quotationDetail.editPanel.validUntil')}</label>
-                <input className="input" type="date" value={form.valid_until} onChange={e => set('valid_until', e.target.value)} />
+              <div className="sm:col-span-2">
+                <label className="label" htmlFor="quotation-edit-valid-until">{t('page.quotationDetail.editPanel.validUntil')}</label>
+                <input id="quotation-edit-valid-until" className="input" type="date" value={form.valid_until} onChange={e => set('valid_until', e.target.value)} />
               </div>
             </div>
-          </div>
+          </fieldset>
 
           {/* Tax Type */}
-          <div className="border-t border-gray-100 pt-4">
-            <h4 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.quotationDetail.editPanel.taxation')}</h4>
-            <div className="flex gap-2 mb-3">
+          <fieldset className="border-t border-gray-100 pt-4">
+            <legend className="section-label mb-3">{t('page.quotationDetail.editPanel.taxation')}</legend>
+            <div className="segmented-control mb-3">
               {(['domestic_vat', 'export', 'none'] as const).map(type => (
                 <button
                   key={type}
+                  type="button"
                   onClick={() => set('tax_type', type)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    form.tax_type === type
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                  aria-pressed={form.tax_type === type}
+                  className={`segmented-option ${form.tax_type === type ? 'segmented-option-active' : ''}`}
                 >
                   {type === 'domestic_vat' ? t('page.quotationDetail.editPanel.domesticVat') : type === 'export' ? t('page.quotationDetail.editPanel.exportTax') : t('page.quotationDetail.editPanel.none')}
                 </button>
@@ -284,51 +342,51 @@ export default function QuotationEditPanel({
             </div>
             {form.tax_type === 'domestic_vat' && (
               <div>
-                <label className="label">{t('page.quotationDetail.editPanel.vatRate')}</label>
-                <input className="input" type="number" min="0" max="100" step="0.01"
+                <label className="label" htmlFor="quotation-edit-vat-rate">{t('page.quotationDetail.editPanel.vatRate')}</label>
+                <input id="quotation-edit-vat-rate" className="input" type="number" min="0" max="100" step="0.01"
                   value={form.domestic_vat_rate || ''}
                   onChange={e => set('domestic_vat_rate', parseFloat(e.target.value) || 0)} />
               </div>
             )}
             {form.tax_type === 'export' && (
               <div>
-                <label className="label">{t('page.quotationDetail.editPanel.exportTaxRebateRate')}</label>
-                <input className="input" type="number" min="0" max="100" step="0.01"
+                <label className="label" htmlFor="quotation-edit-export-rebate-rate">{t('page.quotationDetail.editPanel.exportTaxRebateRate')}</label>
+                <input id="quotation-edit-export-rebate-rate" className="input" type="number" min="0" max="100" step="0.01"
                   value={form.export_tax_rebate_rate || ''}
                   onChange={e => set('export_tax_rebate_rate', parseFloat(e.target.value) || 0)} />
               </div>
             )}
-          </div>
+          </fieldset>
 
           {/* Shipping & Discount */}
-          <div className="border-t border-gray-100 pt-4">
-            <h4 className="text-xs font-450 text-gray-500 uppercase tracking-[0.08em] mb-3">{t('page.quotationDetail.editPanel.shippingDiscount')}</h4>
-            <div className="grid grid-cols-2 gap-3">
+          <fieldset className="border-t border-gray-100 pt-4">
+            <legend className="section-label mb-3">{t('page.quotationDetail.editPanel.shippingDiscount')}</legend>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="label">{t('page.quotationDetail.editPanel.shippingHandling')}</label>
-                <input className="input tabular-nums" type="number" min="0" step="0.01"
+                <label className="label" htmlFor="quotation-edit-shipping-handling">{t('page.quotationDetail.editPanel.shippingHandling')}</label>
+                <input id="quotation-edit-shipping-handling" className="input tabular-nums" type="number" min="0" step="0.01"
                   value={form.shipping_handling || ''}
                   onChange={e => set('shipping_handling', parseFloat(e.target.value) || 0)} />
               </div>
               <div>
-                <label className="label">{t('page.quotationDetail.editPanel.overallDiscount')}</label>
-                <input className="input" type="number" min="0" max="100" step="0.1"
+                <label className="label" htmlFor="quotation-edit-overall-discount">{t('page.quotationDetail.editPanel.overallDiscount')}</label>
+                <input id="quotation-edit-overall-discount" className="input" type="number" min="0" max="100" step="0.1"
                   value={form.discount_percent || ''}
                   onChange={e => set('discount_percent', parseFloat(e.target.value) || 0)} />
               </div>
             </div>
-          </div>
+          </fieldset>
 
           {/* Internal Notes */}
           <div>
-            <label className="label">{t('page.quotationDetail.editPanel.internalNotes')}</label>
-            <textarea className="input min-h-[60px] resize-y" value={form.internal_notes}
+            <label className="label" htmlFor="quotation-edit-internal-notes">{t('page.quotationDetail.editPanel.internalNotes')}</label>
+            <textarea id="quotation-edit-internal-notes" className="input min-h-[60px] resize-y" value={form.internal_notes}
               onChange={e => set('internal_notes', e.target.value)} />
           </div>
         </div>
 
         {/* Price Summary — sticky footer */}
-        <div className="border-t border-gray-200 pt-4 flex-shrink-0">
+        <div className="sticky bottom-0 z-10 -mx-5 flex-shrink-0 border-t border-gray-200 bg-white px-5 pt-4">
           <div className="bg-gray-50 rounded-lg p-4 space-y-1.5 text-sm">
             <div className="flex justify-between text-gray-500">
               <span>{t('page.quotationDetail.editPanel.subtotal')}</span>
@@ -357,7 +415,7 @@ export default function QuotationEditPanel({
           </div>
 
           <div className="flex gap-2 mt-4">
-            <button onClick={save} disabled={saving || lineItems.length === 0} className="btn-primary flex-1">
+            <button onClick={save} disabled={saving} className="btn-primary flex-1">
               {saving ? t('page.quotationDetail.editPanel.saving') : isNew ? t('page.quotationDetail.editPanel.createQuotation') : t('page.quotationDetail.editPanel.saveChanges')}
             </button>
             <button onClick={onClose} disabled={saving} className="btn-secondary">{t('common.cancel')}</button>

@@ -13,6 +13,9 @@ const source = files
   .join('\n');
 
 const dictionarySource = readFileSync(new URL('../src/lib/i18n.tsx', import.meta.url), 'utf8');
+const companiesSource = readFileSync(new URL('../src/pages/Companies.tsx', import.meta.url), 'utf8');
+const contactsSource = readFileSync(new URL('../src/pages/Contacts.tsx', import.meta.url), 'utf8');
+const approvalsSource = readFileSync(new URL('../src/components/materials-tooling/ApprovalsTab.tsx', import.meta.url), 'utf8');
 
 test('customer and contact batch no longer renders obvious hard-coded English UI labels', () => {
   const forbidden = [
@@ -78,9 +81,99 @@ test('first localization batch has dictionary entries for customer and contact U
     'checkFormat',
     'customerCode',
     'orderNumberHint',
+    'companyNameRequired',
   ];
 
   for (const key of requiredKeys) {
     assert.match(dictionarySource, new RegExp(`${key}:`), `Missing i18n key: ${key}`);
   }
+});
+
+test('new customer panel exposes field-level name validation', () => {
+  assert.match(companiesSource, /const \[createErrors, setCreateErrors\] = useState<\{ name\?: string \}>\(\{\}\)/);
+  assert.match(companiesSource, /if \(!form\.name\.trim\(\)\) \{[\s\S]*companyNameRequired/);
+  assert.match(companiesSource, /htmlFor="company-create-name"/);
+  assert.match(companiesSource, /id="company-create-name"/);
+  assert.match(companiesSource, /aria-invalid=\{!!createErrors\.name\}/);
+  assert.match(companiesSource, /aria-describedby=\{createErrors\.name \? 'company-create-name-error' : undefined\}/);
+  assert.match(companiesSource, /id="company-create-name-error" className="field-error" role="alert"/);
+  assert.doesNotMatch(companiesSource, /toast\.error\(['"]name is required/);
+});
+
+test('new customer controls have complete labels, autofill hints, and linked help text', () => {
+  for (const fieldId of [
+    'company-create-name',
+    'company-create-type',
+    'company-create-industry',
+    'company-create-country',
+    'company-create-city',
+    'company-create-customer-code',
+  ]) {
+    assert.match(companiesSource, new RegExp(`htmlFor="${fieldId}"`));
+    assert.match(companiesSource, new RegExp(`id="${fieldId}"`));
+  }
+  assert.match(companiesSource, /id="company-create-name"[\s\S]*autoComplete="organization"/);
+  assert.match(companiesSource, /id="company-create-country"[\s\S]*autoComplete="country-name"/);
+  assert.match(companiesSource, /id="company-create-city"[\s\S]*autoComplete="address-level2"/);
+  assert.match(companiesSource, /id="company-create-customer-code"[\s\S]*aria-describedby="company-create-customer-code-help"/);
+  assert.match(companiesSource, /id="company-create-customer-code-help"/);
+  assert.match(companiesSource, /createNameInputRef\.current\?\.focus\(\)/);
+});
+
+test('customer list edit and search controls have persistent labels', () => {
+  for (const fieldId of [
+    'company-list-edit-name',
+    'company-list-edit-type',
+    'company-list-edit-industry',
+    'company-list-edit-owner',
+    'company-list-edit-country',
+    'company-list-edit-city',
+    'company-list-edit-status',
+    'company-list-edit-classification',
+    'company-search',
+  ]) {
+    assert.match(companiesSource, new RegExp(`htmlFor="${fieldId}"`));
+    assert.match(companiesSource, new RegExp(`id="${fieldId}"`));
+  }
+  assert.match(companiesSource, /id="company-list-edit-name"[\s\S]*autoComplete="organization"/);
+  assert.match(companiesSource, /id="company-list-edit-country"[\s\S]*autoComplete="country-name"/);
+  assert.match(companiesSource, /id="company-list-edit-city"[\s\S]*autoComplete="address-level2"/);
+});
+
+test('customers establishes the shared operational list-page pattern', () => {
+  assert.match(companiesSource, /className="page-shell"/);
+  assert.match(companiesSource, /className="page-header"/);
+  assert.match(companiesSource, /className="toolbar"/);
+  assert.match(companiesSource, /className="(?:hidden )?data-surface/);
+  assert.match(companiesSource, /sticky top-0 z-10/);
+  assert.match(companiesSource, /<Icon name="search"/);
+  assert.match(companiesSource, /<Icon name="more"/);
+  assert.match(companiesSource, /aria-label=\{t\('common\.moreActions'/);
+  assert.match(companiesSource, /animate-pulse/);
+  assert.doesNotMatch(companiesSource, />⋮</);
+});
+
+test('customer list uses readable mobile cards instead of compressed desktop rows', () => {
+  assert.match(companiesSource, /className="hidden data-surface md:block"/);
+  assert.match(companiesSource, /className="data-surface md:hidden divide-y/);
+  assert.match(companiesSource, /role="button"[\s\S]*tabIndex=\{0\}/);
+  assert.match(companiesSource, /onKeyDown=\{e => \{[\s\S]*e\.key === 'Enter' \|\| e\.key === ' '/);
+  assert.match(companiesSource, /onClick=\{e => e\.stopPropagation\(\)\} onKeyDown=\{e => e\.stopPropagation\(\)\}/);
+});
+
+test('customer and contact lists use shared overlays and stable empty states', () => {
+  assert.match(companiesSource, /<SidePanel\s+open=\{showImport\}/);
+  assert.doesNotMatch(companiesSource, /\{\/\* Import Modal \*\/\}/);
+  assert.match(companiesSource, /menu-surface/);
+  assert.match(companiesSource, /className="empty-state"/);
+  assert.match(contactsSource, /menu-surface/);
+  assert.match(contactsSource, /colSpan=\{7\}[\s\S]*className="empty-state"/);
+  assert.doesNotMatch(companiesSource, /rounded-xl|shadow-lg|shadow-md/);
+  assert.doesNotMatch(contactsSource, /shadow-md/);
+});
+
+test('material approval details use a contextual side panel', () => {
+  assert.match(approvalsSource, /import SidePanel from '\.\.\/shared\/SidePanel'/);
+  assert.match(approvalsSource, /<SidePanel\s+open=\{!!selected\}/);
+  assert.doesNotMatch(approvalsSource, /selected && <div className="data-surface mt-4 p-4"/);
 });

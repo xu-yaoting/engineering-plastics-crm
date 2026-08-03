@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { inquiries } from '../lib/api';
 import StatusBadge from '../components/shared/StatusBadge';
 import { useTranslation } from 'react-i18next';
 import Icon from '../components/shared/Icon';
 import { exportFullCsv } from '../lib/exportCsv';
+import OwnerFilter from '../components/shared/OwnerFilter';
 
 export default function Inquiries() {
   const { t } = useTranslation();
@@ -13,6 +14,9 @@ export default function Inquiries() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [ownerFilter, setOwnerFilter] = useState('all');
+  const [currentUserId, setCurrentUserId] = useState('');
+  const handleCurrentUserId = useCallback((userId: string) => setCurrentUserId(userId), []);
 
   useEffect(() => {
     inquiries.list().then(setList).finally(() => setLoading(false));
@@ -22,7 +26,11 @@ export default function Inquiries() {
     (i.inquiry_number?.toLowerCase().includes(search.toLowerCase()) ||
      i.company_name?.toLowerCase().includes(search.toLowerCase()) ||
      i.target_material_requested?.toLowerCase().includes(search.toLowerCase())) &&
-    (!filterStatus || i.status === filterStatus)
+    (!filterStatus || i.status === filterStatus) &&
+    (ownerFilter === 'all' ||
+      (ownerFilter === 'mine' && i.owner_user_id === currentUserId) ||
+      (ownerFilter === 'unassigned' && !i.owner_user_id) ||
+      i.owner_user_id === ownerFilter)
   );
 
   const urgencyColor = (u: string) => {
@@ -39,22 +47,64 @@ export default function Inquiries() {
     return u || '—';
   };
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">{t('page.title.inquiries')}</h1>
-          <p className="text-sm text-gray-500">{list.length} {t('page.title.inquiries')}</p>
+  const renderMobileInquiry = (inq: any) => (
+    <Link
+      key={inq.id}
+      to={`/inquiries/${inq.id}`}
+      className="block rounded-md border border-gray-200 bg-white p-3 transition-colors hover:border-blue-200 hover:bg-blue-50/30"
+    >
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0">
+          <span className="block truncate text-sm font-medium text-blue-600">{inq.inquiry_number}</span>
+          <span className="mt-0.5 block truncate text-xs text-gray-500">{inq.company_name || '—'}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Link to="/inquiries/new" className="btn-primary btn-sm">{t('page.inquiries.new')}</Link>
+        <StatusBadge status={inq.status} />
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-gray-100 pt-3 text-xs">
+        <div className="min-w-0">
+          <dt className="text-2xs text-gray-400">{t('page.inquiries.material')}</dt>
+          <dd className="mt-0.5 truncate font-medium text-gray-700">
+            {inq.target_material_requested || '—'}
+            {inq.quantity_estimate && <span className="ml-1 text-2xs font-normal text-gray-400">· {inq.quantity_estimate}</span>}
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-2xs text-gray-400">{t('page.inquiries.urgency')}</dt>
+          <dd className={`mt-0.5 truncate ${urgencyColor(inq.urgency)}`}>{urgencyLabel(inq.urgency)}</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-2xs text-gray-400">{t('accountability.owner')}</dt>
+          <dd className="mt-0.5 truncate text-gray-700">{inq.owner_name || t('accountability.unassigned')}</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-2xs text-gray-400">{t('page.inquiries.created')}</dt>
+          <dd className="mt-0.5 truncate tabular-nums text-gray-500">{inq.created_at?.slice(0, 10) || '—'}</dd>
+        </div>
+      </dl>
+    </Link>
+  );
+
+  return (
+    <div className="page-shell">
+      <div className="page-header">
+        <div>
+          <h1 className="page-heading">{t('page.title.inquiries')}</h1>
+          <p className="page-summary tabular-nums">{filtered.length} / {list.length} {t('page.title.inquiries')}</p>
+        </div>
+        <div className="page-actions">
+          <Link to="/inquiries/new" className="btn-primary btn-sm"><Icon name="plus" size={15} className="mr-1.5" />{t('page.inquiries.new')}</Link>
           <button onClick={() => exportFullCsv('/api/inquiries', 'inquiries')} className="btn-secondary btn-sm"><Icon name="download" size={14} className="mr-1" />CSV</button>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 mb-4">
-        <input className="input max-w-sm" placeholder={t('common.searchInquiries')} value={search} onChange={e => setSearch(e.target.value)} />
-        <select className="input max-w-[180px]" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+      <div className="toolbar gap-3">
+        <div className="relative w-full max-w-sm">
+          <Icon name="search" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <label className="sr-only" htmlFor="inquiries-search">{t('common.searchInquiries')}</label>
+          <input id="inquiries-search" className="input w-full pl-9" placeholder={t('common.searchInquiries')} value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <label className="sr-only" htmlFor="inquiries-status-filter">{t('page.inquiries.allStatus')}</label>
+        <select id="inquiries-status-filter" className="input max-w-[180px]" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
           <option value="">{t('page.inquiries.allStatus')}</option>
           <option value="open">{t('status.open')}</option>
           <option value="under_review">{t('status.underReview')}</option>
@@ -62,20 +112,33 @@ export default function Inquiries() {
           <option value="closed_won">{t('status.won')}</option>
           <option value="closed_lost">{t('status.lost')}</option>
         </select>
+        <OwnerFilter value={ownerFilter} onChange={setOwnerFilter} onCurrentUserId={handleCurrentUserId} />
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">{t('common.loading')}</div>
+        <div className="data-surface p-3" aria-label={t('common.loading')}>
+          <div className="animate-pulse space-y-2">
+            {[0, 1, 2, 3, 4].map(row => <div key={row} className="h-10 rounded bg-gray-100" />)}
+          </div>
+        </div>
       ) : (
-        <div className="card">
-          <table className="w-full">
-            <thead>
+        <>
+          <div className="space-y-2 md:hidden">
+            {filtered.map(renderMobileInquiry)}
+            {filtered.length === 0 && (
+              <div className="empty-state rounded-md border border-gray-200 bg-white">{t('noData.inquiries')}</div>
+            )}
+          </div>
+          <div className="hidden data-surface overflow-x-auto md:block">
+          <table className="w-full min-w-[760px]">
+            <thead className="sticky top-0 z-10">
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="table-header">{t('page.inquiries.number')}</th>
                 <th className="table-header">{t('page.inquiries.company')}</th>
                 <th className="table-header">{t('page.inquiries.material')}</th>
                 <th className="table-header">{t('page.inquiries.status')}</th>
                 <th className="table-header">{t('page.inquiries.urgency')}</th>
+                <th className="table-header">{t('accountability.owner')}</th>
                 <th className="table-header">{t('page.inquiries.created')}</th>
               </tr>
             </thead>
@@ -94,15 +157,17 @@ export default function Inquiries() {
                   <td className="table-cell">
                     <span className={`text-xs ${urgencyColor(inq.urgency)}`}>{urgencyLabel(inq.urgency)}</span>
                   </td>
+                  <td className="table-cell text-xs text-gray-500">{inq.owner_name || t('accountability.unassigned')}</td>
                   <td className="table-cell text-2xs text-gray-400">{inq.created_at?.slice(0, 10)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           {filtered.length === 0 && (
-            <div className="text-center py-12 text-gray-400 text-sm">{t('noData.inquiries')}</div>
+            <div className="empty-state">{t('noData.inquiries')}</div>
           )}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

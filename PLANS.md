@@ -1,3 +1,190 @@
+# CRM Company Workspace Simplification Plan
+
+**Current goal:** Rebalance the desktop Company workspace around actionable follow-up and sales work, remove duplicated summaries, and make Follow-ups a direct Sales navigation destination.
+
+**Confirmed product decisions:**
+- Company Detail uses a top action summary, a primary opportunities/activity column, and one short supporting rail.
+- The top summary shows active quotation value, open inquiry/quotation counts, next follow-up, pending tasks, and one recommended action.
+- Recent Activity, Pipeline Summary, Quick Stats, and the existing Customer Briefing are removed instead of hidden in accordions.
+- The supporting rail keeps Primary Contact, up to three pending tasks, Owner, and entry points for Company Details and Operation History.
+- Full company information and audit history use progressive disclosure through side panels.
+- Follow-ups appears directly below Companies in the Sales sidebar.
+- Contact Directory remains company-scoped and accessible from Company screens; its existing routes remain compatible.
+- Desktop information hierarchy is completed and verified before further mobile refinement.
+
+**Implementation order:**
+1. [x] Add Follow-ups directly after Companies in the Sales sidebar.
+2. [x] Remove the Company module tab bar and normalize the Follow-up Workbench page heading.
+3. [x] Replace Company Detail summaries with the compact top action summary.
+4. [x] Reduce the supporting rail to Primary Contact, pending tasks, Owner, and detail entry points.
+5. [x] Move full Company Details and Operation History into side panels.
+6. [x] Run desktop browser QA, accessibility checks, tests, typecheck, build, and diff verification.
+
+**Constraints and verification:**
+- No database migration, API contract change, new production dependency, or route removal.
+- Preserve bilingual copy, ownership, permissions, audit data, follow-up behavior, and contact-detail fallbacks.
+- Change no more than three files per batch and pause at every batch boundary.
+- Add a user-facing static UI regression before or with each behavior slice.
+- Final verification: `npx tsc --noEmit`, `npm run test`, `npm run build`, and `git diff --check`.
+
+---
+
+# CRM Mobile Optimization Plan
+
+**Current goal:** Make the existing CRM usable on phone-sized viewports without changing routes, business workflows, APIs, stored data, or the desktop information hierarchy.
+
+**Design direction:** Treat mobile as a focused single-column workflow: full-height navigation drawer, compact page headers, readable touch targets, and progressive disclosure for secondary company details.
+
+**Implementation order:**
+1. [x] Harden the mobile app shell, navigation drawer, viewport sizing, and background scroll behavior.
+2. [x] Reflow Company List, Follow-up Workbench, and Contact Directory for narrow screens.
+3. [x] Rework Company Detail header, action summary, opportunity cards, activity timeline, and support rail for phone widths.
+4. [x] Reflow shared panels, forms, tables, and dense operational pages that still clip or force horizontal scrolling.
+5. [x] Run 390×844 and 430×932 browser QA, keyboard/accessibility checks, tests, typecheck, build, and diff verification.
+
+**Constraints:**
+- Keep React, Tailwind, Lucide, existing bilingual copy, permissions, and route compatibility.
+- Add no production dependency, database migration, API contract change, or public deployment.
+- Change no more than three files per batch and stop at each batch boundary.
+- Keep mobile changes additive and preserve the confirmed desktop layout.
+
+---
+
+# CRM Customer Development and Follow-up Plan
+
+**Current goal:** Make Company the primary customer record, add a reliable cross-company follow-up workflow, simplify Company Detail, and demote Contacts to a company-scoped directory without mixing customer development with the existing sales pipeline.
+
+**Confirmed product decisions:**
+- Companies owns three related views: Company List, Follow-up Workbench, and Contact Directory.
+- The Follow-up Workbench covers both prospect development and existing-customer maintenance.
+- Customer development uses `Uncontacted → Contacted → Replied → Qualified → Converted`, with `Nurturing` and `Stopped` as side states.
+- The existing sales pipeline remains `Inquiry → Quotation → Sample/Testing → Order`.
+- Company is the customer subject; Contact is a person and role within one Company.
+- Activities and follow-up tasks belong to Company and may identify a Contact.
+- The earliest open follow-up task is the single source of truth for the next follow-up date.
+
+**Data and migration assumptions:**
+- Use additive SQLite migrations only; preserve all existing records.
+- Back up the local database before applying migrations.
+- Add a Company development stage, an optional task Contact reference, and an optional activity outcome.
+- Initialize existing Company stages deterministically: records with inquiries or orders are Converted; records with inbound customer activity are Replied; records with outbound contact activity are Contacted; remaining records are Uncontacted.
+- Do not infer Nurturing or Stopped from elapsed time.
+- Creating an Inquiry moves its Company to Converted.
+- A Contact may be saved without a direct channel; Company public contact details provide a visible fallback.
+
+**Implementation order:**
+1. [x] Back up the current local database and record the confirmed plan and domain language.
+2. [x] Add migration-safe schema fields, indexes, and deterministic existing-data initialization.
+3. [x] Add transactional follow-up read/write contracts and Inquiry-driven conversion.
+4. [x] Add typed frontend contracts and bilingual customer-development copy.
+5. [x] Build one reusable follow-up recording panel.
+6. [x] Build the cross-company Follow-up Workbench.
+7. [x] Add the Company module navigation without adding a new primary sidebar item.
+8. [x] Allow Contacts without direct contact details and expose Company fallback details.
+9. [x] Simplify the Contact Directory and remove it from primary navigation.
+10. [x] Replace Company Detail's three-column information wall with a two-column, single-scroll workspace.
+11. [x] Run migration, API, UI, accessibility, type, test, build, and diff verification.
+
+**Batch constraints:**
+- Change no more than three files per implementation batch.
+- Add no production dependency.
+- Write regression coverage before or with each behavioral change.
+- Preserve bilingual UI, authentication, ownership, permissions, and audit behavior.
+- Keep existing routes working unless the confirmed module navigation explicitly adds a route.
+- Pause at each batch boundary for review.
+
+**Verification:**
+- Test migrations against temporary legacy-shaped databases and verify repeatability.
+- Test follow-up recording as one transaction: activity creation, current-task completion, next-task creation, and Company stage update.
+- Test Contact ownership and reject cross-company Contact references.
+- Test stage initialization and automatic conversion when an Inquiry is created.
+- Test Company contact-detail fallback without duplicating identical values.
+- Run targeted Node tests after every batch.
+- Final: `npx tsc --noEmit`, `npm run test`, `npm run build`, and `git diff --check`.
+- Run the local write smoke test only after explaining its database impact.
+
+**Out of scope for this rollout:**
+- Automatic email sending or multi-step email sequences.
+- Email-open tracking.
+- External email, browser, or mobile notifications.
+- AI summaries and customer-health scoring.
+- Existing sales-pipeline redesign.
+- Global search and Command-K redesign.
+
+---
+
+# CRM Form Accessibility Completion Sweep
+
+**Current goal:** Eliminate the remaining unlabeled `input`, `select`, and `textarea` controls identified by the TypeScript JSX audit without changing workflows, routes, APIs, dependencies, or stored data.
+
+**Scope and assumptions:**
+- Associate existing visible labels through matching `htmlFor` and `id`.
+- Add screen-reader-only labels for compact search and filter controls where a visible label would add noise.
+- Preserve bilingual copy by reusing existing translation keys.
+- Keep each implementation batch to two UI files plus one shared static regression test.
+
+**Remaining implementation order:**
+1. [x] Shared meeting notes and material settings.
+2. [x] Contact and quotation lists.
+3. [x] Material documents and ledger filters.
+4. [x] Shared activity timeline and email draft controls.
+5. [x] Inquiry list and order detail editor.
+6. [x] Order list and top-bar search.
+7. [x] Material approvals and task quick-add.
+8. [x] Activity and payment controls.
+9. [x] Pipeline and shipment controls.
+10. [x] Full JSX rescan, tests, typecheck, build, and diff validation.
+
+**Verification:**
+- Targeted Node static UI test after every two-file slice.
+- Final JSX AST scan must report zero unlabeled form controls.
+- `npx tsc --noEmit`
+- `npm run test`
+- `npm run build`
+- `git diff --check`
+
+---
+
+# CRM P0 UI Consistency Repair Plan
+
+**Current goal:** Finish the eight P0 UI consistency repairs identified in the VibeHub-informed audit without changing CRM workflows, routes, dependencies, or stored data.
+
+**Design direction:** Keep the existing Precision Industrial language, use one blue brand accent, reserve red for risk and destructive states, and make shared interaction patterns predictable across dense desktop workflows.
+
+**Constraints:**
+- Keep React, Tailwind 3, Lucide, the existing typography system, and current routes.
+- Add no production dependency and make no database or API schema change.
+- Preserve bilingual layout and existing permissions.
+- Change no more than three files per batch and verify each batch before continuing.
+- Reuse the existing Node static UI contract tests as the public test seam.
+
+**P0 implementation order:**
+1. [x] Complete dark mode with dark surface, text, border, interaction, and semantic-state tokens.
+2. [x] Replace hard-coded brand blue with the shared brand token.
+3. [x] Reserve danger red for overdue, failed, destructive, and genuinely abnormal states.
+4. [x] Route create, quick-edit, and contextual detail flows through side panels; keep short decisions in centered dialogs.
+5. [x] Replace native and ad-hoc delete confirmation with one accessible confirmation dialog.
+6. [x] Add persistent form labels and field-level validation messages to the audited forms.
+7. [x] Replace generic loading text and premature zero metrics with layout-shaped skeleton states.
+8. [x] Remove nested fixed-width columns that break the responsive company workspace.
+
+**Expected affected areas:**
+- Theme and tokens: `src/index.css`, `src/lib/theme.tsx`, `src/components/layout/Sidebar.tsx`
+- Semantic colors: `src/pages/Dashboard.tsx`, `src/pages/InventoryPage.tsx`
+- Panels and confirmations: shared overlays plus companies, contacts, quotations, orders, shipments, payments, activities, tasks, inventory, and materials tooling
+- Forms: `CompanyEditPanel.tsx`, `ContactPanel.tsx`, `QuotationEditPanel.tsx`, `InventoryPage.tsx`
+- Loading: `App.tsx`, dashboard, pipeline, inventory, and record detail pages
+- Responsive workspace: `ResponsiveWorkspace.tsx`, `CompanyDetail.tsx`
+
+**Verification:**
+- Targeted `node --test tests/ui-p0-*.test.mjs` after each slice
+- `npx tsc --noEmit`
+- `npm run test`
+- `npm run build`
+- `git diff --check`
+
+---
+
 # CRM Team Accountability Plan
 
 **Current goal:** Make ownership and every important write operation attributable to a real CRM user for the current 2-3 person internal team.
@@ -21,6 +208,8 @@
 **Completed verification (2026-07-13):** 167 automated tests, frontend and server type checks, production build, database backup, and isolated API write smoke across nine modules.
 
 **Payments soft ownership (2026-07-13):** Payments display linked order owners, preserve truthful actor metadata, and enforce owner-or-admin invoice/payment writes. Verified with 170 automated tests and three-account API smoke coverage.
+
+**Domestic-first shipments (2026-07-13):** Simplify the shipment list around domestic express/logistics, move sea/air schedule details to the detail page, and make shipment forms type-aware without a database migration.
 
 ---
 
@@ -363,3 +552,33 @@ Use `package.json` scripts as the source of truth for current verification comma
 - Translating generated PDFs.
 - Translating database/customer-entered content.
 - Adding new i18n dependencies.
+
+---
+
+# CRM Opportunity Unification Plan
+
+**Current goal:** Make Inquiry and Quotation one sales workflow in the UI while preserving separate domain records for customer demand and commercial quote documents.
+
+**Confirmed product decisions:**
+- Sales users work from one Opportunity/销售机会 record, not two duplicated entry pages.
+- Inquiry remains the customer requirement record; Quotation remains the price, terms, validity, approval, and revision document.
+- One Inquiry may have multiple Quotation revisions or alternatives; an accepted Quotation creates the Order.
+- Company, Contact, material, quantity, and application details are entered once and inherited read-only by the quotation flow.
+- The existing quotation list remains as a secondary quote-status view, not a second creation workflow.
+- The primary sidebar exposes Opportunities / 销售机会; Inquiry and Quotation list routes remain available as secondary views from that workspace.
+- Existing routes, records, audit history, and bilingual copy remain compatible.
+
+**Implementation order:**
+1. [x] Add a unified Opportunities workspace and reduce duplicate top-level entry points.
+2. [x] Add an Opportunity detail view that groups request, activity, latest quotation, quote revisions, and order progression.
+3. [x] Make quotation creation/revision contextual and inherit request/customer data without re-entry.
+4. [x] Protect against duplicate empty quotations and clarify quotation-to-inquiry relationships.
+5. [x] Backfill or surface legacy unlinked quotations without deleting existing data.
+6. [x] Run targeted tests, full tests, typecheck, build, and smoke verification.
+7. [ ] Complete authenticated browser QA for the Inquiry/Quotation flow (the local browser currently has no signed-in session and requires the user's account PIN).
+
+**Constraints:**
+- No destructive table merge; preserve `inquiries` and `quotations` for audit, approvals, PDF output, and order links.
+- No production dependency or external deployment.
+- Additive database migration only after backup and explicit confirmation if schema changes are required.
+- Keep each implementation batch to no more than three files.

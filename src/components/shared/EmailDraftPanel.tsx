@@ -94,12 +94,10 @@ export default function EmailDraftPanel({
       {step === 'select' && (
         <div className="space-y-4">
           {/* Category filter */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="segmented-control">
             <button
               onClick={() => setCategory('')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
-                !category ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`segmented-option ${!category ? 'segmented-option-active' : ''}`}
             >
               {t('page.emailDraft.all')}
             </button>
@@ -107,9 +105,7 @@ export default function EmailDraftPanel({
               <button
                 key={cat}
                 onClick={() => setCategory(cat)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
-                  category === cat ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                className={`segmented-option ${category === cat ? 'segmented-option-active' : ''}`}
               >
                 {cat}
               </button>
@@ -117,12 +113,12 @@ export default function EmailDraftPanel({
           </div>
 
           {/* Template cards */}
-          <div className="space-y-2">
+          <div className="data-surface divide-y divide-gray-100">
             {filteredTemplates.map(tpl => (
               <button
                 key={tpl.id}
                 onClick={() => selectTemplate(tpl)}
-                className="w-full text-left card p-3 hover:border-gray-300 hover:shadow-sm transition-all"
+                className="w-full p-3 text-left transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600"
               >
                 <div className="text-xs font-medium text-gray-900">{tpl.title}</div>
                 <div className="text-2xs text-gray-500 mt-0.5 truncate">{tpl.subject}</div>
@@ -141,13 +137,14 @@ export default function EmailDraftPanel({
         <div className="space-y-4 h-full flex flex-col">
           {/* Variables form */}
           <div className="space-y-2">
-            <h4 className="text-2xs font-450 text-gray-500 uppercase tracking-[0.08em]">{t('page.emailDraft.fillVariables')}</h4>
-            <div className="grid grid-cols-2 gap-2">
+            <h4 className="section-label">{t('page.emailDraft.fillVariables')}</h4>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {selectedTemplate.variables.filter(v => !v.startsWith('sender')).map(v => (
-                <div key={v} className={v.length > 12 ? 'col-span-2' : ''}>
-                  <label className="text-2xs text-gray-400 block capitalize">{v.replace(/_/g, ' ')}</label>
+                <div key={v} className={`min-w-0 ${v.length > 12 ? 'sm:col-span-2' : ''}`}>
+                  <label className="text-2xs text-gray-400 block capitalize" htmlFor={`email-draft-variable-${v}`}>{v.replace(/_/g, ' ')}</label>
                   <input
-                    className="input text-xs mt-0.5"
+                    id={`email-draft-variable-${v}`}
+                    className="input w-full text-xs mt-0.5"
                     value={variables[v] || ''}
                     onChange={e => updateVar(v, e.target.value)}
                     placeholder={`{{${v}}}`}
@@ -160,31 +157,32 @@ export default function EmailDraftPanel({
           {/* Subject */}
           <div>
             <label className="text-2xs text-gray-400 block">{t('page.emailDraft.subject')}</label>
-            <div className="text-sm text-gray-900 font-medium bg-gray-50 rounded-lg px-3 py-2 mt-0.5 border border-gray-200">
+            <div className="input mt-0.5 h-auto min-h-8 break-words py-1.5 font-medium text-gray-900">
               {preview.subject || t('page.emailDraft.fillVariablesAbove')}
             </div>
           </div>
 
           {/* Body */}
           <div className="flex-1 min-h-0">
-            <label className="text-2xs text-gray-400 block mb-1">{t('page.emailDraft.body')}</label>
+            <label className="text-2xs text-gray-400 block mb-1" htmlFor="email-draft-body">{t('page.emailDraft.body')}</label>
             <textarea
-              className="w-full h-full min-h-[200px] text-xs text-gray-700 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200 resize-y font-sans leading-relaxed focus:outline-none focus:ring-1 focus:ring-blue-600"
+              id="email-draft-body"
+              className="input h-full min-h-[200px] resize-y py-2 font-sans text-xs leading-relaxed"
               value={preview.body}
               readOnly
             />
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2 border-t border-gray-100">
-            <button onClick={copyToClipboard} className="btn-primary flex-1 text-sm">
+          <div className="flex flex-col gap-2 pt-2 border-t border-gray-100 sm:flex-row">
+            <button onClick={copyToClipboard} className="btn-primary w-full sm:flex-1 text-sm">
               {copied ? (
                 <><Icon name="check" size={13} className="mr-1" />{t('page.emailDraft.copied')}</>
               ) : (
                 <><Icon name="copy" size={13} className="mr-1" />{t('page.emailDraft.copyToClipboard')}</>
               )}
             </button>
-            <button onClick={reset} className="btn-secondary text-sm">{t('common.back')}</button>
+            <button onClick={reset} className="btn-secondary w-full sm:w-auto text-sm">{t('common.back')}</button>
           </div>
         </div>
       )}

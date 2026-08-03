@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import db from '../db.js';
 import { validate } from '../validate.js';
 import { nextShipmentNumber } from '../numbers.js';
+import { computeChanges, writeAudit } from '../audit.js';
 
 const router = Router();
 
@@ -30,10 +31,13 @@ const SHIPMENT_UPDATE_FIELDS = [
 router.get('/', (req: Request, res: Response) => {
   const q = req.query.q as string | undefined;
   let sql = `
-    SELECT s.*, o.order_number, o.company_id, c.name as company_name
+    SELECT s.*, o.order_number, o.company_id, c.name as company_name,
+      creator.name as created_by_name, updater.name as updated_by_name
     FROM shipments s
     LEFT JOIN orders o ON s.order_id = o.id
     LEFT JOIN companies c ON o.company_id = c.id
+    LEFT JOIN users creator ON creator.id = s.created_by
+    LEFT JOIN users updater ON updater.id = s.updated_by
     WHERE s.deleted_at IS NULL`;
   const params: string[] = [];
   if (q) {
@@ -48,10 +52,13 @@ router.get('/', (req: Request, res: Response) => {
 
 router.get('/:id', (req: Request, res: Response) => {
   const shipment = db.prepare(`
-    SELECT s.*, o.order_number, c.name as company_name
+    SELECT s.*, o.order_number, c.name as company_name,
+      creator.name as created_by_name, updater.name as updated_by_name
     FROM shipments s
     LEFT JOIN orders o ON s.order_id = o.id
     LEFT JOIN companies c ON o.company_id = c.id
+    LEFT JOIN users creator ON creator.id = s.created_by
+    LEFT JOIN users updater ON updater.id = s.updated_by
     WHERE s.id = ? AND s.deleted_at IS NULL
   `).get(req.params.id);
   if (!shipment) return res.status(404).json({ error: 'Not found' });
@@ -73,27 +80,31 @@ router.post('/', (req: Request, res: Response) => {
   const {
     order_id, shipping_type, carrier, tracking_number, shipping_address, notes, status,
     container_no, vessel, voyage, awb, airline, express_provider,
-    etd, eta, estimated_delivery_date,
+    etd, eta, shipped_at, estimated_delivery_date,
   } = req.body;
 
-  db.prepare(`
-    INSERT INTO shipments (id, shipment_number, order_id, shipping_type, carrier,
-      tracking_number, shipping_address, notes, status,
+  const createdShipment = db.transaction(() => {
+    db.prepare(`
+      INSERT INTO shipments (id, shipment_number, order_id, shipping_type, carrier,
+        tracking_number, shipping_address, notes, status,
+        container_no, vessel, voyage, awb, airline, express_provider,
+        etd, eta, shipped_at, estimated_delivery_date, created_by, updated_by,
+        created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
+        ?, ?)
+    `).run(id, shipment_number, order_id, shipping_type || 'express', carrier,
+      tracking_number, shipping_address, notes, status || 'pending_pickup',
       container_no, vessel, voyage, awb, airline, express_provider,
-      etd, eta, estimated_delivery_date,
-      created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?,
-      ?, ?, ?,
-      ?, ?)
-  `).run(id, shipment_number, order_id, shipping_type || 'sea_freight', carrier,
-    tracking_number, shipping_address, notes, status || 'pending_pickup',
-    container_no, vessel, voyage, awb, airline, express_provider,
-    etd, eta, estimated_delivery_date,
-    now, now);
-
-  db.prepare("UPDATE orders SET status = CASE WHEN status = 'shipped' THEN 'shipped' ELSE 'partially_shipped' END WHERE id = ?").run(order_id);
-  res.status(201).json(db.prepare("SELECT * FROM shipments WHERE id = ?").get(id));
+      etd, eta, shipped_at, estimated_delivery_date, req.user!.id, req.user!.id, now, now);
+    db.prepare("UPDATE orders SET status = CASE WHEN status = 'shipped' THEN 'shipped' ELSE 'partially_shipped' END, updated_by = ?, updated_at = ? WHERE id = ?")
+      .run(req.user!.id, now, order_id);
+    const created = db.prepare("SELECT * FROM shipments WHERE id = ?").get(id) as Record<string, unknown>;
+    writeAudit(req, 'shipment', id, 'create', computeChanges(null, created));
+    return created;
+  })();
+  res.status(201).json(createdShipment);
 });
 
 router.put('/:id', (req: Request, res: Response) => {
@@ -106,15 +117,26 @@ router.put('/:id', (req: Request, res: Response) => {
     return res.status(400).json({ success: false, message: 'No valid fields to update' });
   }
 
-  const fields = updateFields.map((field) => `${field} = ?`).join(', ');
-  const values = updateFields.map((field) => req.body[field]);
-  const result = db.prepare(`UPDATE shipments SET ${fields}, updated_at = ? WHERE id = ?`).run(...values, now, req.params.id);
-  if (result.changes === 0) return res.status(404).json({ success: false, message: 'Record not found' });
-  res.json(db.prepare("SELECT * FROM shipments WHERE id = ?").get(req.params.id));
+  const before = db.prepare("SELECT * FROM shipments WHERE id = ? AND deleted_at IS NULL").get(req.params.id) as Record<string, unknown> | undefined;
+  if (!before) return res.status(404).json({ success: false, message: 'Record not found' });
+  const updatedShipment = db.transaction(() => {
+    const fields = updateFields.map((field) => `${field} = ?`).join(', ');
+    const values = updateFields.map((field) => req.body[field]);
+    db.prepare(`UPDATE shipments SET ${fields}, updated_by = ?, updated_at = ? WHERE id = ?`).run(...values, req.user!.id, now, req.params.id);
+    const after = db.prepare("SELECT * FROM shipments WHERE id = ?").get(req.params.id) as Record<string, unknown>;
+    writeAudit(req, 'shipment', req.params.id, 'update', computeChanges(before, after));
+    return after;
+  })();
+  res.json(updatedShipment);
 });
 
 router.delete('/:id', (req: Request, res: Response) => {
-  db.prepare("UPDATE shipments SET deleted_at = ? WHERE id = ?").run(new Date().toISOString(), req.params.id);
+  const shipment = db.prepare("SELECT shipment_number FROM shipments WHERE id = ? AND deleted_at IS NULL").get(req.params.id) as { shipment_number: string } | undefined;
+  if (!shipment) return res.status(404).json({ error: 'Not found' });
+  db.transaction(() => {
+    db.prepare("UPDATE shipments SET deleted_at = ?, updated_by = ? WHERE id = ?").run(new Date().toISOString(), req.user!.id, req.params.id);
+    writeAudit(req, 'shipment', req.params.id, 'delete', { shipment_number: shipment.shipment_number });
+  })();
   res.status(204).send();
 });
 
