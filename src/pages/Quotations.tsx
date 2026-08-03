@@ -57,9 +57,6 @@ export default function Quotations() {
         <div className="min-w-0">
           <span className="block truncate text-sm font-medium tabular-nums text-blue-600">{q.quotation_number}</span>
           <span className="mt-0.5 block truncate text-xs text-gray-500">{q.company_name || '—'}</span>
-          <span className={`mt-1 block truncate text-2xs ${q.inquiry_number ? 'text-gray-400' : 'text-amber-600'}`}>
-            {t('nav.inquiries')}: {q.inquiry_number || t('common.na')}
-          </span>
         </div>
         <StatusBadge status={q.status} />
       </div>
@@ -162,10 +159,7 @@ export default function Quotations() {
               {sorted.map(q => (
                 <tr key={q.id} className="table-row" onClick={() => navigate(`/quotations/${q.id}`)}>
                   <td className="table-cell font-medium text-blue-600 tabular-nums">
-                    <span className="block">{q.quotation_number}</span>
-                    <span className={`mt-1 block text-2xs font-normal ${q.inquiry_number ? 'text-gray-400' : 'text-amber-600'}`}>
-                      {t('nav.inquiries')}: {q.inquiry_number || t('common.na')}
-                    </span>
+                    {q.quotation_number}
                   </td>
                   <td className="table-cell text-xs text-gray-500">{q.quotation_date || q.created_at?.slice(0, 10) || '—'}</td>
                   <td className="table-cell text-gray-900">{q.company_name || '—'}</td>

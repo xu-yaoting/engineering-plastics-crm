@@ -646,6 +646,26 @@ migrate(`
 `);
 
 // ── 10. Merge inquiry fields into quotations ──
+// Fix QT- prefixed numbers from migration v1 → use QUO- prefix
+try {
+  const qtFix = db.prepare(`
+    UPDATE quotations SET quotation_number = 'QUO-' || substr(quotation_number, 4)
+    WHERE quotation_number LIKE 'QT-%'
+  `).run();
+  if (qtFix.changes > 0) console.log(`[migration] Fixed ${qtFix.changes} QT- → QUO- quotation numbers`);
+} catch (e) { /* ignore */ }
+
+// Disassociate inquiry_id from quotations — inquiry fields are now native
+try {
+  const disassociated = db.prepare(`UPDATE quotations SET inquiry_id = NULL WHERE inquiry_id IS NOT NULL`).run();
+  if (disassociated.changes > 0) console.log(`[migration] Disassociated ${disassociated.changes} quotations from inquiries`);
+} catch (e) { /* ignore */ }
+
+// Soft-delete all inquiries (data has been migrated to quotations)
+try {
+  const deleted = db.prepare(`UPDATE inquiries SET deleted_at = ? WHERE deleted_at IS NULL`).run(new Date().toISOString());
+  if (deleted.changes > 0) console.log(`[migration] Soft-deleted ${deleted.changes} inquiries`);
+} catch (e) { /* ignore */ }
 migrate("ALTER TABLE quotations ADD COLUMN application_description TEXT");
 migrate("ALTER TABLE quotations ADD COLUMN target_material_requested TEXT");
 migrate("ALTER TABLE quotations ADD COLUMN quantity_estimate TEXT");

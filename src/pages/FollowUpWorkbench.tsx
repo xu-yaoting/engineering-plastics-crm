@@ -43,7 +43,7 @@ export default function FollowUpWorkbench() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [stage, setStage] = useState<DevelopmentStage | 'all'>('all');
-  const [bucket, setBucket] = useState<FollowUpBucket>('today');
+  const [bucket, setBucket] = useState<FollowUpBucket>('thisWeek');
   const [ownerFilter, setOwnerFilter] = useState('all');
   const [currentUserId, setCurrentUserId] = useState('');
   const [selected, setSelected] = useState<FollowUpWorkbenchItem | null>(null);
@@ -99,7 +99,6 @@ export default function FollowUpWorkbench() {
 
   const buckets: Array<{ key: FollowUpBucket; label: string }> = [
     { key: 'all', label: t('page.customerDevelopment.all') },
-    { key: 'today', label: t('page.customerDevelopment.today') },
     { key: 'thisWeek', label: t('page.customerDevelopment.thisWeek') },
     { key: 'overdue', label: t('page.customerDevelopment.overdue') },
     { key: 'none', label: t('page.customerDevelopment.unscheduled') },

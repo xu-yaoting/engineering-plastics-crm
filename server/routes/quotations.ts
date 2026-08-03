@@ -57,11 +57,10 @@ const QUOTATION_UPDATE_FIELDS = [
 router.get('/', (req: Request, res: Response) => {
   const { status, company_id } = req.query;
   const q = req.query.q as string | undefined;
-  let query = `SELECT q.*, c.name as company_name, i.inquiry_number, owner.name as owner_name,
+  let query = `SELECT q.*, c.name as company_name, owner.name as owner_name,
     creator.name as created_by_name, updater.name as updated_by_name
     FROM quotations q
     LEFT JOIN companies c ON q.company_id = c.id
-    LEFT JOIN inquiries i ON i.id = q.inquiry_id AND i.deleted_at IS NULL
     LEFT JOIN users owner ON owner.id = q.owner_user_id
     LEFT JOIN users creator ON creator.id = q.created_by
     LEFT JOIN users updater ON updater.id = q.updated_by
@@ -70,7 +69,7 @@ router.get('/', (req: Request, res: Response) => {
   if (status) { query += " AND q.status = ?"; params.push(status as string); }
   if (company_id) { query += " AND q.company_id = ?"; params.push(company_id as string); }
   if (q) {
-    query += " AND (q.quotation_number LIKE ? OR c.name LIKE ? OR i.inquiry_number LIKE ?)";
+    query += " AND (q.quotation_number LIKE ? OR c.name LIKE ? OR q.target_material_requested LIKE ?)";
     const like = `%${q}%`;
     params.push(like, like, like);
   }
@@ -82,13 +81,11 @@ router.get('/:id', (req: Request, res: Response) => {
   const quotation = db.prepare(`
     SELECT q.*, c.name as company_name,
       ct.first_name || ' ' || ct.last_name as contact_name,
-      i.inquiry_number,
       (SELECT id FROM orders WHERE quotation_id = q.id AND deleted_at IS NULL LIMIT 1) as order_id,
       owner.name as owner_name, creator.name as created_by_name, updater.name as updated_by_name
     FROM quotations q
     LEFT JOIN companies c ON q.company_id = c.id
     LEFT JOIN contacts ct ON q.contact_id = ct.id
-    LEFT JOIN inquiries i ON i.id = q.inquiry_id AND i.deleted_at IS NULL
     LEFT JOIN users owner ON owner.id = q.owner_user_id
     LEFT JOIN users creator ON creator.id = q.created_by
     LEFT JOIN users updater ON updater.id = q.updated_by

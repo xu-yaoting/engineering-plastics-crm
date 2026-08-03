@@ -20,7 +20,7 @@ const planSource = readFileSync(new URL('../PLANS.md', import.meta.url), 'utf8')
 test('follow-up workbench presents company maintenance queues instead of a sales pipeline', () => {
   assert.match(source, /followUps\.list\(\)/);
   assert.match(source, /FollowUpBucket/);
-  for (const bucket of ['overdue', 'today', 'thisWeek', 'none', 'all']) {
+  for (const bucket of ['overdue', 'thisWeek', 'none', 'all']) {
     assert.match(source, new RegExp(`key: '${bucket}'`));
   }
   assert.match(source, /role="tablist"/);

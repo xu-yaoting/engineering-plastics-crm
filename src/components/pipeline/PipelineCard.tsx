@@ -14,7 +14,7 @@ export default function PipelineCard({
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleClick = () => {
-    const path = card.entityType === 'inquiry' ? '/inquiries' :
+    const path = card.entityType === 'inquiry' ? '/quotations' :
                  card.entityType === 'quotation' ? '/quotations' :
                  card.entityType === 'sample' ? '/samples' :
                  card.entityType === 'order' ? '/orders' : '/companies';

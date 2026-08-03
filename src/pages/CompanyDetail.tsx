@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { companies, contacts, activities, tasks, inquiries, quotations } from '../lib/api';
+import { companies, contacts, activities, tasks, quotations } from '../lib/api';
 import StatusBadge from '../components/shared/StatusBadge';
 import ProductTag from '../components/shared/ProductTag';
 import { formatCurrency } from '../lib/currency';
@@ -11,6 +11,7 @@ import TaskSection from '../components/shared/TaskSection';
 import MeetingNotes from '../components/shared/MeetingNotes';
 import CompanyEditPanel from '../components/companies/CompanyEditPanel';
 import ContactPanel from '../components/contacts/ContactPanel';
+import QuotationEditPanel from '../components/quotations/QuotationEditPanel';
 import AccountabilityPanel from '../components/shared/AccountabilityPanel';
 import SidePanel from '../components/shared/SidePanel';
 
@@ -72,9 +73,9 @@ export default function CompanyDetail() {
   const [contactList, setContactList] = useState<Contact[]>([]);
   const [activityList, setActivityList] = useState<any[]>([]);
   const [taskList, setTaskList] = useState<any[]>([]);
-  const [inquiryList, setInquiryList] = useState<any[]>([]);
   const [quotationList, setQuotationList] = useState<any[]>([]);
   const [showEditPanel, setShowEditPanel] = useState(false);
+  const [showNewQuotation, setShowNewQuotation] = useState(false);
   const [contactPanel, setContactPanel] = useState<{ companyId: string; contact?: any } | null>(null);
   const [showMeetingNotes, setShowMeetingNotes] = useState(false);
   const [detailsPanel, setDetailsPanel] = useState<'company' | 'history' | null>(null);
@@ -86,7 +87,6 @@ export default function CompanyDetail() {
     contacts.list(id).then(setContactList);
     activities.list('company', id).then(setActivityList);
     tasks.list({ entity_type: 'company', entity_id: id }).then(setTaskList);
-    inquiries.list(id).then(setInquiryList);
     quotations.list(id).then(setQuotationList);
   }, [id]);
 
@@ -94,7 +94,7 @@ export default function CompanyDetail() {
 
   // Extract product families from inquiries for Product Interest
   const productFamilies = [...new Set(
-    inquiryList.map((i: any) => i.target_material_requested?.split(' ')[0]).filter(Boolean)
+    quotationList.map((q: any) => q.target_material_requested?.split(' ')[0]).filter(Boolean)
   )];
   const websiteHref = company?.website && /^(https?:)?\/\//i.test(company.website)
     ? company.website
@@ -122,9 +122,6 @@ export default function CompanyDetail() {
     if (urgency === 'no_rush') return t('page.inquiries.noRush');
     return urgency || '—';
   };
-  const activeInquiries = inquiryList.filter(
-    (inquiry: any) => inquiry.status !== 'closed_won' && inquiry.status !== 'closed_lost',
-  );
   const activeQuotations = quotationList.filter(
     (quotation: any) => !['accepted', 'rejected', 'expired', 'cancelled'].includes(quotation.status),
   );
@@ -158,24 +155,17 @@ export default function CompanyDetail() {
         label: t('page.companyDetail.openTask', { subject: nextFollowUpTask.subject }),
         to: '/tasks',
       }
-    : activeInquiries[0]
+    : activeQuotations[0]
       ? {
-          label: t('page.customerSummary.quotePendingInquiry', {
-            number: activeInquiries[0].inquiry_number,
+          label: t('page.customerSummary.followQuotation', {
+            number: activeQuotations[0].quotation_number,
           }),
-          to: `/inquiries/${activeInquiries[0].id}`,
+          to: `/quotations/${activeQuotations[0].id}`,
         }
-      : activeQuotations[0]
-        ? {
-            label: t('page.customerSummary.followQuotation', {
-              number: activeQuotations[0].quotation_number,
-            }),
-            to: `/quotations/${activeQuotations[0].id}`,
-          }
-        : {
-            label: t('page.companyDetail.createInquiry'),
-            to: `/inquiries/new?company=${id}`,
-          };
+      : {
+          label: t('page.quotations.newQuotation'),
+          action: () => setShowNewQuotation(true),
+        };
 
   return (
     <div className="h-full flex flex-col">
@@ -195,7 +185,7 @@ export default function CompanyDetail() {
           </div>
           <div className="page-actions w-full sm:w-auto">
             <button onClick={() => setShowEditPanel(true)} className="btn-ghost btn-sm flex-1 sm:flex-none"><Icon name="square-pen" size={14} className="mr-1.5" />{t('common.edit')}</button>
-            <Link to={`/inquiries/new?company=${id}`} className="btn-primary btn-sm flex-1 justify-center sm:flex-none"><Icon name="plus" size={16} className="mr-1.5" />{t('page.companyDetail.newInquiry')}</Link>
+            <button onClick={() => setShowNewQuotation(true)} className="btn-primary btn-sm flex-1 justify-center sm:flex-none"><Icon name="plus" size={16} className="mr-1.5" />{t('page.quotations.newQuotation')}</button>
           </div>
         </div>
         <div className="text-xs text-gray-500">
@@ -216,7 +206,7 @@ export default function CompanyDetail() {
               <ActionMetric label={t('page.companyDetail.pipelineValue')} value={pipelineValue} />
               <ActionMetric
                 label={t('page.companyDetail.openPipeline')}
-                value={`${t('page.companyDetail.inquiryCount', { count: activeInquiries.length })} · ${t('page.companyDetail.quotationCount', { count: activeQuotations.length })}`}
+                value={t('page.companyDetail.quotationCount', { count: activeQuotations.length })}
               />
               <ActionMetric
                 label={t('page.companyDetail.nextFollowUp')}
@@ -229,109 +219,78 @@ export default function CompanyDetail() {
                 risk={pendingTasks.some((task: any) => task.due_date && task.due_date < new Date().toISOString().slice(0, 10))}
               />
             </div>
-            <Link
-              to={nextAction.to}
-              className="btn-primary btn-sm w-full lg:w-auto justify-center lg:max-w-72"
-              title={nextAction.label}
-            >
-              <span className="truncate">{nextAction.label}</span>
-            </Link>
+            {'to' in nextAction ? (
+              <Link
+                to={nextAction.to}
+                className="btn-primary btn-sm w-full lg:w-auto justify-center lg:max-w-72"
+                title={nextAction.label}
+              >
+                <span className="truncate">{nextAction.label}</span>
+              </Link>
+            ) : (
+              <button
+                onClick={nextAction.action}
+                className="btn-primary btn-sm w-full lg:w-auto justify-center lg:max-w-72"
+                title={nextAction.label}
+              >
+                <span className="truncate">{nextAction.label}</span>
+              </button>
+            )}
           </section>
         </div>
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
           <main className="order-1 min-w-0 space-y-6">
               <div className="w-full space-y-6">
-                {/* Open Opportunities */}
+                {/* Quotations / Opportunities */}
                 <div className="section-band px-4 py-4">
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-sm font-semibold text-gray-700">
                       {t('page.companyDetail.pipelineOpportunities')}{' '}
                       <span className="text-xs font-normal text-gray-400 ml-2">
-                        {inquiryList.filter((i: any) => i.status !== 'closed_won' && i.status !== 'closed_lost').length} {t('page.inquiries.number', 'inquiries')} · {quotationList.filter((q: any) => q.status !== 'accepted' && q.status !== 'rejected').length} {t('nav.quotations')}
+                        {activeQuotations.length} {t('nav.quotations')}
                       </span>
                     </h2>
-                    <Link to={`/inquiries/new?company=${id}`} className="text-xs text-blue-600 hover:underline">{t('common.new')}</Link>
+                    <button onClick={() => setShowNewQuotation(true)} className="text-xs text-blue-600 hover:underline">{t('page.quotations.newQuotation')}</button>
                   </div>
                   <div className="space-y-2">
-                    {/* Active Inquiries as opportunity cards */}
-                    {inquiryList
-                      .filter((i: any) => i.status !== 'closed_won' && i.status !== 'closed_lost')
-                      .slice(0, 3)
-                      .map((inq: any) => (
-                        <Link
-                          key={inq.id}
-                          to={`/inquiries/${inq.id}`}
-                          className="block rounded border border-gray-200 border-l-2 border-l-gray-400 bg-white p-3 transition-colors hover:bg-gray-50"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-gray-900">{inq.target_material_requested || t('page.inquiries.new')}</span>
-                                <StatusBadge status={inq.status} />
-                              </div>
-                              <p className="text-xs text-gray-500 mt-1 line-clamp-1">{inq.application_description?.slice(0, 120)}</p>
-                              <div className="flex items-center gap-3 mt-1.5 text-2xs text-gray-400">
-                                <span>{inq.inquiry_number}</span>
-                                {inq.quantity_estimate && <span>· {inq.quantity_estimate}</span>}
-                                <span className={`${inq.urgency === 'immediate' ? 'text-red-500 font-medium' : ''}`}>
-                                  · {urgencyLabel(inq.urgency)}
+                    {activeQuotations.slice(0, 3).map((q: any) => (
+                      <Link
+                        key={q.id}
+                        to={`/quotations/${q.id}`}
+                        className="block rounded border border-gray-200 border-l-2 border-l-blue-600 bg-white p-3 transition-colors hover:bg-gray-50"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-gray-900">{q.quotation_number}</span>
+                              <StatusBadge status={q.status} />
+                            </div>
+                            {q.target_material_requested && (
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-1">{q.target_material_requested}{q.quantity_estimate ? ` · ${q.quantity_estimate}` : ''}</p>
+                            )}
+                            <div className="flex items-center gap-3 mt-1.5 text-2xs text-gray-400">
+                              <span>{q.currency || 'USD'}</span>
+                              {q.valid_until && (
+                                <span className={new Date(q.valid_until).getTime() - Date.now() < 7 * 86400000 ? 'text-red-500 font-medium' : ''}>
+                                  · {t('page.companyDetail.expires')}: {q.valid_until}
                                 </span>
-                              </div>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              {inq.estimated_budget > 0 && (
-                                <span className="text-xs tabular-nums font-medium text-gray-900">{formatCurrency(inq.estimated_budget, inq.currency)}</span>
                               )}
+                              <span>· {t('page.companyDetail.revision', { version: q.version || 1 })}</span>
                             </div>
                           </div>
-                        </Link>
-                      ))}
-
-                    {/* Open {t('page.companyDetail.quotations')} as opportunity cards */}
-                    {quotationList
-                      .filter((q: any) => q.status !== 'accepted' && q.status !== 'rejected' && q.status !== 'expired' && q.status !== 'cancelled')
-                      .slice(0, 3)
-                      .map((q: any) => (
-                        <Link
-                          key={q.id}
-                          to={`/quotations/${q.id}`}
-                          className="block rounded border border-gray-200 border-l-2 border-l-blue-600 bg-white p-3 transition-colors hover:bg-gray-50"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-gray-900">{q.quotation_number}</span>
-                                <StatusBadge status={q.status} />
-                              </div>
-                              <div className="flex items-center gap-3 mt-1 text-2xs text-gray-400">
-                                <span>{q.currency || 'USD'}</span>
-                                {q.valid_until && (
-                                  <span className={
-                                    new Date(q.valid_until).getTime() - Date.now() < 7 * 86400000
-                                      ? 'text-red-500 font-medium'
-                                      : ''
-                                  }>
-                                    · {t('page.companyDetail.expires')}: {q.valid_until}
-                                  </span>
-                                )}
-                                <span>· {t('page.companyDetail.revision', { version: q.version || 1 })}</span>
-                              </div>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <span className="text-sm tabular-nums font-semibold text-gray-900">{formatCurrency(q.total, q.currency)}</span>
-                            </div>
+                          <div className="text-right flex-shrink-0">
+                            <span className="text-sm tabular-nums font-semibold text-gray-900">{formatCurrency(q.total, q.currency)}</span>
                           </div>
-                        </Link>
-                      ))}
+                        </div>
+                      </Link>
+                    ))}
 
-                    {/* Empty state */}
-                    {inquiryList.filter((i: any) => i.status !== 'closed_won' && i.status !== 'closed_lost').length === 0 &&
-                     quotationList.filter((q: any) => q.status !== 'accepted' && q.status !== 'rejected').length === 0 && (
+                    {activeQuotations.length === 0 && (
                       <div className="empty-state">
                         <p className="text-xs text-gray-400 mb-2">{t('page.companyDetail.noActiveOpportunities')}</p>
-                        <Link to={`/inquiries/new?company=${id}`} className="text-xs text-blue-600 hover:underline font-medium">
-                          {t('page.companyDetail.createInquiry')}
-                        </Link>
+                        <button onClick={() => setShowNewQuotation(true)} className="text-xs text-blue-600 hover:underline font-medium">
+                          {t('page.quotations.newQuotation')}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -548,6 +507,17 @@ export default function CompanyDetail() {
           contact={contactPanel.contact}
           onClose={() => setContactPanel(null)}
           onSaved={load}
+        />
+      )}
+      {showNewQuotation && (
+        <QuotationEditPanel
+          quotation={{ company_id: id, company_name: company?.name, currency: 'USD' }}
+          onClose={() => setShowNewQuotation(false)}
+          onSaved={(saved) => {
+            setShowNewQuotation(false);
+            load();
+            if (saved?.id) navigate(`/quotations/${saved.id}`);
+          }}
         />
       )}
     </div>

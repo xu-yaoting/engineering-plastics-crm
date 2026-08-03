@@ -385,9 +385,6 @@ export default function QuotationDetail() {
         <div className="text-xs text-gray-500">
           <Link to={`/companies/${quotation.company_id}`} className="text-blue-600 hover:underline">{quotation.company_name}</Link>
           {quotation.contact_name && ` · ${t('page.inquiryDetail.contact')}: ${quotation.contact_name}`}
-          {quotation.inquiry_id && (
-            <> · <Link to={`/inquiries/${quotation.inquiry_id}`} className="text-blue-600 hover:underline">{quotation.inquiry_number || t('nav.inquiries')}</Link></>
-          )}
           {` · ${quotation.currency || 'USD'}`}
           {quotation.quotation_date && ` · ${t('page.quotationDetail.quotationDate')}: ${quotation.quotation_date}`}
           {quotation.valid_until && ` · ${t('page.quotationDetail.validUntil')}: ${quotation.valid_until}`}
