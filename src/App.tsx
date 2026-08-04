@@ -191,6 +191,7 @@ export default function App() {
                 <Route path="/activities" element={<Activities />} />
                 <Route path="/tasks" element={<Tasks />} />
                 <Route path="/settings/profile" element={<SettingsProfile />} />
+                <Route path="*" element={<Navigate to="/quotations" replace />} />
               </Routes>
             </Suspense>
           </main>

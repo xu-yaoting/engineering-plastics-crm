@@ -5,7 +5,7 @@ const en = {
   nav: {
     pipeline: 'Pipeline', opportunities: 'Opportunities', dashboard: 'Workspace',
     customers: 'Customers', companies: 'Companies', contacts: 'Contacts',
-    inquiries: 'Inquiries', quotations: 'Quotations',
+    quotations: 'Quotations',
     orders: 'Orders', shipments: 'Shipments',
     inventory: 'Inventory', payments: 'Payments', activities: 'Activities',
     tasks: 'Tasks', settings: 'Settings', sales: 'Sales', workspace: 'Workspace',
@@ -77,7 +77,7 @@ const en = {
   page: {
     title: {
       customers: 'Customers', companies: 'Companies', contacts: 'Contacts',
-      inquiries: 'Inquiries', quotations: 'Quotations',
+      quotations: 'Quotations',
       orders: 'Orders', shipments: 'Shipments',
       payments: 'Payments', activities: 'Activities',
       tasks: 'Tasks', dashboard: 'Workspace',
@@ -750,7 +750,7 @@ const zh: typeof en = {
   nav: {
     pipeline: '管道', opportunities: '销售机会', dashboard: '工作台',
     customers: '客户', companies: '客户', contacts: '联系人',
-    inquiries: '询盘', quotations: '报价',
+    quotations: '报价',
     orders: '订单', shipments: '发货',
     inventory: '库存', payments: '收款', activities: '活动',
     tasks: '任务', settings: '设置', sales: '销售', workspace: '工作台',
@@ -822,7 +822,7 @@ const zh: typeof en = {
   page: {
     title: {
       customers: '客户', companies: '客户', contacts: '联系人',
-      inquiries: '询盘', quotations: '报价',
+      quotations: '报价',
       orders: '订单', shipments: '发货',
       payments: '收款', activities: '活动',
       tasks: '任务', dashboard: '工作台',

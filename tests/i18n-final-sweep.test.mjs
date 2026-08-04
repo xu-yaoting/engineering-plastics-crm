@@ -4,7 +4,6 @@ import test from 'node:test';
 
 const files = [
   '../src/components/shared/EmailDraftPanel.tsx',
-  '../src/components/shared/CustomerSummary.tsx',
   '../src/components/companies/CompanyEditPanel.tsx',
 ];
 
@@ -38,7 +37,6 @@ test('final sweep components no longer render obvious hard-coded English UI labe
     /No activity for/,
     /Recent Activity/,
     /Pipeline Summary/,
-    /Open Inquiries/,
     /Open Quotes/,
     /Pending Tasks/,
     /Company updated/,
@@ -61,7 +59,7 @@ test('final sweep localization dictionary contains email draft, customer summary
     'fillVariablesAbove', 'copied', 'copyToClipboard',
     'customerBriefing', 'ytdRevenue', 'lastActivity', 'openOpportunities',
     'activeOrders', 'topProduct', 'overdueTask', 'noActivityFor',
-    'pipelineSummary', 'openInquiries', 'openQuotes', 'pendingTasks',
+    'pipelineSummary', 'openQuotes', 'pendingTasks',
     'companyUpdated', 'companySaveFailed', 'usedForOrderNumbering',
   ];
 
@@ -79,14 +77,6 @@ test('company edit save surfaces field and backend errors while locking actions 
   assert.match(companyEditSource, /<button onClick=\{onClose\} disabled=\{saving\} className="btn-secondary">/);
 });
 
-test('customer summary uses neutral flat surfaces and semantic risk emphasis', () => {
-  const customerSummarySource = readFileSync(new URL('../src/components/shared/CustomerSummary.tsx', import.meta.url), 'utf8');
-  assert.match(customerSummarySource, /className="data-surface p-4"/);
-  assert.match(customerSummarySource, /status-edge-danger/);
-  assert.match(customerSummarySource, /status-edge-warning/);
-  assert.doesNotMatch(customerSummarySource, /bg-gradient|rounded-xl/);
-  assert.doesNotMatch(customerSummarySource, /color="text-(green|blue|yellow)-600"/);
-});
 
 test('email drafts use compact filters and flat template rows', () => {
   const emailSource = readFileSync(new URL('../src/components/shared/EmailDraftPanel.tsx', import.meta.url), 'utf8');

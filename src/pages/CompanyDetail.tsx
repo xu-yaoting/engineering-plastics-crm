@@ -173,7 +173,7 @@ export default function CompanyDetail() {
       <div className="flex-shrink-0 border-b border-gray-200 bg-white px-5 py-3">
         <div className="page-header mb-0 min-h-0 items-stretch sm:items-center">
           <div className="flex min-w-0 items-start gap-2 sm:items-center sm:gap-3">
-            <button onClick={() => navigate(-1)} className="icon-btn" aria-label={t('common.back')} title={t('common.back')}><Icon name="back" size={16} /></button>
+            <Link to="/companies" className="icon-btn" aria-label={t('common.back')} title={t('common.back')}><Icon name="back" size={16} /></Link>
             <h1 className="page-heading min-w-0 flex-1 text-lg sm:text-2xl">{company.name}</h1>
             <StatusBadge status={company.status} />
             {company.classification && (
