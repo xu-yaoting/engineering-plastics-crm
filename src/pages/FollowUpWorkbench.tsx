@@ -122,12 +122,12 @@ export default function FollowUpWorkbench() {
   const stageColor = (s: DevelopmentStage) => {
     const map: Record<DevelopmentStage, string> = {
       uncontacted: 'bg-gray-100 text-gray-600',
-      contacted: 'bg-blue-50 text-blue-700',
-      replied: 'bg-purple-50 text-purple-700',
-      qualified: 'bg-amber-50 text-amber-700',
-      converted: 'bg-green-50 text-green-700',
-      nurturing: 'bg-teal-50 text-teal-700',
-      stopped: 'bg-red-50 text-red-700',
+      contacted: 'bg-blue-50 text-blue-600',
+      replied: 'bg-indigo-50 text-indigo-600',
+      qualified: 'bg-amber-50 text-amber-600',
+      converted: 'bg-emerald-50 text-emerald-600',
+      nurturing: 'bg-sky-50 text-sky-600',
+      stopped: 'bg-gray-100 text-gray-400',
     };
     return map[s] || 'bg-gray-100 text-gray-600';
   };
@@ -180,18 +180,17 @@ export default function FollowUpWorkbench() {
 
   const renderNextAction = (item: FollowUpWorkbenchItem) => item.next_follow_up_due_date ? (
     <>
-      <span className={`block truncate text-xs ${dueDateClass(item)}`}>
+      <span className="block truncate text-xs font-medium text-gray-700">
         {formatDate(item.next_follow_up_due_date)}
       </span>
       {item.next_follow_up_subject && (
-        <span className="mt-0.5 block truncate text-2xs text-gray-500">
+        <span className="mt-0.5 block truncate text-2xs text-gray-400">
           {item.next_follow_up_subject}
         </span>
       )}
     </>
   ) : (
-    <span className="block truncate text-2xs italic text-blue-600">
-      <Icon name="lightbulb" size={10} className="mr-1 inline-flex" />
+    <span className="inline-block truncate rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
       {suggestAction(item.development_stage)}
     </span>
   );
@@ -310,7 +309,7 @@ export default function FollowUpWorkbench() {
                 </span>
                 <button
                   type="button"
-                  className="btn-secondary btn-sm min-h-9 shrink-0"
+                  className="btn-ghost btn-sm min-h-9 shrink-0"
                   onClick={() => setSelected(item)}
                 >
                   {t('page.customerDevelopment.logFollowUp')}
@@ -378,7 +377,7 @@ export default function FollowUpWorkbench() {
                   <td className="whitespace-nowrap text-center">
                     <button
                       type="button"
-                      className="btn-secondary btn-xs"
+                      className="btn-ghost btn-xs"
                       onClick={() => setSelected(item)}
                     >
                       {t('page.customerDevelopment.logFollowUp')}
