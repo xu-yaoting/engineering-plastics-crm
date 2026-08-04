@@ -221,7 +221,7 @@ export default function CompanyDetail() {
             </div>
             {'to' in nextAction ? (
               <Link
-                to={nextAction.to}
+                to={(nextAction as {to: string}).to}
                 className="btn-primary btn-sm w-full lg:w-auto justify-center lg:max-w-72"
                 title={nextAction.label}
               >

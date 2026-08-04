@@ -245,7 +245,7 @@ export default function QuotationDetail() {
     if (!id) return;
     setDeleting(true);
     try {
-      await quotations.update(id, { deleted_at: new Date().toISOString() });
+      await quotations.delete(id);
       toast.success(t('page.quotationDetail.quotationDeleted'));
       navigate('/quotations');
     } catch (e) {

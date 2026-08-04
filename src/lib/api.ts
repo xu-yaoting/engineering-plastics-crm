@@ -280,4 +280,5 @@ export const quotations = {
   get: (id: string) => request<any>(`/quotations/${id}`),
   create: (data: any) => request<any>('/quotations', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: any) => request<any>(`/quotations/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: string) => request<void>(`/quotations/${id}`, { method: 'DELETE' }),
 };
