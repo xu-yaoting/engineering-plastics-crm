@@ -494,22 +494,14 @@ export default function QuotationDetail() {
                 </div>
               </div>
 
-              {/* Terms */}
+              {/* Responsibility */}
               <div className="card p-4">
-                <h3 className="section-label mb-3">{t('page.quotationDetail.terms')}</h3>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div><span className="text-2xs text-gray-400 block">{t('page.quotationDetail.incoterm')}</span><span className="text-gray-700">{quotation.incoterm || '—'}</span></div>
-                  <div className="col-span-2"><span className="text-2xs text-gray-400 block">{t('page.quotationDetail.payment')}</span><span className="text-gray-700">{quotation.payment_term || '—'}</span></div>
-                  <div className="col-span-3"><span className="text-2xs text-gray-400 block">{t('page.quotationDetail.delivery')}</span><span className="text-gray-700">{quotation.delivery_term || '—'}</span></div>
-                </div>
+                <AccountabilityPanel entityType="quotation" entityId={id!} record={quotation} />
               </div>
             </div>
 
             {/* Right Sidebar */}
             <div className="space-y-4">
-              <div className="card p-4">
-                <AccountabilityPanel entityType="quotation" entityId={id!} record={quotation} />
-              </div>
               <div className="card p-4">
                 <h3 className="section-label mb-3">{t('page.quotationDetail.pricingSummary')}</h3>
                 <div className="space-y-1.5 text-sm">
@@ -533,6 +525,16 @@ export default function QuotationDetail() {
                     <span>{t('page.quotationDetail.total')}</span>
                     <span className="tabular-nums text-base">{formatCurrency(quotation.total ?? subtotal, quotation.currency)}</span>
                   </div>
+                </div>
+              </div>
+
+              {/* Terms */}
+              <div className="card p-4">
+                <h3 className="section-label mb-3">{t('page.quotationDetail.terms')}</h3>
+                <div className="grid grid-cols-1 gap-3 text-sm">
+                  <div><span className="text-2xs text-gray-400 block">{t('page.quotationDetail.incoterm')}</span><span className="text-gray-700">{quotation.incoterm || '—'}</span></div>
+                  <div><span className="text-2xs text-gray-400 block">{t('page.quotationDetail.payment')}</span><span className="text-gray-700">{quotation.payment_term || '—'}</span></div>
+                  <div><span className="text-2xs text-gray-400 block">{t('page.quotationDetail.delivery')}</span><span className="text-gray-700">{quotation.delivery_term || '—'}</span></div>
                 </div>
               </div>
             </div>
