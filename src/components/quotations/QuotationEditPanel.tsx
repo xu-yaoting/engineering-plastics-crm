@@ -416,7 +416,7 @@ export default function QuotationEditPanel({
           {/* Fees (collapsible) */}
           <fieldset className="border-t border-gray-100 pt-4">
             <legend className="flex w-full items-center justify-between">
-              <span className="section-label">{t('page.quotationDetail.editPanel.shippingDiscount')}</span>
+              <span className="section-label">{t('page.quotationDetail.editPanel.fees')}</span>
               <button type="button" onClick={() => setShowFeeSection(v => !v)} className="text-xs text-blue-600 hover:underline">
                 {showFeeSection ? t('common.collapse') : t('common.expand')}
               </button>

@@ -655,32 +655,22 @@ try {
   if (qtFix.changes > 0) console.log(`[migration] Fixed ${qtFix.changes} QT- → QUO- quotation numbers`);
 } catch (e) { /* ignore */ }
 
-// Disassociate inquiry_id from quotations — inquiry fields are now native
-try {
-  const disassociated = db.prepare(`UPDATE quotations SET inquiry_id = NULL WHERE inquiry_id IS NOT NULL`).run();
-  if (disassociated.changes > 0) console.log(`[migration] Disassociated ${disassociated.changes} quotations from inquiries`);
-} catch (e) { /* ignore */ }
-
-// Soft-delete all inquiries (data has been migrated to quotations)
-try {
-  const deleted = db.prepare(`UPDATE inquiries SET deleted_at = ? WHERE deleted_at IS NULL`).run(new Date().toISOString());
-  if (deleted.changes > 0) console.log(`[migration] Soft-deleted ${deleted.changes} inquiries`);
-} catch (e) { /* ignore */ }
+// Add columns first (idempotent via migrate helper)
 migrate("ALTER TABLE quotations ADD COLUMN application_description TEXT");
 migrate("ALTER TABLE quotations ADD COLUMN target_material_requested TEXT");
 migrate("ALTER TABLE quotations ADD COLUMN quantity_estimate TEXT");
 migrate("ALTER TABLE quotations ADD COLUMN urgency TEXT DEFAULT 'within_1_month'");
 migrate("ALTER TABLE quotations ADD COLUMN source TEXT DEFAULT 'email'");
 
-// Copy inquiry data into linked quotations (idempotent: only fills NULL columns)
+// Copy inquiry data (MUST run before disassociation and soft-delete)
 try {
   const updated = db.prepare(`
     UPDATE quotations SET
-      application_description = COALESCE(quotations.application_description, (SELECT i.application_description FROM inquiries i WHERE i.id = quotations.inquiry_id AND i.deleted_at IS NULL)),
-      target_material_requested = COALESCE(quotations.target_material_requested, (SELECT i.target_material_requested FROM inquiries i WHERE i.id = quotations.inquiry_id AND i.deleted_at IS NULL)),
-      quantity_estimate = COALESCE(quotations.quantity_estimate, (SELECT i.quantity_estimate FROM inquiries i WHERE i.id = quotations.inquiry_id AND i.deleted_at IS NULL)),
-      urgency = COALESCE(quotations.urgency, (SELECT i.urgency FROM inquiries i WHERE i.id = quotations.inquiry_id AND i.deleted_at IS NULL), 'within_1_month'),
-      source = COALESCE(quotations.source, (SELECT i.source FROM inquiries i WHERE i.id = quotations.inquiry_id AND i.deleted_at IS NULL), 'email')
+      application_description = COALESCE(NULLIF(quotations.application_description, ''), (SELECT i.application_description FROM inquiries i WHERE i.id = quotations.inquiry_id AND i.deleted_at IS NULL)),
+      target_material_requested = COALESCE(NULLIF(quotations.target_material_requested, ''), (SELECT i.target_material_requested FROM inquiries i WHERE i.id = quotations.inquiry_id AND i.deleted_at IS NULL)),
+      quantity_estimate = COALESCE(NULLIF(quotations.quantity_estimate, ''), (SELECT i.quantity_estimate FROM inquiries i WHERE i.id = quotations.inquiry_id AND i.deleted_at IS NULL)),
+      urgency = COALESCE(NULLIF(quotations.urgency, ''), (SELECT i.urgency FROM inquiries i WHERE i.id = quotations.inquiry_id AND i.deleted_at IS NULL), 'within_1_month'),
+      source = COALESCE(NULLIF(quotations.source, ''), (SELECT i.source FROM inquiries i WHERE i.id = quotations.inquiry_id AND i.deleted_at IS NULL), 'email')
     WHERE inquiry_id IS NOT NULL
   `).run();
   console.log(`[migration] Copied inquiry fields to ${updated.changes} linked quotations`);
@@ -688,51 +678,16 @@ try {
   console.log('[migration] Inquiry field copy skipped');
 }
 
-// Create draft quotations for inquiries that have no quotation yet
+// Disassociate inquiry_id (only AFTER field copy above)
 try {
-  const now = new Date().toISOString();
-  const today = now.slice(0, 10);
-  const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const disassociated = db.prepare(`UPDATE quotations SET inquiry_id = NULL WHERE inquiry_id IS NOT NULL`).run();
+  if (disassociated.changes > 0) console.log(`[migration] Disassociated ${disassociated.changes} quotations from inquiries`);
+} catch (e) { /* ignore */ }
 
-  const orphans = db.prepare(`
-    SELECT i.* FROM inquiries i
-    WHERE i.deleted_at IS NULL
-      AND i.id NOT IN (SELECT DISTINCT inquiry_id FROM quotations WHERE inquiry_id IS NOT NULL AND deleted_at IS NULL)
-  `).all() as any[];
-
-  if (orphans.length > 0) {
-    const yy = today.slice(2, 4) + today.slice(5, 7);
-    const existing = (db.prepare("SELECT COUNT(*) as c FROM quotations WHERE quotation_number LIKE ?").get(`QT-${yy}-%`) as any).c;
-    const insert = db.prepare(`
-      INSERT INTO quotations (id, quotation_number, company_id, contact_id, inquiry_id,
-        application_description, target_material_requested, quantity_estimate,
-        urgency, source, currency, status, version, subtotal, total,
-        quotation_date, valid_until, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', 1, 0, 0, ?, ?, ?, ?)
-    `);
-    let seq = existing;
-    const tx = db.transaction(() => {
-      for (const inquiry of orphans) {
-        seq++;
-        const qId = uuidv4();
-        const qNum = `QT-${yy}-${String(seq).padStart(4, '0')}`;
-        insert.run(
-          qId, qNum, inquiry.company_id, inquiry.contact_id, inquiry.id,
-          inquiry.application_description || '',
-          inquiry.target_material_requested || '',
-          inquiry.quantity_estimate || '',
-          inquiry.urgency || 'within_1_month',
-          inquiry.source || 'email',
-          inquiry.currency || 'USD',
-          today, futureDate, now, now,
-        );
-      }
-    });
-    tx();
-    console.log(`[migration] Created ${orphans.length} draft quotations from orphan inquiries`);
-  }
-} catch (e) {
-  console.log('[migration] Orphan inquiry migration skipped:', (e as Error).message);
-}
+// Soft-delete all inquiries (only AFTER field copy above)
+try {
+  const deleted = db.prepare(`UPDATE inquiries SET deleted_at = ? WHERE deleted_at IS NULL`).run(new Date().toISOString());
+  if (deleted.changes > 0) console.log(`[migration] Soft-deleted ${deleted.changes} inquiries`);
+} catch (e) { /* ignore */ }
 
 export default db;
