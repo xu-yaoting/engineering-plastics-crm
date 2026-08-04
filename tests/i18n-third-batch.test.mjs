@@ -198,14 +198,13 @@ test('quotation editor controls have persistent labels and selected-state semant
     'quotation-edit-vat-rate',
     'quotation-edit-export-rebate-rate',
     'quotation-edit-shipping-handling',
-    'quotation-edit-overall-discount',
     'quotation-edit-internal-notes',
   ]) {
     assert.match(quotationEditSource, new RegExp(`htmlFor="${fieldId}"`));
     assert.match(quotationEditSource, new RegExp(`id="${fieldId}"`));
   }
 
-  for (const field of ['grade', 'unit', 'quantity', 'unit-price', 'discount', 'line-total']) {
+  for (const field of ['grade', 'unit', 'quantity', 'unit-price', 'line-total']) {
     assert.match(quotationEditSource, new RegExp(`htmlFor=\\{\`quotation-edit-${field}-\\$\\{idx\\}\`\\}`));
     assert.match(quotationEditSource, new RegExp(`id=\\{\`quotation-edit-${field}-\\$\\{idx\\}\`\\}`));
   }

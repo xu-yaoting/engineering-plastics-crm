@@ -163,6 +163,20 @@ router.post('/', (req: Request, res: Response) => {
   writeAudit(req, 'quotation', id, 'create', {
     ...computeChanges(null, created), line_item_count: lineItems.length,
   });
+  db.prepare(`
+    UPDATE companies
+    SET development_stage = 'converted', updated_by = ?, updated_at = ?
+    WHERE id = ?
+  `).run(req.user!.id, now, req.body.company_id);
+  const convertedCompany = db.prepare("SELECT * FROM companies WHERE id = ?")
+    .get(req.body.company_id) as Record<string, unknown>;
+  writeAudit(
+    req,
+    'company',
+    req.body.company_id,
+    'update',
+    computeChanges(company, convertedCompany),
+  );
   return created;
   })();
   res.status(201).json(createdQuotation);

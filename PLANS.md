@@ -1,5 +1,24 @@
 # CRM Company Workspace Simplification Plan
 
+# CRM Release Defect Repair Plan (2026-08-04)
+
+**Current goal:** Resolve the defects found in the full CRM acceptance pass while keeping the confirmed quotation-primary workflow, preserving legacy Inquiry URLs as redirects, and avoiding production data or schema changes.
+
+**Repair order:**
+1. [x] Restore the quotation-created Company development-stage transition and add a regression assertion.
+2. [x] Make the isolated write smoke flow follow the quotation-primary API while preserving a clear legacy Inquiry compatibility response.
+3. [x] Complete quotation editor labels and explicitly decide whether the removed discount controls remain out of scope; align static contracts with the current seven-column list.
+4. [x] Normalize list toolbar/empty-state markup and commercial action-menu surfaces.
+5. [x] Run targeted tests, full tests, typecheck, build, diff checks, and isolated API smoke.
+
+**Constraints:**
+- No database migration, production dependency, deployment, push, or real-customer data writes.
+- Keep changes to no more than three files per batch.
+- Preserve `/inquiries/*` redirects and existing stored legacy fields unless a compatibility issue requires a narrowly scoped response.
+- Do not remove the existing test-generated PDF change from the worktree without user direction.
+
+**Verification:** `npm run test`, `npm run smoke:api`, `npx tsc --noEmit`, `npm run build`, and `git diff --check`.
+
 **Current goal:** Rebalance the desktop Company workspace around actionable follow-up and sales work, remove duplicated summaries, and make Follow-ups a direct Sales navigation destination.
 
 **Confirmed product decisions:**

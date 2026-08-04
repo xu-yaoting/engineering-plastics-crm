@@ -7,6 +7,7 @@ import authRouter from './routes/auth.js';
 import companiesRouter from './routes/companies.js';
 import contactsRouter from './routes/contacts.js';
 import activitiesRouter from './routes/activities.js';
+import inquiriesRouter from './routes/inquiries.js';
 import tasksRouter from './routes/tasks.js';
 import quotationsRouter from './routes/quotations.js';
 import ordersRouter from './routes/orders.js';
@@ -64,6 +65,9 @@ app.use('/api', authMiddleware);
 app.use('/api/companies', companiesRouter);
 app.use('/api/contacts', contactsRouter);
 app.use('/api/activities', activitiesRouter);
+// Legacy compatibility API: the UI uses quotations as the primary sales entry,
+// but existing integrations and historical records still use Inquiry routes.
+app.use('/api/inquiries', inquiriesRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/quotations', quotationsRouter);
 app.use('/api/orders', ordersRouter);

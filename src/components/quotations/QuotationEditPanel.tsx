@@ -261,6 +261,7 @@ export default function QuotationEditPanel({
           <fieldset className="border-t border-gray-100 pt-4">
             <legend className="section-label mb-3">{t('page.inquiryNew.applicationDescription')}</legend>
             <div>
+              <label className="label" htmlFor="quotation-description">{t('page.inquiryNew.applicationDescription')}</label>
               <textarea
                 id="quotation-description"
                 className={errors.application_description ? 'input-error' : 'input'}

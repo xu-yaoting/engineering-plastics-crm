@@ -112,7 +112,7 @@ test('quotation and order lists follow the shared operational list pattern', () 
   for (const listSource of [quotationsSource, ordersSource]) {
     assert.match(listSource, /className="page-shell"/);
     assert.match(listSource, /className="page-header"/);
-    assert.match(listSource, /className="toolbar"/);
+    assert.match(listSource, /className="toolbar(?:\s[^"]+)?"/);
     assert.match(listSource, /className="(?:hidden )?data-surface overflow-x-auto(?: md:block)?"/);
     assert.match(listSource, /sticky top-0 z-10/);
     assert.match(listSource, /<Icon name="search"/);
@@ -122,7 +122,7 @@ test('quotation and order lists follow the shared operational list pattern', () 
 
 test('quotation and order lists keep empty results inside stable table surfaces', () => {
   assert.match(ordersSource, /colSpan=\{7\}><div className="empty-state"/);
-  assert.match(quotationsSource, /colSpan=\{9\}><div className="empty-state"/);
+  assert.match(quotationsSource, /colSpan=\{7\}><div className="empty-state"/);
 });
 
 test('inquiry and task filters use the shared empty state', () => {

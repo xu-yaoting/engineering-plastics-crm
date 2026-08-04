@@ -369,7 +369,7 @@ export default function QuotationDetail() {
               <Icon name="more" size={16} />
             </button>
             {showActionsMenu && actionsBtnRef.current && createPortal(
-              <div className="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-44"
+              <div className="menu-surface fixed z-50 w-44 py-1"
                 style={{
                   top: actionsBtnRef.current.getBoundingClientRect().bottom + 4,
                   right: window.innerWidth - actionsBtnRef.current.getBoundingClientRect().right,
