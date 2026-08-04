@@ -24,6 +24,7 @@ export default function CompanyEditPanel({
   const { t } = useTranslation();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [showFullAddress, setShowFullAddress] = useState(false);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [errors, setErrors] = useState<{ name?: string }>({});
 
@@ -38,6 +39,7 @@ export default function CompanyEditPanel({
   useEffect(() => {
     if (!company) return;
     setErrors({});
+    setShowFullAddress(!!(company.address_line_1 || company.address_line_2));
     setForm({
       name: company.name || '',
       company_type: company.company_type || 'end_user',
@@ -101,106 +103,128 @@ export default function CompanyEditPanel({
       subtitle={company?.name}
     >
       <div className="space-y-5">
-        <fieldset className="space-y-4">
+        {/* ── Basic Info ── */}
+        <fieldset>
           <legend className="section-label mb-3">{t('page.companies.companyName')}</legend>
-        <div>
-          <label className="label" htmlFor="company-name">{t('page.companies.companyName')} *</label>
-          <input
-            id="company-name"
-            className={errors.name ? 'input-error' : 'input'}
-            value={form.name}
-            required
-            autoComplete="organization"
-            onChange={e => set('name', e.target.value)}
-            aria-invalid={!!errors.name}
-            aria-describedby={errors.name ? 'company-name-error' : undefined}
-          />
-          {errors.name && <p id="company-name-error" className="field-error" role="alert">{errors.name}</p>}
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label className="label" htmlFor="company-type">{t('page.companies.type')}</label>
-            <select id="company-type" className="input" value={form.company_type} onChange={e => set('company_type', e.target.value)}>
-              <option value="end_user">{t('page.companies.endUser')}</option>
-              <option value="distributor">{t('page.companies.distributor')}</option>
-              <option value="oem">{t('page.companies.oem')}</option>
-              <option value="trading_company">{t('page.companies.trading')}</option>
-            </select>
-          </div>
-          <div>
-            <label className="label" htmlFor="company-industry">{t('page.companies.industry')}</label>
-            <input id="company-industry" className="input" value={form.industry} onChange={e => set('industry', e.target.value)} placeholder={t('page.companies.placeholderIndustry')} />
-          </div>
-        </div>
-
-        {user?.role === 'admin' && (
-          <div>
-            <label className="label" htmlFor="company-owner">{t('accountability.owner', { defaultValue: 'Owner' })}</label>
-            <select id="company-owner" className="input" value={form.owner_user_id} onChange={e => set('owner_user_id', e.target.value)}>
-              <option value="">{t('accountability.unassigned', { defaultValue: 'Unassigned' })}</option>
-              {members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
-            </select>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label className="label" htmlFor="company-registration-number">{t('page.companies.registrationNumber')}</label>
-            <input id="company-registration-number" className="input" value={form.registration_number} onChange={e => set('registration_number', e.target.value)} />
-          </div>
-          <div>
-            <label className="label" htmlFor="company-customer-code">{t('page.companies.customerCode')}</label>
-            <input id="company-customer-code" className="input tabular-nums uppercase" value={form.customer_code} onChange={e => set('customer_code', e.target.value.toUpperCase())} placeholder="SMP" maxLength={10} aria-describedby="company-customer-code-help" />
-            <span id="company-customer-code-help" className="text-2xs text-gray-400">{t('page.companies.usedForOrderNumbering')}: {`{PREFIX}-{CODE}-{YYMM}-{SEQ}`}</span>
-          </div>
-        </div>
-
-        <div>
-          <label className="label" htmlFor="company-website">{t('page.companies.website')}</label>
-          <input id="company-website" className="input" value={form.website} autoComplete="url" onChange={e => set('website', e.target.value)} placeholder={t('page.companies.placeholderWebsite')} />
-        </div>
-
-        <div>
-          <label className="label" htmlFor="company-phone">{t('page.companies.phone')}</label>
-          <input id="company-phone" className="input" value={form.phone} autoComplete="tel" onChange={e => set('phone', e.target.value)} />
-        </div>
-        </fieldset>
-
-        <fieldset className="border-t border-gray-100 pt-4">
-          <legend className="section-label mb-3">{t('page.companies.address')}</legend>
           <div className="space-y-3">
             <div>
-              <label className="label" htmlFor="company-address-line-1">{t('page.companies.placeholderAddress1')}</label>
-              <input id="company-address-line-1" className="input" value={form.address_line_1} autoComplete="address-line1" onChange={e => set('address_line_1', e.target.value)} />
+              <label className="label" htmlFor="company-name">{t('page.companies.companyName')} *</label>
+              <input
+                id="company-name"
+                className={errors.name ? 'input-error' : 'input'}
+                value={form.name}
+                required
+                autoComplete="organization"
+                onChange={e => set('name', e.target.value)}
+                aria-invalid={!!errors.name}
+                aria-describedby={errors.name ? 'company-name-error' : undefined}
+              />
+              {errors.name && <p id="company-name-error" className="field-error" role="alert">{errors.name}</p>}
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="label" htmlFor="company-type">{t('page.companies.type')}</label>
+                <select id="company-type" className="input" value={form.company_type} onChange={e => set('company_type', e.target.value)}>
+                  <option value="end_user">{t('page.companies.endUser')}</option>
+                  <option value="distributor">{t('page.companies.distributor')}</option>
+                  <option value="oem">{t('page.companies.oem')}</option>
+                  <option value="trading_company">{t('page.companies.trading')}</option>
+                </select>
+              </div>
+              <div>
+                <label className="label" htmlFor="company-industry">{t('page.companies.industry')}</label>
+                <input id="company-industry" className="input" value={form.industry} onChange={e => set('industry', e.target.value)} placeholder={t('page.companies.placeholderIndustry')} />
+              </div>
+            </div>
+            {user?.role === 'admin' && (
+              <div>
+                <label className="label" htmlFor="company-owner">{t('accountability.owner', { defaultValue: 'Owner' })}</label>
+                <select id="company-owner" className="input" value={form.owner_user_id} onChange={e => set('owner_user_id', e.target.value)}>
+                  <option value="">{t('accountability.unassigned', { defaultValue: 'Unassigned' })}</option>
+                  {members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+        </fieldset>
+
+        {/* ── Code & Contact ── */}
+        <fieldset className="border-t border-gray-100 pt-4">
+          <legend className="section-label mb-3">{t('page.companies.code')}</legend>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="company-customer-code">{t('page.companies.customerCode')}</label>
+              <input id="company-customer-code" className="input tabular-nums uppercase" value={form.customer_code} onChange={e => set('customer_code', e.target.value.toUpperCase())} placeholder="SMP" maxLength={10} aria-describedby="company-customer-code-help" />
+              <span id="company-customer-code-help" className="text-2xs text-gray-400">{t('page.companies.usedForOrderNumbering')}: {`{PREFIX}-{CODE}-{YYMM}-{SEQ}`}</span>
             </div>
             <div>
-              <label className="label" htmlFor="company-address-line-2">{t('page.companies.placeholderAddress2')}</label>
-              <input id="company-address-line-2" className="input" value={form.address_line_2} autoComplete="address-line2" onChange={e => set('address_line_2', e.target.value)} />
+              <label className="label" htmlFor="company-registration-number">{t('page.companies.registrationNumber')}</label>
+              <input id="company-registration-number" className="input" value={form.registration_number} onChange={e => set('registration_number', e.target.value)} />
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="label" htmlFor="company-city">{t('page.companies.city')}</label>
-                <input id="company-city" className="input" value={form.city} autoComplete="address-level2" onChange={e => set('city', e.target.value)} />
-              </div>
-              <div>
-                <label className="label" htmlFor="company-state">{t('page.companies.placeholderState')}</label>
-                <input id="company-state" className="input" value={form.state_province} autoComplete="address-level1" onChange={e => set('state_province', e.target.value)} />
-              </div>
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="company-website">{t('page.companies.website')}</label>
+              <input id="company-website" className="input" value={form.website} autoComplete="url" onChange={e => set('website', e.target.value)} placeholder={t('page.companies.placeholderWebsite')} />
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="label" htmlFor="company-country">{t('page.companies.country')}</label>
-                <input id="company-country" className="input" value={form.country} autoComplete="country-name" onChange={e => set('country', e.target.value)} />
-              </div>
-              <div>
-                <label className="label" htmlFor="company-postal-code">{t('page.companies.placeholderPostal')}</label>
-                <input id="company-postal-code" className="input" value={form.postal_code} autoComplete="postal-code" onChange={e => set('postal_code', e.target.value)} />
-              </div>
+            <div>
+              <label className="label" htmlFor="company-phone">{t('page.companies.phone')}</label>
+              <input id="company-phone" className="input" value={form.phone} autoComplete="tel" onChange={e => set('phone', e.target.value)} />
             </div>
           </div>
         </fieldset>
 
+        {/* ── Address (collapsible) ── */}
+        <fieldset className="border-t border-gray-100 pt-4">
+          <legend className="flex w-full items-center justify-between">
+            <span className="section-label">{t('page.companies.address')}</span>
+            <button
+              type="button"
+              onClick={() => setShowFullAddress(v => !v)}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              {showFullAddress ? t('common.collapse') : t('common.expand')}
+            </button>
+          </legend>
+          {!showFullAddress ? (
+            <p className="mt-2 text-sm text-gray-500">
+              {[form.city, form.state_province, form.country].filter(Boolean).join(', ') || '—'}
+            </p>
+          ) : (
+            <div className="mt-3 space-y-3">
+              <div>
+                <label className="label" htmlFor="company-address-line-1">{t('page.companies.placeholderAddress1')}</label>
+                <input id="company-address-line-1" className="input" value={form.address_line_1} autoComplete="address-line1" onChange={e => set('address_line_1', e.target.value)} />
+              </div>
+              <div>
+                <label className="label" htmlFor="company-address-line-2">{t('page.companies.placeholderAddress2')}</label>
+                <input id="company-address-line-2" className="input" value={form.address_line_2} autoComplete="address-line2" onChange={e => set('address_line_2', e.target.value)} />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="label" htmlFor="company-city">{t('page.companies.city')}</label>
+                  <input id="company-city" className="input" value={form.city} autoComplete="address-level2" onChange={e => set('city', e.target.value)} />
+                </div>
+                <div>
+                  <label className="label" htmlFor="company-state">{t('page.companies.placeholderState')}</label>
+                  <input id="company-state" className="input" value={form.state_province} autoComplete="address-level1" onChange={e => set('state_province', e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="label" htmlFor="company-country">{t('page.companies.country')}</label>
+                  <input id="company-country" className="input" value={form.country} autoComplete="country-name" onChange={e => set('country', e.target.value)} />
+                </div>
+                <div>
+                  <label className="label" htmlFor="company-postal-code">{t('page.companies.placeholderPostal')}</label>
+                  <input id="company-postal-code" className="input" value={form.postal_code} autoComplete="postal-code" onChange={e => set('postal_code', e.target.value)} />
+                </div>
+              </div>
+            </div>
+          )}
+        </fieldset>
+
+        {/* ── Classification ── */}
         <fieldset className="border-t border-gray-100 pt-4">
           <legend className="section-label mb-3">{t('page.companies.classificationCredit')}</legend>
           <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -222,13 +246,13 @@ export default function CompanyEditPanel({
               </select>
             </div>
           </div>
+          <div>
+            <label className="label" htmlFor="company-notes">{t('page.companies.notes')}</label>
+            <textarea id="company-notes" className="input min-h-[60px] resize-y" value={form.notes} onChange={e => set('notes', e.target.value)} />
+          </div>
         </fieldset>
 
-        <div>
-          <label className="label" htmlFor="company-notes">{t('page.companies.notes')}</label>
-          <textarea id="company-notes" className="input min-h-[80px] resize-y" value={form.notes} onChange={e => set('notes', e.target.value)} />
-        </div>
-
+        {/* ── Sticky footer ── */}
         <div className="sticky bottom-0 z-10 -mx-5 flex gap-2 border-t border-gray-200 bg-white px-5 py-4">
           <button onClick={save} disabled={saving} className="btn-primary flex-1">
             {saving ? t('page.companies.saving') : t('common.save')}

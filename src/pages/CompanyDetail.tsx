@@ -200,9 +200,9 @@ export default function CompanyDetail() {
         <div className="mx-auto w-full max-w-7xl px-4 pt-4">
           <section
             aria-label={t('page.companyDetail.actionSummary')}
-            className="data-surface flex flex-col gap-4 p-4 lg:flex-row lg:items-center"
+            className="data-surface p-4"
           >
-            <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-5 gap-y-3 lg:grid-cols-4">
+            <div className="grid grid-cols-3 gap-x-5 gap-y-3">
               <ActionMetric label={t('page.companyDetail.pipelineValue')} value={pipelineValue} />
               <ActionMetric
                 label={t('page.companyDetail.openPipeline')}
@@ -213,29 +213,7 @@ export default function CompanyDetail() {
                 value={nextFollowUp}
                 risk={Boolean(nextFollowUpTask?.due_date && nextFollowUpTask.due_date < new Date().toISOString().slice(0, 10))}
               />
-              <ActionMetric
-                label={t('page.companyDetail.pendingTasks')}
-                value={String(pendingTasks.length)}
-                risk={pendingTasks.some((task: any) => task.due_date && task.due_date < new Date().toISOString().slice(0, 10))}
-              />
             </div>
-            {'to' in nextAction ? (
-              <Link
-                to={(nextAction as {to: string}).to}
-                className="btn-primary btn-sm w-full lg:w-auto justify-center lg:max-w-72"
-                title={nextAction.label}
-              >
-                <span className="truncate">{nextAction.label}</span>
-              </Link>
-            ) : (
-              <button
-                onClick={nextAction.action}
-                className="btn-primary btn-sm w-full lg:w-auto justify-center lg:max-w-72"
-                title={nextAction.label}
-              >
-                <span className="truncate">{nextAction.label}</span>
-              </button>
-            )}
           </section>
         </div>
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
@@ -390,18 +368,15 @@ export default function CompanyDetail() {
                 </div>
               </section>
 
-              <div className="space-y-1 border-t border-gray-200 pt-3">
-                <Link to="/companies/contacts" className="btn-ghost w-full justify-between">
-                  {t('page.customerDevelopment.contactDirectory')}
-                  <Icon name="chevron-right" size={14} />
+              <div className="space-y-2 border-t border-gray-200 pt-3">
+                <Link to="/companies/contacts" className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600">
+                  <Icon name="chevron-right" size={11} />{t('page.customerDevelopment.contactDirectory')}
                 </Link>
-                <button type="button" onClick={() => setDetailsPanel('company')} className="btn-ghost w-full justify-between">
-                  {t('page.companyDetail.companyProfile')}
-                  <Icon name="chevron-right" size={14} />
+                <button type="button" onClick={() => setDetailsPanel('company')} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600">
+                  <Icon name="chevron-right" size={11} />{t('page.companyDetail.companyProfile')}
                 </button>
-                <button type="button" onClick={() => setDetailsPanel('history')} className="btn-ghost w-full justify-between">
-                  {t('accountability.history')}
-                  <Icon name="chevron-right" size={14} />
+                <button type="button" onClick={() => setDetailsPanel('history')} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600">
+                  <Icon name="chevron-right" size={11} />{t('accountability.history')}
                 </button>
               </div>
             </div>

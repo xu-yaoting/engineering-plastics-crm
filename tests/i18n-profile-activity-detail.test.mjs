@@ -84,7 +84,6 @@ test('activities and company detail use purpose-built shared visual hierarchy', 
 test('company detail opens with one actionable pipeline summary instead of duplicate briefing cards', () => {
   for (const key of [
     'actionSummary', 'pipelineValue', 'openPipeline', 'nextFollowUp',
-    'pendingTasks', 'openTask',
   ]) {
     assert.match(companyDetailSource, new RegExp(`page\\.companyDetail\\.${key}`));
   }
@@ -113,7 +112,6 @@ test('company detail header and action summary reflow without clipping on narrow
   assert.match(companyDetailSource, /page-heading min-w-0 flex-1 text-lg sm:text-2xl/);
   assert.match(companyDetailSource, /page-actions w-full sm:w-auto/);
   assert.match(companyDetailSource, /flex-1 sm:flex-none/);
-  assert.match(companyDetailSource, /w-full lg:w-auto/);
   assert.doesNotMatch(companyDetailSource, /<h1 className="page-heading truncate"/);
 });
 

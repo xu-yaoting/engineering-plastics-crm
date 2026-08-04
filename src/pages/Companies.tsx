@@ -385,8 +385,15 @@ export default function Companies() {
             <option value="unassigned">{t('accountability.unassigned')}</option>
             {members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
           </select>
-          <button onClick={() => setShowImport(true)} className="btn-secondary btn-sm"><Icon name="upload" size="inline" />{t('page.companies.import')}</button>
-          <button onClick={() => exportFullCsv('/api/companies', 'companies')} className="btn-secondary btn-sm"><Icon name="download" size="inline" />CSV</button>
+          <div className="relative">
+            <button onClick={() => setOpenMenu(openMenu === '_tools' ? null : '_tools')} className="btn-secondary btn-sm"><Icon name="more" size={14} /></button>
+            {openMenu === '_tools' && (
+              <div className="menu-surface absolute right-0 top-full mt-1 w-32" onClick={e => e.stopPropagation()}>
+                <button onClick={() => { setOpenMenu(null); setShowImport(true); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"><Icon name="upload" size={13} />{t('page.companies.import')}</button>
+                <button onClick={() => { setOpenMenu(null); exportFullCsv('/api/companies', 'companies'); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"><Icon name="download" size={13} />CSV</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -402,13 +409,10 @@ export default function Companies() {
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="table-header">{t("page.companies.name")}</th>
-                <th className="table-header hidden sm:table-cell">{t('page.companies.code')}</th>
-                <th className="table-header hidden sm:table-cell">{t("page.companies.type")}</th>
-                <th className="table-header hidden md:table-cell">{t("page.companies.industry")}</th>
+                <th className="table-header hidden sm:table-cell">{t("page.companies.industry")}</th>
                 <th className="table-header hidden md:table-cell">{t("page.companies.location")}</th>
                 <th className="table-header hidden lg:table-cell">{t('accountability.owner')}</th>
                 <th className="table-header">{t("page.companies.status")}</th>
-                <th className="table-header">{t("page.companies.classification")}</th>
                 <th className="table-header w-12"></th>
               </tr>
             </thead>
@@ -416,23 +420,26 @@ export default function Companies() {
               {filtered.map(c => (
                 <tr key={c.id} className="table-row" onClick={() => handleRowClick(c.id)}>
                   <td className="table-cell">
-                    <div className="flex items-center gap-2">
-                      <span className="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-medium">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium ${
+                        c.classification === 'A' ? 'bg-blue-100 text-blue-700' :
+                        c.classification === 'B' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'
+                      }`}>
                         {c.name?.slice(0, 2).toUpperCase()}
                       </span>
-                      <span className="font-medium text-gray-900">{c.name}</span>
+                      <div className="min-w-0">
+                        <span className="font-medium text-gray-900 truncate block">{c.name}</span>
+                        {c.customer_code && <span className="text-2xs text-gray-400 tabular-nums">{c.customer_code}</span>}
+                      </div>
                     </div>
                   </td>
-                  <td className="table-cell hidden sm:table-cell text-gray-500">{c.customer_code || '—'}</td>
-                  <td className="table-cell hidden sm:table-cell text-gray-500">{companyTypeLabel(c.company_type)}</td>
-                  <td className="table-cell hidden md:table-cell text-gray-500">{c.industry || '—'}</td>
+                  <td className="table-cell hidden sm:table-cell text-gray-500">{c.industry || '—'}</td>
                   <td className="table-cell hidden md:table-cell text-gray-500">{c.city ? `${c.city}, ${c.country}` : c.country}</td>
                   <td className="table-cell hidden lg:table-cell text-gray-500">{c.owner_name || t('accountability.unassigned')}</td>
                   <td className="table-cell"><StatusBadge status={c.status} /></td>
-                  <td className="table-cell">{c.classification || 'C'} — {classificationLabel(c.classification || 'C')}</td>
-                      <td className="table-cell">{renderCompanyActions(c)}</td>
-                    </tr>
-                  ))}
+                  <td className="table-cell">{renderCompanyActions(c)}</td>
+                </tr>
+              ))}
                 </tbody>
               </table>
               {filtered.length === 0 && <div className="empty-state">{t('noData.companies')}</div>}
@@ -455,13 +462,16 @@ export default function Companies() {
                   }}
                 >
                   <div className="flex items-start gap-3">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-xs font-medium text-blue-600">
+                    <span className={`flex size-8 shrink-0 items-center justify-center rounded-md text-xs font-medium ${
+                      c.classification === 'A' ? 'bg-blue-100 text-blue-700' :
+                      c.classification === 'B' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'
+                    }`}>
                       {c.name?.slice(0, 2).toUpperCase()}
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-medium text-gray-900">{c.name}</div>
                       <div className="mt-0.5 truncate text-2xs text-gray-500">
-                        {companyTypeLabel(c.company_type)} · {c.city ? `${c.city}, ${c.country}` : c.country}
+                        {c.industry || ''}{c.customer_code ? ` · ${c.customer_code}` : ''}
                       </div>
                     </div>
                     {renderCompanyActions(c)}
@@ -469,7 +479,7 @@ export default function Companies() {
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <StatusBadge status={c.status} />
-                    <span className="text-2xs text-gray-500">{c.classification || 'C'} — {classificationLabel(c.classification || 'C')}</span>
+                    <span className="text-2xs text-gray-400">{c.city ? `${c.city}, ${c.country}` : c.country}</span>
                   </div>
 
                   <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-gray-100 pt-3 text-xs">
