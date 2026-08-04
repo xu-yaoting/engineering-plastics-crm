@@ -13,7 +13,6 @@ const ORDER_UPDATE_FIELDS = [
   'company_id',
   'contact_id',
   'quotation_id',
-  'inquiry_id',
   'project_id',
   'previous_order_id',
   'assigned_to',

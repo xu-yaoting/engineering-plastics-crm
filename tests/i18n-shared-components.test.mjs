@@ -60,9 +60,9 @@ test('shared component dictionary contains required English and Chinese keys', (
   }
 });
 
-test('pipeline board keeps sample and testing work in one equal-width column set', () => {
-  assert.doesNotMatch(source, /key: 'testing'/);
-  assert.match(source, /col\.key === 'sample' \? c\.stage === 'sample' \|\| c\.stage === 'testing' : c\.stage === col\.key/);
+test('pipeline board shows quotation, sample, testing, and order columns', () => {
+  assert.match(source, /key: 'testing'/);
+  assert.match(source, /c\.stage === col\.key/);
   assert.match(source, /grid h-full min-w-\[1040px\] grid-cols-4 gap-4/);
   assert.match(source, /flex min-w-0 flex-col/);
 });

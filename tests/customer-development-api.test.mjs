@@ -216,19 +216,21 @@ test('follow-up API rejects a contact from another company without partial write
   }
 });
 
-test('creating an inquiry converts the company development stage', async () => {
+test('creating a quotation converts the company development stage', async () => {
   const fixture = await createFixture();
   try {
-    const inquiry = await fixture.request('/inquiries', {
+    const quotation = await fixture.request('/quotations', {
       method: 'POST',
       body: JSON.stringify({
         company_id: fixture.companyId,
         contact_id: fixture.contactId,
         source: 'email',
         application_description: 'Evaluate PPSU for a sterilizable component.',
+        currency: 'USD',
+        line_items: [{ product_grade_snapshot: 'PPSU Radel R-5000', unit_of_measure: 'kg', quantity: 1, unit_price: 100, line_total: 100 }],
       }),
     });
-    assert.equal(inquiry.status, 201);
+    assert.equal(quotation.status, 201);
 
     const company = await fixture.request(`/companies/${fixture.companyId}`);
     assert.equal(company.status, 200);

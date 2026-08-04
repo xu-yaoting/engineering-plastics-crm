@@ -157,27 +157,18 @@ router.put('/move', (req: Request, res: Response) => {
   try {
     // Map: entityType → toStage → new status
     const stageMap: Record<string, Record<string, string>> = {
-      inquiry: {
-        inquiry: 'open',
-        quotation: 'under_review',
-        sample: 'quoted',
-        order: 'closed_won',
-      },
       quotation: {
-        inquiry: 'draft',
         quotation: 'sent',
         sample: 'negotiating',
         order: 'accepted',
       },
       sample: {
-        inquiry: 'draft',
         quotation: 'draft',
         sample: 'approved',
         testing: 'delivered',
         order: 'testing_complete',
       },
       order: {
-        inquiry: 'draft',
         quotation: 'draft',
         sample: 'confirmed',
         testing: 'confirmed',

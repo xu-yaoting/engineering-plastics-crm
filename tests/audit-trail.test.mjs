@@ -141,15 +141,14 @@ test('inventory products and stock movements record authenticated actors and qua
 });
 
 test('inquiries and quotations inherit ownership and update actor metadata', () => {
-  for (const routeSource of [inquiriesSource, quotationsSource]) {
+  for (const routeSource of [quotationsSource]) {
     assert.match(routeSource, /owner_user_id/);
     assert.match(routeSource, /created_by/);
     assert.match(routeSource, /updated_by/);
     assert.match(routeSource, /owner_name/);
     assert.match(routeSource, /computeChanges/);
   }
-  assert.match(inquiriesSource, /company\.owner_user_id \|\| req\.user!\.id/);
-  assert.match(quotationsSource, /inquiry\?\.owner_user_id \|\| company\.owner_user_id \|\| req\.user!\.id/);
+  assert.match(quotationsSource, /company\.owner_user_id \|\| req\.user!\.id/);
 });
 
 test('orders inherit ownership while shipments capture creator and updater', () => {

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const files = [
-  '../src/pages/Inquiries.tsx',
+  '../src/pages/Quotations.tsx',
   '../src/pages/Orders.tsx',
   '../src/pages/Tasks.tsx',
 ];
@@ -17,11 +17,10 @@ const source = files
 const dictionarySource = readFileSync(new URL('../src/lib/i18n.tsx', import.meta.url), 'utf8');
 const ordersSource = readFileSync(new URL('../src/pages/Orders.tsx', import.meta.url), 'utf8');
 const quotationsSource = readFileSync(new URL('../src/pages/Quotations.tsx', import.meta.url), 'utf8');
-const inquiriesSource = readFileSync(new URL('../src/pages/Inquiries.tsx', import.meta.url), 'utf8');
 const tasksSource = readFileSync(new URL('../src/pages/Tasks.tsx', import.meta.url), 'utf8');
 
-test('inquiries and tasks use shared page hierarchy with purpose-built list surfaces', () => {
-  for (const listSource of [inquiriesSource, tasksSource]) {
+test('list pages use shared page hierarchy with purpose-built list surfaces', () => {
+  for (const listSource of [quotationsSource, tasksSource]) {
     assert.match(listSource, /className="page-shell/);
     assert.match(listSource, /className="page-header"/);
     assert.match(listSource, /className="toolbar/);
@@ -29,8 +28,8 @@ test('inquiries and tasks use shared page hierarchy with purpose-built list surf
     assert.match(listSource, /animate-pulse/);
   }
 
-  assert.match(inquiriesSource, /<Icon name="search"/);
-  assert.match(inquiriesSource, /className="sticky top-0 z-10"/);
+  assert.match(quotationsSource, /<Icon name="search"/);
+  assert.match(quotationsSource, /className="sticky top-0 z-10"/);
   assert.match(tasksSource, /role="tablist"/);
   assert.match(tasksSource, /aria-pressed=\{filter === f\.key\}/);
   assert.match(tasksSource, /<Icon name="check"/);
@@ -52,7 +51,7 @@ test('new task fields have labels and inline subject validation', () => {
   assert.match(dictionarySource, /subjectRequired:/);
 });
 
-test('inquiry, order, and task list pages no longer render obvious hard-coded English UI labels', () => {
+test('quotation, order, and task list pages no longer render hard-coded English UI labels', () => {
   const forbidden = [
     />Number</,
     />Company</,
@@ -127,7 +126,7 @@ test('quotation and order lists keep empty results inside stable table surfaces'
 });
 
 test('inquiry and task filters use the shared empty state', () => {
-  assert.match(inquiriesSource, /className="empty-state"/);
+  assert.match(quotationsSource, /className="empty-state"/);
   assert.match(tasksSource, /className="empty-state"/);
 });
 

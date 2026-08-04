@@ -258,14 +258,6 @@ export const pipeline = {
     }),
 };
 
-// Inquiries
-export const inquiries = {
-  list: (companyId?: string) => request<any[]>(`/inquiries${companyId ? `?company_id=${companyId}` : ''}`),
-  get: (id: string) => request<any>(`/inquiries/${id}`),
-  create: (data: any) => request<any>('/inquiries', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: string, data: any) => request<any>(`/inquiries/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-};
-
 // Shipments
 export const shipments = {
   list: (orderId?: string) => request<any[]>(`/shipments${orderId ? `?order_id=${orderId}` : ''}`),

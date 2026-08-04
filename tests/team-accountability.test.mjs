@@ -4,7 +4,6 @@ import test from 'node:test';
 
 const teamSource = readFileSync(new URL('../server/routes/team.ts', import.meta.url), 'utf8');
 const orderRouteSource = readFileSync(new URL('../server/routes/orders.ts', import.meta.url), 'utf8');
-const inquiryRouteSource = readFileSync(new URL('../server/routes/inquiries.ts', import.meta.url), 'utf8');
 const quotationRouteSource = readFileSync(new URL('../server/routes/quotations.ts', import.meta.url), 'utf8');
 const companyRouteSource = readFileSync(new URL('../server/routes/companies.ts', import.meta.url), 'utf8');
 const companyCreateSource = companyRouteSource.slice(
@@ -16,7 +15,6 @@ const apiSource = readFileSync(new URL('../src/lib/api.ts', import.meta.url), 'u
 const panelSource = readFileSync(new URL('../src/components/shared/AccountabilityPanel.tsx', import.meta.url), 'utf8');
 const companyDetailSource = readFileSync(new URL('../src/pages/CompanyDetail.tsx', import.meta.url), 'utf8');
 const companyEditSource = readFileSync(new URL('../src/components/companies/CompanyEditPanel.tsx', import.meta.url), 'utf8');
-const inquiryDetailSource = readFileSync(new URL('../src/pages/InquiryDetail.tsx', import.meta.url), 'utf8');
 const quotationDetailSource = readFileSync(new URL('../src/pages/QuotationDetail.tsx', import.meta.url), 'utf8');
 const quotationEditSource = readFileSync(new URL('../src/components/quotations/QuotationEditPanel.tsx', import.meta.url), 'utf8');
 const orderDetailSource = readFileSync(new URL('../src/pages/OrderDetail.tsx', import.meta.url), 'utf8');
@@ -26,7 +24,6 @@ const taskSectionSource = readFileSync(new URL('../src/components/shared/TaskSec
 const paymentsPageSource = readFileSync(new URL('../src/pages/Payments.tsx', import.meta.url), 'utf8');
 const inventoryPageSource = readFileSync(new URL('../src/pages/InventoryPage.tsx', import.meta.url), 'utf8');
 const ownerFilterSource = readFileSync(new URL('../src/components/shared/OwnerFilter.tsx', import.meta.url), 'utf8');
-const inquiriesPageSource = readFileSync(new URL('../src/pages/Inquiries.tsx', import.meta.url), 'utf8');
 const quotationsPageSource = readFileSync(new URL('../src/pages/Quotations.tsx', import.meta.url), 'utf8');
 const ordersPageSource = readFileSync(new URL('../src/pages/Orders.tsx', import.meta.url), 'utf8');
 
@@ -47,9 +44,9 @@ test('quotation and order lists use consistent owner filtering and columns', () 
 test('inquiry list uses the shared owner filter and shows ownership', () => {
   assert.match(ownerFilterSource, /team\.list/);
   assert.match(ownerFilterSource, /auth\.me/);
-  assert.match(inquiriesPageSource, /OwnerFilter/);
-  assert.match(inquiriesPageSource, /owner_name/);
-  assert.match(inquiriesPageSource, /owner_user_id/);
+  assert.match(quotationsPageSource, /OwnerFilter/);
+  assert.match(quotationsPageSource, /owner_name/);
+  assert.match(quotationsPageSource, /owner_user_id/);
 });
 
 test('payment and inventory pages expose authenticated operators without manual impersonation', () => {
@@ -92,18 +89,12 @@ test('only administrators can transfer an order owner', () => {
   assert.match(orderDetailSource, /user\?\.role === 'admin'[\s\S]*owner_user_id/);
 });
 
-test('inquiry and quotation details expose inherited accountability', () => {
-  assert.match(inquiryDetailSource, /AccountabilityPanel[\s\S]*entityType="inquiry"/);
+test('quotation details expose inherited accountability', () => {
   assert.match(quotationDetailSource, /AccountabilityPanel[\s\S]*entityType="quotation"/);
 });
 
-test('only administrators can transfer inquiry and quotation owners', () => {
-  for (const source of [inquiryRouteSource, quotationRouteSource]) {
-    assert.match(source, /owner_user_id[\s\S]*req\.user!\.role !== 'admin'[\s\S]*status\(403\)/);
-  }
-  assert.match(inquiryDetailSource, /useAuth\(\)/);
-  assert.match(inquiryDetailSource, /team\.list\(\)/);
-  assert.match(inquiryDetailSource, /user\?\.role === 'admin'[\s\S]*owner_user_id/);
+test('only administrators can transfer quotation owners', () => {
+  assert.match(quotationRouteSource, /owner_user_id[\s\S]*req\.user!\.role !== 'admin'[\s\S]*status\(403\)/);
   assert.match(quotationEditSource, /useAuth\(\)/);
   assert.match(quotationEditSource, /team\.list\(\)/);
   assert.match(quotationEditSource, /user\?\.role === 'admin'[\s\S]*owner_user_id/);

@@ -13,7 +13,6 @@ const documentsTabSource = readSource('src/components/materials-tooling/Document
 const ledgerTabSource = readSource('src/components/materials-tooling/LedgerTab.tsx');
 const activityTimelineSource = readSource('src/components/shared/ActivityTimeline.tsx');
 const emailDraftSource = readSource('src/components/shared/EmailDraftPanel.tsx');
-const inquiriesSource = readSource('src/pages/Inquiries.tsx');
 const orderDetailSource = readSource('src/pages/OrderDetail.tsx');
 const ordersSource = readSource('src/pages/Orders.tsx');
 const topBarSource = readSource('src/components/layout/TopBar.tsx');
@@ -105,16 +104,16 @@ test('email draft variable and body controls have persistent labels', () => {
   assertStaticLabelPairs(emailDraftSource, ['email-draft-body']);
 });
 
-test('inquiry list search and status filter have persistent labels', () => {
-  assertStaticLabelPairs(inquiriesSource, [
-    'inquiries-search',
-    'inquiries-status-filter',
+test('quotation list search and status filter have persistent labels', () => {
+  assertStaticLabelPairs(quotationsSource, [
+    'quotations-search',
+    'quotations-status-filter',
   ]);
 });
 
-test('inquiry list reflows to compact mobile cards before the wide table', () => {
-  assert.match(inquiriesSource, /className="space-y-2 md:hidden"/);
-  assert.match(inquiriesSource, /className="hidden data-surface overflow-x-auto md:block"/);
+test('quotation list reflows to compact mobile cards before the wide table', () => {
+  assert.match(quotationsSource, /className="space-y-2 md:hidden"/);
+  assert.match(quotationsSource, /className="hidden data-surface overflow-x-auto md:block"/);
 });
 
 test('order line shipped quantity and unit controls have row-specific labels', () => {

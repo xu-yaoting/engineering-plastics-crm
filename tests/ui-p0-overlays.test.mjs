@@ -17,7 +17,6 @@ const orderDetailSource = readFileSync(new URL('../src/pages/OrderDetail.tsx', i
 const shipmentsSource = readFileSync(new URL('../src/pages/Shipments.tsx', import.meta.url), 'utf8');
 const paymentsSource = readFileSync(new URL('../src/pages/Payments.tsx', import.meta.url), 'utf8');
 const contactsSource = readFileSync(new URL('../src/pages/Contacts.tsx', import.meta.url), 'utf8');
-const inquiryDetailSource = readFileSync(new URL('../src/pages/InquiryDetail.tsx', import.meta.url), 'utf8');
 const shipmentDetailSource = readFileSync(new URL('../src/pages/ShipmentDetail.tsx', import.meta.url), 'utf8');
 const ledgerSource = readFileSync(
   new URL('../src/components/materials-tooling/LedgerTab.tsx', import.meta.url),
@@ -107,8 +106,7 @@ for (const [name, source] of [
 
 for (const [name, source] of [
   ['contacts', contactsSource],
-  ['inquiry detail', inquiryDetailSource],
-]) {
+  ]) {
   test(`${name} deletion leaves the actions menu and uses the shared dialog`, () => {
     assert.match(source, /import ConfirmDialog from '\.\.\/components\/shared\/ConfirmDialog'/);
     assert.match(source, /<ConfirmDialog/);

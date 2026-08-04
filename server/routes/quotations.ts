@@ -11,7 +11,6 @@ const router = Router();
 const QUOTATION_UPDATE_FIELDS = [
   'company_id',
   'contact_id',
-  'inquiry_id',
   'project_id',
   'assigned_to',
   'quotation_date',
@@ -118,17 +117,6 @@ router.post('/', (req: Request, res: Response) => {
     .get(req.body.company_id) as { id: string; owner_user_id: string | null } | undefined;
   if (!company) return res.status(400).json({ success: false, message: 'Selected company does not exist' });
 
-  const inquiry = req.body.inquiry_id
-    ? db.prepare("SELECT id, company_id, owner_user_id FROM inquiries WHERE id = ? AND deleted_at IS NULL")
-      .get(req.body.inquiry_id) as { id: string; company_id: string; owner_user_id: string | null } | undefined
-    : undefined;
-  if (req.body.inquiry_id && !inquiry) {
-    return res.status(400).json({ success: false, message: 'Selected inquiry does not exist' });
-  }
-  if (inquiry && inquiry.company_id !== req.body.company_id) {
-    return res.status(400).json({ success: false, message: 'Inquiry and quotation company must match' });
-  }
-
   const id = uuidv4();
   const now = new Date().toISOString();
   const quotation_number = nextQuotationNumber();
@@ -140,18 +128,18 @@ router.post('/', (req: Request, res: Response) => {
   const total = req.body.total || 0;
   const status = total > 100000 ? 'pending_approval' : 'draft';
   const now2 = new Date().toISOString();
-  const ownerUserId = req.body.owner_user_id || inquiry?.owner_user_id || company.owner_user_id || req.user!.id;
+  const ownerUserId = req.body.owner_user_id || company.owner_user_id || req.user!.id;
   const ownerName = (db.prepare("SELECT name FROM users WHERE id = ?").get(ownerUserId) as { name: string } | undefined)?.name || req.user!.name;
 
   const createdQuotation = db.transaction(() => {
   db.prepare(`
-    INSERT INTO quotations (id, quotation_number, company_id, contact_id, inquiry_id,
+    INSERT INTO quotations (id, quotation_number, company_id, contact_id,
       quotation_date, valid_until, currency, subtotal, total, status, version,
       approval_requested_at, owner_user_id, assigned_to, created_by, updated_by, created_at, updated_at,
       application_description, target_material_requested, quantity_estimate, urgency, source)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, quotation_number, req.body.company_id, req.body.contact_id,
-    req.body.inquiry_id, quotation_date, valid_until, req.body.currency || 'USD',
+    quotation_date, valid_until, req.body.currency || 'USD',
     req.body.subtotal || 0, total, status, 1,
     total > 100000 ? now2 : null, ownerUserId, ownerName, req.user!.id, req.user!.id, now, now,
     req.body.application_description || '',

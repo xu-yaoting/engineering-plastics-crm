@@ -13,9 +13,6 @@ const Companies = lazy(() => import('./pages/Companies'));
 const CompanyDetail = lazy(() => import('./pages/CompanyDetail'));
 const Contacts = lazy(() => import('./pages/Contacts'));
 const FollowUpWorkbench = lazy(() => import('./pages/FollowUpWorkbench'));
-const Inquiries = lazy(() => import('./pages/Inquiries'));
-const InquiryNew = lazy(() => import('./pages/InquiryNew'));
-const InquiryDetail = lazy(() => import('./pages/InquiryDetail'));
 const Quotations = lazy(() => import('./pages/Quotations'));
 const QuotationDetail = lazy(() => import('./pages/QuotationDetail'));
 const Orders = lazy(() => import('./pages/Orders'));
@@ -179,9 +176,9 @@ export default function App() {
                 <Route path="/companies/contacts" element={<Contacts />} />
                 <Route path="/companies/:id" element={<CompanyDetail />} />
                 <Route path="/contacts" element={<Contacts />} />
-                <Route path="/inquiries" element={<Inquiries />} />
-                <Route path="/inquiries/new" element={<InquiryNew />} />
-                <Route path="/inquiries/:id" element={<InquiryDetail />} />
+                <Route path="/inquiries" element={<Navigate to="/quotations" replace />} />
+                <Route path="/inquiries/new" element={<Navigate to="/quotations" replace />} />
+                <Route path="/inquiries/:id" element={<Navigate to="/quotations" replace />} />
                 <Route path="/quotations" element={<Quotations />} />
                 <Route path="/quotations/:id" element={<QuotationDetail />} />
                 <Route path="/orders" element={<Orders />} />

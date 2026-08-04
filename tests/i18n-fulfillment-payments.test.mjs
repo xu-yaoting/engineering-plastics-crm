@@ -20,7 +20,6 @@ const shipmentsSource = readFileSync(new URL('../src/pages/Shipments.tsx', impor
 const shipmentDetailSource = readFileSync(new URL('../src/pages/ShipmentDetail.tsx', import.meta.url), 'utf8');
 const responsiveWorkspaceSource = readFileSync(new URL('../src/components/shared/ResponsiveWorkspace.tsx', import.meta.url), 'utf8');
 const companiesSource = readFileSync(new URL('../src/pages/Companies.tsx', import.meta.url), 'utf8');
-const inquiryDetailSource = readFileSync(new URL('../src/pages/InquiryDetail.tsx', import.meta.url), 'utf8');
 const inventorySource = readFileSync(new URL('../src/pages/InventoryPage.tsx', import.meta.url), 'utf8');
 const orderDetailSource = readFileSync(new URL('../src/pages/OrderDetail.tsx', import.meta.url), 'utf8');
 const quotationDetailSource = readFileSync(new URL('../src/pages/QuotationDetail.tsx', import.meta.url), 'utf8');
@@ -120,7 +119,7 @@ test('company and payment create and edit flows use side panels while payment re
 });
 
 test('inquiry and shipment detail editors use side panels instead of centered long-form modals', () => {
-  for (const detailSource of [inquiryDetailSource, shipmentDetailSource]) {
+  for (const detailSource of [shipmentDetailSource, shipmentDetailSource]) {
     assert.match(detailSource, /import SidePanel from '\.\.\/components\/shared\/SidePanel'/);
     assert.match(detailSource, /<SidePanel\s+open=\{showEditPanel\}/);
     assert.doesNotMatch(detailSource, /\{\/\* Edit Modal \*\/\}/);

@@ -81,7 +81,7 @@ const en = {
       orders: 'Orders', shipments: 'Shipments',
       payments: 'Payments', activities: 'Activities',
       tasks: 'Tasks', dashboard: 'Workspace',
-      pipeline: 'Pipeline', opportunities: 'Opportunities', newInquiry: 'New Inquiry',
+      pipeline: 'Pipeline', opportunities: 'Opportunities',
     },
     companies: {
       new: 'New Company', name: 'Name', type: 'Type', industry: 'Industry',
@@ -280,13 +280,9 @@ const en = {
       unknownCustomer: 'Unknown',
     },
     inquiries: {
-      new: 'New Inquiry', number: 'Number', company: 'Company', material: 'Material',
-      budget: 'Budget', status: 'Status', urgency: 'Urgency', created: 'Created',
-      allStatus: 'All Status', open: 'Open', underReview: 'Under Review',
-      quoted: 'Quoted', won: 'Won', lost: 'Lost', immediate: 'Immediate',
+      immediate: 'Immediate',
       within2Weeks: 'Within 2 Weeks', within1Month: 'Within 1 Month',
-      noRush: 'No Rush', source: 'Source', targetMaterial: 'Target Material',
-      inquiryCreated: 'Inquiry created', inquiryCreateFailed: 'Failed to create inquiry',
+      noRush: 'No Rush',
     },
     inquiryDetail: {
       back: 'Back', edit: 'Edit', createQuotation: 'Create Quotation', logCall: 'Log Call',
@@ -709,7 +705,7 @@ const en = {
   },
   noData: {
     companies: 'No companies found', contacts: 'No contacts found',
-    inquiries: 'No inquiries found', quotations: 'No quotations found',
+    quotations: 'No quotations found',
     orders: 'No orders yet', invoices: 'No invoices',
     activities: 'No activities found', tasks: 'No tasks',
     lineItemsFromSource: 'No line items from source quotation',
@@ -830,7 +826,7 @@ const zh: typeof en = {
       orders: '订单', shipments: '发货',
       payments: '收款', activities: '活动',
       tasks: '任务', dashboard: '工作台',
-      pipeline: '管道', opportunities: '销售机会', newInquiry: '新建询盘',
+      pipeline: '管道', opportunities: '销售机会',
     },
     companies: {
       new: '新建客户', name: '名称', type: '类型', industry: '行业',
@@ -1029,13 +1025,9 @@ const zh: typeof en = {
       unknownCustomer: '未知客户',
     },
     inquiries: {
-      new: '新建询盘', number: '编号', company: '公司', material: '物料',
-      budget: '预算', status: '状态', urgency: '紧急程度', created: '创建时间',
-      allStatus: '全部状态', open: '开放', underReview: '审核中',
-      quoted: '已报价', won: '已赢单', lost: '已丢单', immediate: '立即',
+      immediate: '立即',
       within2Weeks: '两周内', within1Month: '一个月内',
-      noRush: '不着急', source: '来源', targetMaterial: '目标物料',
-      inquiryCreated: '询盘已创建', inquiryCreateFailed: '询盘创建失败',
+      noRush: '不着急',
     },
     inquiryDetail: {
       back: '返回', edit: '编辑', createQuotation: '创建报价', logCall: '记录通话',
@@ -1459,7 +1451,7 @@ const zh: typeof en = {
   },
   noData: {
     companies: '暂无客户', contacts: '暂无联系人',
-    inquiries: '暂无询盘', quotations: '暂无报价',
+    quotations: '暂无报价',
     orders: '暂无订单', invoices: '暂无发票',
     activities: '暂无活动', tasks: '暂无任务',
     lineItemsFromSource: '源报价单无订单行',
