@@ -144,13 +144,13 @@ export default function Quotations() {
           <table className="w-full">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="table-header">{t('page.quotations.number')}</th>
-                <th className="table-header">{t('page.quotations.date')}</th>
-                <th className="table-header">{t('page.quotations.company')}</th>
-                <th className="table-header">{t('accountability.owner')}</th>
-                <th className="table-header">{t('page.quotations.status')}</th>
+                <th className="table-header text-center">{t('page.quotations.number')}</th>
+                <th className="table-header text-center">{t('page.quotations.date')}</th>
+                <th className="table-header text-center">{t('page.quotations.company')}</th>
+                <th className="table-header text-center">{t('accountability.owner')}</th>
+                <th className="table-header text-center">{t('page.quotations.status')}</th>
                 <th className="table-header text-right">{t('page.quotations.total')}</th>
-                <th className="table-header">{t('page.quotations.validUntil')}</th>
+                <th className="table-header text-center">{t('page.quotations.validUntil')}</th>
               </tr>
             </thead>
             <tbody>

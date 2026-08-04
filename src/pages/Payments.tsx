@@ -511,15 +511,15 @@ export default function Payments() {
           <table className="w-full">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="table-header">{t('page.payments.invoices')} #</th>
-                <th className="table-header">{t('page.payments.order')}</th>
-                <th className="table-header">{t('page.payments.company')}</th>
-                <th className="table-header">{t('page.payments.status')}</th>
+                <th className="table-header text-center">{t('page.payments.invoices')} #</th>
+                <th className="table-header text-center">{t('page.payments.order')}</th>
+                <th className="table-header text-center">{t('page.payments.company')}</th>
+                <th className="table-header text-center">{t('page.payments.status')}</th>
                 <th className="table-header text-right">{t('page.payments.total')}</th>
                 <th className="table-header text-right">{t('page.payments.paid')}</th>
                 <th className="table-header text-right">{t('page.payments.due')}</th>
-                <th className="table-header">{t('page.payments.dueDate')}</th>
-                <th className="table-header hidden lg:table-cell">{t('accountability.owner')}</th>
+                <th className="table-header text-center">{t('page.payments.dueDate')}</th>
+                <th className="table-header text-center hidden lg:table-cell">{t('accountability.owner')}</th>
                 <th className="table-header w-16"></th>
                 <th className="table-header w-12"></th>
               </tr>

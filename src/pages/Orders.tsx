@@ -118,13 +118,13 @@ export default function Orders() {
             <table className="w-full">
               <thead className="sticky top-0 z-10">
                 <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="table-header">{t('page.orders.orderNumber')}</th>
-                  <th className="table-header">{t('page.orders.company')}</th>
-                  <th className="table-header">{t('accountability.owner')}</th>
-                  <th className="table-header">{t('page.orders.status')}</th>
-                  <th className="table-header">{t('page.orders.payment')}</th>
+                  <th className="table-header text-center">{t('page.orders.orderNumber')}</th>
+                  <th className="table-header text-center">{t('page.orders.company')}</th>
+                  <th className="table-header text-center">{t('accountability.owner')}</th>
+                  <th className="table-header text-center">{t('page.orders.status')}</th>
+                  <th className="table-header text-center">{t('page.orders.payment')}</th>
                   <th className="table-header text-right">{t('page.orders.total')}</th>
-                  <th className="table-header">{t('page.orders.date')}</th>
+                  <th className="table-header text-center">{t('page.orders.date')}</th>
                 </tr>
               </thead>
               <tbody>

@@ -363,28 +363,28 @@ export default function Shipments() {
           <table className="w-full">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="table-header">{t('page.shipments.shipmentNumber')}</th>
-                <th className="table-header">{t('page.shipments.order')}</th>
-                <th className="table-header">{t('page.shipments.company')}</th>
-                <th className="table-header">{t('page.shipments.type')}</th>
-                <th className="table-header">{t('page.shipments.carrierParty')}</th>
-                <th className="table-header">{t('page.shipments.referenceNumber')}</th>
-                <th className="table-header">{t('page.shipments.shipDate')}</th>
-                <th className="table-header">{t('page.shipments.status')}</th>
+                <th className="table-header text-center">{t('page.shipments.shipmentNumber')}</th>
+                <th className="table-header text-center">{t('page.shipments.order')}</th>
+                <th className="table-header text-center">{t('page.shipments.company')}</th>
+                <th className="table-header text-center">{t('page.shipments.type')}</th>
+                <th className="table-header text-center">{t('page.shipments.carrierParty')}</th>
+                <th className="table-header text-center">{t('page.shipments.referenceNumber')}</th>
+                <th className="table-header text-center">{t('page.shipments.shipDate')}</th>
+                <th className="table-header text-center">{t('page.shipments.status')}</th>
                 <th className="table-header"></th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((s: any) => (
                 <tr key={s.id} className="table-row">
-                  <td className="table-cell font-medium text-blue-600">
+                  <td className="table-cell text-center font-medium text-blue-600">
                     <Link to={`/shipments/${s.id}`} className="hover:underline">{s.shipment_number}</Link>
                   </td>
-                  <td className="table-cell text-xs">{s.order_number || '—'}</td>
-                  <td className="table-cell text-xs">{s.company_name || '—'}</td>
-                  <td className="table-cell text-xs">{shipmentTypeLabel(s.shipping_type) || '—'}</td>
-                  <td className="table-cell text-xs">{shipmentCarrier(s) || '—'}</td>
-                  <td className="table-cell tabular-nums text-xs">{shipmentReference(s) || '—'}</td>
+                  <td className="table-cell text-center text-xs">{s.order_number || '—'}</td>
+                  <td className="table-cell text-center text-xs">{s.company_name || '—'}</td>
+                  <td className="table-cell text-center text-xs">{shipmentTypeLabel(s.shipping_type) || '—'}</td>
+                  <td className="table-cell text-center text-xs">{shipmentCarrier(s) || '—'}</td>
+                  <td className="table-cell text-center tabular-nums text-xs">{shipmentReference(s) || '—'}</td>
                   <td className="table-cell text-2xs text-gray-500">{s.shipped_at?.slice(0, 10) || '—'}</td>
                   <td className="table-cell"><StatusBadge status={s.status} /></td>
                   <td className="table-cell" onClick={e => e.stopPropagation()}>
