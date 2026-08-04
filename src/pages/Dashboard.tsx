@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, AlertTriangle, ArrowRight, Award, CheckCircle, FileText, ReceiptText, Workflow, TrendingUp, CalendarClock, Inbox, FlaskConical, Truck, Wallet } from 'lucide-react';
+import { AlertCircle, AlertTriangle, ArrowRight, Award, CheckCircle, FileText, ReceiptText, Workflow, TrendingUp, CalendarClock, Truck, Wallet } from 'lucide-react';
 import { formatCurrency } from '../lib/currency';
 import { useTranslation } from 'react-i18next';
 
@@ -52,8 +52,6 @@ export default function Dashboard() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [quotations, setQuotations] = useState<any[]>([]);
-  const [inquiries, setInquiries] = useState<any[]>([]);
-  const [samples, setSamples] = useState<any[]>([]);
   const [shipments, setShipments] = useState<any[]>([]);
 
   useEffect(() => {
@@ -61,8 +59,6 @@ export default function Dashboard() {
       fetch('/api/payments').then(r => r.json()).then(setInvoices).catch(() => {}),
       fetch('/api/orders').then(r => r.json()).then(setOrders).catch(() => {}),
       fetch('/api/quotations').then(r => r.json()).then(setQuotations).catch(() => {}),
-      fetch('/api/inquiries').then(r => r.json()).then(setInquiries).catch(() => {}),
-      fetch('/api/sample-requests').then(r => r.json()).then(setSamples).catch(() => {}),
       fetch('/api/shipments').then(r => r.json()).then(setShipments).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
@@ -104,9 +100,8 @@ export default function Dashboard() {
 
   // Sales Pipeline
   const pipeline = [
-    { labelKey: 'stageInquiry', count: inquiries.length, link: '/inquiries', icon: Inbox },
     { labelKey: 'stageQuotation', count: quotations.length, link: '/quotations', icon: FileText },
-    { labelKey: 'stageSample', count: samples.length, link: '/samples', icon: FlaskConical },
+    { labelKey: 'stageConfirmed', count: orders.length, link: '/orders', icon: ReceiptText },
     { labelKey: 'stageShipment', count: shipments.length, link: '/shipments', icon: Truck },
     { labelKey: 'stagePayment', count: invoices.length, link: '/payments', icon: Wallet },
   ];
@@ -353,23 +348,23 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Recent Inquiries */}
+        {/* Recent Quotations */}
         <div className={WORKSPACE_CARD}>
           <div className={WORKSPACE_CARD_HEADER}>
-            <h2 className={WORKSPACE_CARD_TITLE}><Inbox size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.recentInquiries')}</h2>
-            <Link to="/inquiries" className="text-xs text-blue-600 hover:underline">{t('page.dashboard.viewAll')}</Link>
+            <h2 className={WORKSPACE_CARD_TITLE}><FileText size={18} strokeWidth={1.75} className="text-gray-500" />{t('page.dashboard.recentQuotations')}</h2>
+            <Link to="/quotations" className="text-xs text-blue-600 hover:underline">{t('page.dashboard.viewAll')}</Link>
           </div>
           <div className={WORKSPACE_CARD_BODY}>
-            {inquiries.length === 0 ? (
-              <p className="empty-state">{t('page.dashboard.noInquiries')}</p>
+            {quotations.length === 0 ? (
+              <p className="empty-state">{t('page.dashboard.noQuotations')}</p>
             ) : (
               <div className="space-y-1">
-                {inquiries.slice(0, 5).map((inq: any) => (
-                  <Link key={inq.id} to={`/inquiries/${inq.id}`} className="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50">
-                    <Inbox size={16} strokeWidth={1.75} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                {quotations.slice(0, 5).map((q: any) => (
+                  <Link key={q.id} to={`/quotations/${q.id}`} className="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50">
+                    <FileText size={16} strokeWidth={1.75} className="text-gray-400 mt-0.5 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-700 truncate">{inq.inquiry_number} — {inq.company_name}</p>
-                      <p className="text-2xs text-gray-400">{inq.target_material_requested || '—'} · {inq.urgency?.replace(/_/g, ' ')}</p>
+                      <p className="text-sm text-gray-700 truncate">{q.quotation_number} — {q.company_name}</p>
+                      <p className="text-2xs text-gray-400">{q.target_material_requested || '—'}{q.total ? ` · ${formatCurrency(q.total, q.currency)}` : ''}</p>
                     </div>
                   </Link>
                 ))}

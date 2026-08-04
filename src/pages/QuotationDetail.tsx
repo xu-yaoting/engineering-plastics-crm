@@ -213,10 +213,14 @@ export default function QuotationDetail() {
         body: JSON.stringify({
           company_id: quotation.company_id,
           contact_id: quotation.contact_id,
-          inquiry_id: quotation.inquiry_id,
           currency: quotation.currency,
           subtotal: quotation.subtotal || 0,
           total: quotation.total || 0,
+          application_description: quotation.application_description || '',
+          target_material_requested: quotation.target_material_requested || '',
+          quantity_estimate: quotation.quantity_estimate || '',
+          urgency: quotation.urgency || 'within_1_month',
+          source: quotation.source || 'email',
           line_items: lineItems.map((item: any, index: number) => ({
             line_number: item.line_number || index + 1,
             product_grade_snapshot: item.product_grade_snapshot,

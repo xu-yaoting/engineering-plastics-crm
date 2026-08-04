@@ -59,9 +59,7 @@ export default function Pipeline() {
   const dragCard = useRef<CardData | null>(null);
 
   const COLUMNS = [
-    { key: 'inquiry', title: t('nav.inquiries') },
     { key: 'quotation', title: t('nav.quotations') },
-    { key: 'sample', title: t('page.pipeline.sample') },
     { key: 'order', title: t('page.pipeline.order') },
   ];
 
@@ -194,18 +192,11 @@ export default function Pipeline() {
               </p>
             )}
             <nav className="mt-3 flex flex-wrap items-center gap-1" aria-label={t('page.pipeline.relatedViews')}>
-              <Link
-                to="/opportunities"
-                aria-current={location.pathname === '/opportunities' ? 'page' : undefined}
-                className={`rounded px-2 py-1 text-xs transition-colors ${location.pathname === '/opportunities' ? 'bg-blue-50 font-medium text-blue-600' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
-              >
-                {t('nav.opportunities')}
-              </Link>
-              <Link to="/inquiries" className="rounded px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700">
-                {t('nav.inquiries')}
-              </Link>
               <Link to="/quotations" className="rounded px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700">
                 {t('nav.quotations')}
+              </Link>
+              <Link to="/orders" className="rounded px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700">
+                {t('nav.orders')}
               </Link>
             </nav>
           </div>

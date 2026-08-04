@@ -26,7 +26,7 @@ function dueBucket(item: FollowUpWorkbenchItem, today: string): FollowUpBucket {
   if (!item.next_follow_up_due_date) return 'none';
   const dueDate = item.next_follow_up_due_date.slice(0, 10);
   if (dueDate < today) return 'overdue';
-  if (dueDate === today) return 'today';
+  // Today is included in This Week — no separate "today" bucket
   const due = new Date(`${dueDate}T00:00:00`);
   const now = new Date(`${today}T00:00:00`);
   if (isNaN(due.getTime())) return 'upcoming';

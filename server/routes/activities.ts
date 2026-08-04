@@ -17,7 +17,7 @@ router.get('/follow-ups', (req: Request, res: Response) => {
   const stage = typeof req.query.stage === 'string' ? req.query.stage : '';
   const ownerUserId = typeof req.query.owner_user_id === 'string' ? req.query.owner_user_id : '';
   const search = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-  const allowedBuckets = new Set(['all', 'overdue', 'today', 'upcoming', 'none']);
+  const allowedBuckets = new Set(['all', 'overdue', 'today', 'thisWeek', 'upcoming', 'none']);
   if (!allowedBuckets.has(bucket)) {
     return res.status(400).json({ success: false, message: 'Invalid follow-up bucket' });
   }
