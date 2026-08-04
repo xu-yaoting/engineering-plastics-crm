@@ -85,7 +85,7 @@ export default function Orders() {
         </div>
       </div>
 
-      <div className="toolbar">
+      <div className="toolbar gap-3">
         <div className="relative min-w-[220px] flex-1 sm:max-w-sm">
           <Icon name="search" size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <label className="sr-only" htmlFor="orders-search">{t('common.searchOrders')}</label>
@@ -103,7 +103,7 @@ export default function Orders() {
       </div>
 
       {loading ? (
-        <div className="data-surface border-t-0 rounded-t-none p-3" aria-label={t('common.loading')}>
+        <div className="data-surface rounded-t-none p-3" aria-label={t('common.loading')}>
           <div className="animate-pulse space-y-2">{[0, 1, 2, 3, 4, 5].map(row => <div key={row} className="h-10 rounded-md bg-gray-100" />)}</div>
         </div>
       ) : (
@@ -115,35 +115,35 @@ export default function Orders() {
             )}
           </div>
           <div className="hidden data-surface overflow-x-auto md:block">
-          <table className="w-full">
-            <thead className="sticky top-0 z-10">
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="table-header">{t('page.orders.orderNumber')}</th>
-                <th className="table-header">{t('page.orders.company')}</th>
-                <th className="table-header">{t('accountability.owner')}</th>
-                <th className="table-header">{t('page.orders.status')}</th>
-                <th className="table-header">{t('page.orders.payment')}</th>
-                <th className="table-header text-right">{t('page.orders.total')}</th>
-                <th className="table-header">{t('page.orders.date')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((o: any) => (
-                <tr key={o.id} className="table-row" onClick={() => navigate(`/orders/${o.id}`)}>
-                  <td className="table-cell font-medium text-blue-600 tabular-nums">{o.order_number}</td>
-                  <td className="table-cell text-gray-900">{o.company_name || '—'}</td>
-                  <td className="table-cell text-xs text-gray-500">{o.owner_name || t('accountability.unassigned')}</td>
-                  <td className="table-cell"><StatusBadge status={o.status} /></td>
-                  <td className="table-cell"><StatusBadge status={o.payment_status} /></td>
-                  <td className="table-cell text-right tabular-nums text-sm font-medium">{formatCurrency(o.total, o.currency)}</td>
-                  <td className="table-cell text-xs text-gray-400">{o.order_date?.slice(0, 10)}</td>
+            <table className="w-full">
+              <thead className="sticky top-0 z-10">
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="table-header">{t('page.orders.orderNumber')}</th>
+                  <th className="table-header">{t('page.orders.company')}</th>
+                  <th className="table-header">{t('accountability.owner')}</th>
+                  <th className="table-header">{t('page.orders.status')}</th>
+                  <th className="table-header">{t('page.orders.payment')}</th>
+                  <th className="table-header text-right">{t('page.orders.total')}</th>
+                  <th className="table-header">{t('page.orders.date')}</th>
                 </tr>
-              ))}
-              {sorted.length === 0 && (
-                <tr><td colSpan={7}><div className="empty-state">{t('noData.orders')}</div></td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sorted.map((o: any) => (
+                  <tr key={o.id} className="table-row" onClick={() => navigate(`/orders/${o.id}`)}>
+                    <td className="table-cell font-medium text-blue-600 tabular-nums">{o.order_number}</td>
+                    <td className="table-cell text-gray-900">{o.company_name || '—'}</td>
+                    <td className="table-cell text-xs text-gray-500">{o.owner_name || t('accountability.unassigned')}</td>
+                    <td className="table-cell"><StatusBadge status={o.status} /></td>
+                    <td className="table-cell"><StatusBadge status={o.payment_status} /></td>
+                    <td className="table-cell text-right tabular-nums text-sm font-medium">{formatCurrency(o.total, o.currency)}</td>
+                    <td className="table-cell text-xs text-gray-400">{o.order_date?.slice(0, 10)}</td>
+                  </tr>
+                ))}
+                {sorted.length === 0 && (
+                  <tr><td colSpan={7}><div className="empty-state">{t('noData.orders')}</div></td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </>
       )}
