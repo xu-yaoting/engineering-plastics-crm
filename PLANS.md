@@ -10,6 +10,7 @@
 3. [x] Complete quotation editor labels and explicitly decide whether the removed discount controls remain out of scope; align static contracts with the current seven-column list.
 4. [x] Normalize list toolbar/empty-state markup and commercial action-menu surfaces.
 5. [x] Run targeted tests, full tests, typecheck, build, diff checks, and isolated API smoke.
+6. [x] Verify the authenticated desktop workflow in an isolated temporary database and simplify the new quotation form defaults.
 
 **Constraints:**
 - No database migration, production dependency, deployment, push, or real-customer data writes.

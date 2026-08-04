@@ -77,7 +77,7 @@ export default function QuotationEditPanel({
 
   useEffect(() => {
     if (!quotation) return;
-    setShowFeeSection(!!(quotation.tax_type !== 'none' || quotation.shipping_handling));
+    setShowFeeSection(Boolean(quotation.id && (quotation.tax_type !== 'none' || quotation.shipping_handling)));
     setForm(prev => ({
       ...prev,
       company_id: quotation.company_id || '',
@@ -259,7 +259,7 @@ export default function QuotationEditPanel({
 
           {/* Requirements */}
           <fieldset className="border-t border-gray-100 pt-4">
-            <legend className="section-label mb-3">{t('page.inquiryNew.applicationDescription')}</legend>
+            <legend className="sr-only">{t('page.inquiryNew.applicationDescription')}</legend>
             <div>
               <label className="label" htmlFor="quotation-description">{t('page.inquiryNew.applicationDescription')}</label>
               <textarea
