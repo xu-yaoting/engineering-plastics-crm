@@ -494,14 +494,7 @@ export default function QuotationDetail() {
                 </div>
               </div>
 
-              {/* Responsibility */}
-              <div className="card p-4">
-                <AccountabilityPanel entityType="quotation" entityId={id!} record={quotation} />
-              </div>
-            </div>
-
-            {/* Right Sidebar */}
-            <div className="space-y-4">
+              {/* Pricing Summary */}
               <div className="card p-4">
                 <h3 className="section-label mb-3">{t('page.quotationDetail.pricingSummary')}</h3>
                 <div className="space-y-1.5 text-sm">
@@ -527,7 +520,10 @@ export default function QuotationDetail() {
                   </div>
                 </div>
               </div>
+            </div>
 
+            {/* Right Sidebar */}
+            <div className="space-y-4">
               {/* Terms */}
               <div className="card p-4">
                 <h3 className="section-label mb-3">{t('page.quotationDetail.terms')}</h3>
@@ -536,6 +532,11 @@ export default function QuotationDetail() {
                   <div><span className="text-2xs text-gray-400 block">{t('page.quotationDetail.payment')}</span><span className="text-gray-700">{quotation.payment_term || '—'}</span></div>
                   <div><span className="text-2xs text-gray-400 block">{t('page.quotationDetail.delivery')}</span><span className="text-gray-700">{quotation.delivery_term || '—'}</span></div>
                 </div>
+              </div>
+
+              {/* Responsibility */}
+              <div className="card p-4">
+                <AccountabilityPanel entityType="quotation" entityId={id!} record={quotation} />
               </div>
             </div>
           </div>
