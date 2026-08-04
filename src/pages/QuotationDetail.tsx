@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { quotations, activities } from '../lib/api';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import SidePanel from '../components/shared/SidePanel';
@@ -107,6 +108,7 @@ export default function QuotationDetail() {
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const actionsBtnRef = useRef<HTMLButtonElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [creatingOrder, setCreatingOrder] = useState(false);
@@ -350,38 +352,43 @@ export default function QuotationDetail() {
               </>
             )}
             {/* Actions dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowActionsMenu(!showActionsMenu)}
-                className="icon-btn"
-                aria-label={t('common.moreActions')}
-                title={t('common.moreActions')}
+            <button
+              ref={actionsBtnRef}
+              onClick={() => setShowActionsMenu(!showActionsMenu)}
+              className="icon-btn"
+              aria-label={t('common.moreActions')}
+              title={t('common.moreActions')}
+            >
+              <Icon name="more" size={16} />
+            </button>
+            {showActionsMenu && actionsBtnRef.current && createPortal(
+              <div className="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-44"
+                style={{
+                  top: actionsBtnRef.current.getBoundingClientRect().bottom + 4,
+                  right: window.innerWidth - actionsBtnRef.current.getBoundingClientRect().right,
+                }}
               >
-                <Icon name="more" size={16} />
-              </button>
-              {showActionsMenu && (
-                <div className="menu-surface absolute right-0 top-full mt-1 w-44">
-                  <a href={`/api/quotations/${id}/pdf`} target="_blank" rel="noopener"
-                     className="flex items-center gap-1.5 w-full px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 no-underline">
-                    <Icon name="file-down" size={13} />{t('page.quotationDetail.downloadPdf')}
-                  </a>
-                  <button onClick={() => { setShowActionsMenu(false); duplicate(); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
-                    <Icon name="copy" size={13} />{t('common.duplicate')}
-                  </button>
-                  <button onClick={() => {
-                    setShowActionsMenu(false);
-                    if (orderId) return;
-                    setSampleInfo({ purpose: t('page.quotationDetail.sampleFor', { number: quotation.quotation_number }), quantity: lineItems[0] ? `${lineItems[0].quantity} ${lineItems[0].unit_of_measure}` : '', shipping_address: '' });
-                    setShowSamplePanel(true);
-                  }} className={`w-full flex items-center gap-1.5 px-3 py-1.5 text-xs ${orderId ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}`} disabled={!!orderId}>
-                    <Icon name="flask-conical" size={13} />{t('page.quotationDetail.sample')}
-                  </button>
-                  <button onClick={() => { setShowActionsMenu(false); setConfirmDelete(true); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">
-                    <Icon name="delete" size={13} />{t('common.delete')}
-                  </button>
-                </div>
-              )}
-            </div>
+                <a href={`/api/quotations/${id}/pdf`} target="_blank" rel="noopener"
+                   className="flex items-center gap-1.5 w-full px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 no-underline">
+                  <Icon name="file-down" size={13} />{t('page.quotationDetail.downloadPdf')}
+                </a>
+                <button onClick={() => { setShowActionsMenu(false); duplicate(); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
+                  <Icon name="copy" size={13} />{t('common.duplicate')}
+                </button>
+                <button onClick={() => {
+                  setShowActionsMenu(false);
+                  if (orderId) return;
+                  setSampleInfo({ purpose: t('page.quotationDetail.sampleFor', { number: quotation.quotation_number }), quantity: lineItems[0] ? `${lineItems[0].quantity} ${lineItems[0].unit_of_measure}` : '', shipping_address: '' });
+                  setShowSamplePanel(true);
+                }} className={`w-full flex items-center gap-1.5 px-3 py-1.5 text-xs ${orderId ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}`} disabled={!!orderId}>
+                  <Icon name="flask-conical" size={13} />{t('page.quotationDetail.sample')}
+                </button>
+                <button onClick={() => { setShowActionsMenu(false); setConfirmDelete(true); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">
+                  <Icon name="delete" size={13} />{t('common.delete')}
+                </button>
+              </div>,
+              document.body
+            )}
           </div>
         </div>
         <div className="text-xs text-gray-500">
