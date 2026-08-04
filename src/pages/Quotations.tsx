@@ -150,9 +150,7 @@ export default function Quotations() {
                 <th className="table-header">{t('accountability.owner')}</th>
                 <th className="table-header">{t('page.quotations.status')}</th>
                 <th className="table-header text-right">{t('page.quotations.total')}</th>
-                <th className="table-header">{t('page.quotations.currency')}</th>
                 <th className="table-header">{t('page.quotations.validUntil')}</th>
-                <th className="table-header">{t('page.quotations.version')}</th>
               </tr>
             </thead>
             <tbody>
@@ -166,13 +164,11 @@ export default function Quotations() {
                   <td className="table-cell text-xs text-gray-500">{q.owner_name || t('accountability.unassigned')}</td>
                   <td className="table-cell"><StatusBadge status={q.status} /></td>
                   <td className="table-cell text-right tabular-nums text-sm font-medium">{formatCurrency(q.total, q.currency)}</td>
-                  <td className="table-cell text-xs text-gray-500">{q.currency}</td>
                   <td className="table-cell text-xs text-gray-500">{q.valid_until || '—'}</td>
-                  <td className="table-cell text-xs text-gray-500">{t('page.quotations.rev')} {q.version || 1}</td>
                 </tr>
               ))}
               {sorted.length === 0 && (
-                <tr><td colSpan={9}><div className="empty-state">{t('noData.quotations')}</div></td></tr>
+                <tr><td colSpan={7}><div className="empty-state">{t('noData.quotations')}</div></td></tr>
               )}
             </tbody>
           </table>

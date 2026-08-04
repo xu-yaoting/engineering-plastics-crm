@@ -321,18 +321,8 @@ export default function QuotationDetail() {
             <span className="shrink-0 text-2xs text-gray-400">{t('page.quotationDetail.rev')} {quotation.version || 1}</span>
           </div>
           <div className="page-actions w-full max-w-none flex-nowrap overflow-x-auto whitespace-nowrap pb-1 sm:w-auto sm:max-w-[62%] sm:flex-wrap [&>*]:shrink-0">
-            <a href={`/api/quotations/${id}/pdf`} target="_blank" rel="noopener" className="btn-primary btn-sm no-underline inline-flex items-center gap-1"><Icon name="download" size={14} className="mr-1.5" />{t('page.quotationDetail.downloadPdf')}</a>
             <button onClick={() => setShowEditPanel(true)} className="btn-primary btn-sm"><Icon name="square-pen" size={14} className="mr-1.5" />{t('common.edit')}</button>
-            <button onClick={() => {
-              if (orderId) return;
-              setSampleInfo({
-                purpose: t('page.quotationDetail.sampleFor', { number: quotation.quotation_number }),
-                quantity: lineItems[0] ? `${lineItems[0].quantity} ${lineItems[0].unit_of_measure}` : '',
-                shipping_address: '',
-              });
-              setShowSamplePanel(true);
-            }} className={`btn-secondary btn-sm ${orderId ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!!orderId}><Icon name="flask-conical" size={14} className="mr-1.5" />{t('page.quotationDetail.sample')}</button>
-            <button onClick={createOrder} disabled={!!orderId || creatingOrder} className={`btn-secondary btn-sm ${orderId ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <button onClick={createOrder} disabled={!!orderId || creatingOrder} className={`btn-primary btn-sm ${orderId ? 'opacity-50 cursor-not-allowed' : ''}`}>
               {creatingOrder ? t('page.quotationDetail.editPanel.saving') : <><Icon name="package" size={14} className="mr-1.5" />{t('page.quotationDetail.createOrder')}</>}
             </button>
             {orderId && (
@@ -371,13 +361,21 @@ export default function QuotationDetail() {
               </button>
               {showActionsMenu && (
                 <div className="menu-surface absolute right-0 top-full mt-1 w-44">
-                  <button onClick={() => { setShowActionsMenu(false); duplicate(); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
-                    <Icon name="copy" size={13} />{t('common.duplicate')}
-                  </button>
                   <a href={`/api/quotations/${id}/pdf`} target="_blank" rel="noopener"
                      className="flex items-center gap-1.5 w-full px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 no-underline">
                     <Icon name="file-down" size={13} />{t('page.quotationDetail.downloadPdf')}
                   </a>
+                  <button onClick={() => { setShowActionsMenu(false); duplicate(); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
+                    <Icon name="copy" size={13} />{t('common.duplicate')}
+                  </button>
+                  <button onClick={() => {
+                    setShowActionsMenu(false);
+                    if (orderId) return;
+                    setSampleInfo({ purpose: t('page.quotationDetail.sampleFor', { number: quotation.quotation_number }), quantity: lineItems[0] ? `${lineItems[0].quantity} ${lineItems[0].unit_of_measure}` : '', shipping_address: '' });
+                    setShowSamplePanel(true);
+                  }} className={`w-full flex items-center gap-1.5 px-3 py-1.5 text-xs ${orderId ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}`} disabled={!!orderId}>
+                    <Icon name="flask-conical" size={13} />{t('page.quotationDetail.sample')}
+                  </button>
                   <button onClick={() => { setShowActionsMenu(false); setConfirmDelete(true); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">
                     <Icon name="delete" size={13} />{t('common.delete')}
                   </button>
@@ -512,66 +510,22 @@ export default function QuotationDetail() {
                     <span>{t('page.quotationDetail.subtotal')}</span>
                     <span className="tabular-nums">{formatCurrency(quotation.subtotal ?? subtotal, quotation.currency)}</span>
                   </div>
-                  {quotation.discount_percent > 0 && (
+                  {quotation.shipping_handling > 0 && (
                     <div className="flex justify-between text-gray-500">
-                      <span>{t('page.quotationDetail.discount')} ({quotation.discount_percent}%)</span>
-                      <span className="tabular-nums">-{formatCurrency(quotation.discount_amount || 0, quotation.currency)}</span>
+                      <span>{t('page.quotationDetail.shipping')}</span>
+                      <span className="tabular-nums">{formatCurrency(quotation.shipping_handling, quotation.currency)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-gray-500">
-                    <span>{t('page.quotationDetail.shipping')}</span>
-                    <span className="tabular-nums">{formatCurrency(quotation.shipping_handling || 0, quotation.currency)}</span>
-                  </div>
                   {quotation.tax_type && quotation.tax_type !== 'none' && (
-                    <div className="flex justify-between text-gray-500">
-                      <span>
-                        {quotation.tax_type === 'domestic_vat' ? `VAT (${quotation.domestic_vat_rate || 0}%)` :
-                         `Rebate (${quotation.export_tax_rebate_rate || 0}%)`}
-                      </span>
-                      <span className={`tabular-nums ${quotation.tax_type === 'export' ? 'text-green-600' : ''}`}>
-                        {quotation.tax_type === 'domestic_vat' ? `+${formatCurrency(taxAmount, quotation.currency)}` : `-${formatCurrency(quotation.total ? (quotation.subtotal || subtotal) * (quotation.export_tax_rebate_rate || 0) / 100 : 0, quotation.currency)}`}
-                      </span>
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>{quotation.tax_type === 'domestic_vat' ? `VAT ${quotation.domestic_vat_rate || 0}%` : `${t('page.quotationDetail.editPanel.exportTax')} ${quotation.export_tax_rebate_rate || 0}%`}</span>
+                      <span className="tabular-nums">{quotation.tax_type === 'domestic_vat' ? `+${formatCurrency(taxAmount, quotation.currency)}` : ''}</span>
                     </div>
                   )}
                   <div className="flex justify-between font-semibold text-gray-900 pt-2 border-t border-gray-200">
                     <span>{t('page.quotationDetail.total')}</span>
                     <span className="tabular-nums text-base">{formatCurrency(quotation.total ?? subtotal, quotation.currency)}</span>
                   </div>
-                  {quotation.margin_estimate_percent != null && (
-                    <div className="flex justify-between text-green-600 text-xs pt-1">
-                      <span>{t('page.quotationDetail.estMargin')}</span>
-                      <span>{quotation.margin_estimate_percent}%</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="card p-4">
-                <h3 className="section-label mb-3">{t('page.quotationDetail.taxation')}</h3>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">{t('page.quotationDetail.type')}</span>
-                    <span className="font-medium">{quotation.tax_type === 'domestic_vat' ? t('page.quotationDetail.editPanel.domesticVat') : quotation.tax_type === 'export' ? t('page.quotationDetail.editPanel.exportTax') : t('common.na')}</span>
-                  </div>
-                  {quotation.domestic_vat_rate > 0 && (
-                    <div className="flex justify-between"><span className="text-gray-500">{t('page.quotationDetail.vatRate')}</span><span>{quotation.domestic_vat_rate}%</span></div>
-                  )}
-                  {quotation.export_tax_rebate_rate > 0 && (
-                    <div className="flex justify-between"><span className="text-gray-500">{t('page.quotationDetail.rebate')}</span><span className="text-green-600">{quotation.export_tax_rebate_rate}%</span></div>
-                  )}
-                </div>
-              </div>
-
-              <div className="card p-4">
-                <h3 className="section-label mb-3">{t('page.quotationDetail.recentActivity')}</h3>
-                <div className="space-y-2">
-                  {activityList.slice(0, 5).map((a: any) => (
-                    <div key={a.id} className="text-xs text-gray-600">
-                      <span className="text-gray-400">{new Date(a.created_at).toLocaleDateString()}</span>
-                      {' · '}{a.subject}
-                    </div>
-                  ))}
-                  {activityList.length === 0 && <p className="text-xs text-gray-400">{t('page.quotationDetail.noActivity')}</p>}
                 </div>
               </div>
             </div>

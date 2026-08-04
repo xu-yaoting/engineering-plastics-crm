@@ -35,8 +35,6 @@ export default function QuotationEditPanel({
     company_id: quotation.company_id || '',
     contact_id: quotation.contact_id || '',
     application_description: '',
-    target_material_requested: '',
-    quantity_estimate: '',
     urgency: 'within_1_month',
     source: 'email',
     currency: 'USD',
@@ -49,7 +47,6 @@ export default function QuotationEditPanel({
     domestic_vat_rate: 0,
     export_tax_rebate_rate: 0,
     shipping_handling: 0,
-    discount_percent: 0,
     internal_notes: '',
     owner_user_id: '',
   });
@@ -57,6 +54,7 @@ export default function QuotationEditPanel({
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
+  const [showFeeSection, setShowFeeSection] = useState(false);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [companyList, setCompanyList] = useState<any[]>([]);
   const [contactList, setContactList] = useState<any[]>([]);
@@ -79,13 +77,12 @@ export default function QuotationEditPanel({
 
   useEffect(() => {
     if (!quotation) return;
+    setShowFeeSection(!!(quotation.tax_type !== 'none' || quotation.shipping_handling));
     setForm(prev => ({
       ...prev,
       company_id: quotation.company_id || '',
       contact_id: quotation.contact_id || '',
       application_description: quotation.application_description || '',
-      target_material_requested: quotation.target_material_requested || '',
-      quantity_estimate: quotation.quantity_estimate || '',
       urgency: quotation.urgency || 'within_1_month',
       source: quotation.source || 'email',
       currency: quotation.currency || 'USD',
@@ -98,7 +95,6 @@ export default function QuotationEditPanel({
       domestic_vat_rate: quotation.domestic_vat_rate || 0,
       export_tax_rebate_rate: quotation.export_tax_rebate_rate || 0,
       shipping_handling: quotation.shipping_handling || 0,
-      discount_percent: quotation.discount_percent || 0,
       internal_notes: quotation.internal_notes || '',
       owner_user_id: quotation.owner_user_id || '',
     }));
@@ -113,7 +109,7 @@ export default function QuotationEditPanel({
     setErrors({});
     setLineItems(prev => [...prev, {
       id: uuidv4(),
-      product_grade_snapshot: quotation.target_material_requested || '',
+      product_grade_snapshot: '',
       unit_of_measure: 'kg',
       quantity: 1,
       unit_price: 0,
@@ -126,13 +122,8 @@ export default function QuotationEditPanel({
     setLineItems(prev => prev.map(item => {
       if (item.id !== id) return item;
       const updated = { ...item, [field]: value };
-      // Recalculate line total
-      if (['quantity', 'unit_price', 'discount_percent'].includes(field)) {
-        const qty = field === 'quantity' ? value : updated.quantity;
-        const price = field === 'unit_price' ? value : updated.unit_price;
-        const disc = field === 'discount_percent' ? value : updated.discount_percent;
-        const subtotal = qty * price;
-        updated.line_total = subtotal - (subtotal * (disc / 100));
+      if (['quantity', 'unit_price'].includes(field)) {
+        updated.line_total = updated.quantity * updated.unit_price;
       }
       return updated;
     }));
@@ -143,10 +134,8 @@ export default function QuotationEditPanel({
   };
 
   const subtotal = lineItems.reduce((sum, item) => sum + (item.line_total || 0), 0);
-  const discountAmount = subtotal * (form.discount_percent / 100);
-  const afterDiscount = subtotal - discountAmount;
-  const taxAmount = form.tax_type === 'domestic_vat' ? afterDiscount * (form.domestic_vat_rate / 100) : 0;
-  const total = afterDiscount + taxAmount + (form.shipping_handling || 0);
+  const taxAmount = form.tax_type === 'domestic_vat' ? subtotal * (form.domestic_vat_rate / 100) : 0;
+  const total = subtotal + taxAmount + (form.shipping_handling || 0);
 
   const save = async () => {
     const nextErrors: { lineItems?: string; company_id?: string; application_description?: string } = {};
@@ -168,7 +157,6 @@ export default function QuotationEditPanel({
       const payload = {
         ...form,
         subtotal,
-        discount_amount: discountAmount,
         tax_amount: taxAmount,
         total,
         status: isNew ? 'draft' : (quotation.status || 'draft'),
@@ -269,11 +257,10 @@ export default function QuotationEditPanel({
             </div>
           )}
 
-          {/* Requirements (editable for new, shown as context for edit) */}
+          {/* Requirements */}
           <fieldset className="border-t border-gray-100 pt-4">
-            <legend className="section-label mb-3">{t('page.inquiryDetail.applicationDescription')}</legend>
+            <legend className="section-label mb-3">{t('page.inquiryNew.applicationDescription')}</legend>
             <div>
-              <label className="label" htmlFor="quotation-description">{t('page.inquiryNew.applicationDescription')}{isNew ? ' *' : ''}</label>
               <textarea
                 id="quotation-description"
                 className={errors.application_description ? 'input-error' : 'input'}
@@ -288,20 +275,6 @@ export default function QuotationEditPanel({
                 placeholder={t('page.inquiryNew.placeholderDescription')}
               />
               {errors.application_description && <p className="field-error" role="alert">{errors.application_description}</p>}
-            </div>
-            <div className="grid grid-cols-1 gap-3 mt-3 sm:grid-cols-2">
-              <div>
-                <label className="label" htmlFor="quotation-target-material">{t('page.inquiryNew.targetMaterial')}</label>
-                <input id="quotation-target-material" className="input" value={form.target_material_requested}
-                  onChange={e => set('target_material_requested', e.target.value)}
-                  placeholder={t('page.inquiryNew.placeholderMaterial')} />
-              </div>
-              <div>
-                <label className="label" htmlFor="quotation-quantity">{t('page.inquiryDetail.quantity')}</label>
-                <input id="quotation-quantity" className="input" value={form.quantity_estimate}
-                  onChange={e => set('quantity_estimate', e.target.value)}
-                  placeholder={t('page.inquiryNew.placeholderQuantityKg')} />
-              </div>
             </div>
             <div className="grid grid-cols-1 gap-3 mt-3 sm:grid-cols-2">
               <div>
@@ -384,11 +357,6 @@ export default function QuotationEditPanel({
                       <input id={`quotation-edit-unit-price-${idx}`} className="input text-sm mt-0.5 tabular-nums" type="number" min="0" step="0.01" value={item.unit_price}
                         onChange={e => updateLine(item.id, 'unit_price', parseFloat(e.target.value) || 0)} />
                     </div>
-                    <div>
-                      <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-discount-${idx}`}>{t('page.quotationDetail.editPanel.discPercent')}</label>
-                      <input id={`quotation-edit-discount-${idx}`} className="input text-sm mt-0.5" type="number" min="0" max="100" value={item.discount_percent}
-                        onChange={e => updateLine(item.id, 'discount_percent', parseFloat(e.target.value) || 0)} />
-                    </div>
                     <div className="sm:col-span-2">
                       <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-line-total-${idx}`}>{t('page.quotationDetail.editPanel.lineTotal')}</label>
                       <output id={`quotation-edit-line-total-${idx}`} className="block text-sm tabular-nums text-gray-900 mt-0.5 px-3 py-2 bg-gray-50 rounded-lg">
@@ -445,57 +413,63 @@ export default function QuotationEditPanel({
             </div>
           </fieldset>
 
-          {/* Tax Type */}
+          {/* Fees (collapsible) */}
           <fieldset className="border-t border-gray-100 pt-4">
-            <legend className="section-label mb-3">{t('page.quotationDetail.editPanel.taxation')}</legend>
-            <div className="segmented-control mb-3">
-              {(['domestic_vat', 'export', 'none'] as const).map(type => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => set('tax_type', type)}
-                  aria-pressed={form.tax_type === type}
-                  className={`segmented-option ${form.tax_type === type ? 'segmented-option-active' : ''}`}
-                >
-                  {type === 'domestic_vat' ? t('page.quotationDetail.editPanel.domesticVat') : type === 'export' ? t('page.quotationDetail.editPanel.exportTax') : t('page.quotationDetail.editPanel.none')}
-                </button>
-              ))}
-            </div>
-            {form.tax_type === 'domestic_vat' && (
-              <div>
-                <label className="label" htmlFor="quotation-edit-vat-rate">{t('page.quotationDetail.editPanel.vatRate')}</label>
-                <input id="quotation-edit-vat-rate" className="input" type="number" min="0" max="100" step="0.01"
-                  value={form.domestic_vat_rate || ''}
-                  onChange={e => set('domestic_vat_rate', parseFloat(e.target.value) || 0)} />
+            <legend className="flex w-full items-center justify-between">
+              <span className="section-label">{t('page.quotationDetail.editPanel.shippingDiscount')}</span>
+              <button type="button" onClick={() => setShowFeeSection(v => !v)} className="text-xs text-blue-600 hover:underline">
+                {showFeeSection ? t('common.collapse') : t('common.expand')}
+              </button>
+            </legend>
+            {!showFeeSection ? (
+              <p className="mt-2 text-sm text-gray-500">
+                {[
+                  form.shipping_handling > 0 ? `${t('page.quotationDetail.editPanel.shippingHandling')}: ${formatCurrency(form.shipping_handling, form.currency)}` : '',
+                  form.tax_type !== 'none' ? `${t('page.quotationDetail.editPanel.taxation')}: ${form.tax_type === 'domestic_vat' ? `${form.domestic_vat_rate}% VAT` : `${form.export_tax_rebate_rate}% ${t('page.quotationDetail.editPanel.exportTax')}`}` : '',
+                ].filter(Boolean).join(' · ') || t('page.quotationDetail.editPanel.none')}
+              </p>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <div>
+                  <label className="label" htmlFor="quotation-edit-shipping-handling">{t('page.quotationDetail.editPanel.shippingHandling')}</label>
+                  <input id="quotation-edit-shipping-handling" className="input tabular-nums" type="number" min="0" step="0.01"
+                    value={form.shipping_handling || ''}
+                    onChange={e => set('shipping_handling', parseFloat(e.target.value) || 0)} />
+                </div>
+                <div>
+                  <span className="label">{t('page.quotationDetail.editPanel.taxation')}</span>
+                  <div className="segmented-control mt-1 mb-2">
+                    {(['domestic_vat', 'export', 'none'] as const).map(type => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => set('tax_type', type)}
+                        aria-pressed={form.tax_type === type}
+                        className={`segmented-option ${form.tax_type === type ? 'segmented-option-active' : ''}`}
+                      >
+                        {type === 'domestic_vat' ? t('page.quotationDetail.editPanel.domesticVat') : type === 'export' ? t('page.quotationDetail.editPanel.exportTax') : t('page.quotationDetail.editPanel.none')}
+                      </button>
+                    ))}
+                  </div>
+                  {form.tax_type === 'domestic_vat' && (
+                    <div>
+                      <label className="label" htmlFor="quotation-edit-vat-rate">{t('page.quotationDetail.editPanel.vatRate')}</label>
+                      <input id="quotation-edit-vat-rate" className="input" type="number" min="0" max="100" step="0.01"
+                        value={form.domestic_vat_rate || ''}
+                        onChange={e => set('domestic_vat_rate', parseFloat(e.target.value) || 0)} />
+                    </div>
+                  )}
+                  {form.tax_type === 'export' && (
+                    <div>
+                      <label className="label" htmlFor="quotation-edit-export-rebate-rate">{t('page.quotationDetail.editPanel.exportTaxRebateRate')}</label>
+                      <input id="quotation-edit-export-rebate-rate" className="input" type="number" min="0" max="100" step="0.01"
+                        value={form.export_tax_rebate_rate || ''}
+                        onChange={e => set('export_tax_rebate_rate', parseFloat(e.target.value) || 0)} />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-            {form.tax_type === 'export' && (
-              <div>
-                <label className="label" htmlFor="quotation-edit-export-rebate-rate">{t('page.quotationDetail.editPanel.exportTaxRebateRate')}</label>
-                <input id="quotation-edit-export-rebate-rate" className="input" type="number" min="0" max="100" step="0.01"
-                  value={form.export_tax_rebate_rate || ''}
-                  onChange={e => set('export_tax_rebate_rate', parseFloat(e.target.value) || 0)} />
-              </div>
-            )}
-          </fieldset>
-
-          {/* Shipping & Discount */}
-          <fieldset className="border-t border-gray-100 pt-4">
-            <legend className="section-label mb-3">{t('page.quotationDetail.editPanel.shippingDiscount')}</legend>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="label" htmlFor="quotation-edit-shipping-handling">{t('page.quotationDetail.editPanel.shippingHandling')}</label>
-                <input id="quotation-edit-shipping-handling" className="input tabular-nums" type="number" min="0" step="0.01"
-                  value={form.shipping_handling || ''}
-                  onChange={e => set('shipping_handling', parseFloat(e.target.value) || 0)} />
-              </div>
-              <div>
-                <label className="label" htmlFor="quotation-edit-overall-discount">{t('page.quotationDetail.editPanel.overallDiscount')}</label>
-                <input id="quotation-edit-overall-discount" className="input" type="number" min="0" max="100" step="0.1"
-                  value={form.discount_percent || ''}
-                  onChange={e => set('discount_percent', parseFloat(e.target.value) || 0)} />
-              </div>
-            </div>
           </fieldset>
 
           {/* Internal Notes */}
@@ -513,12 +487,6 @@ export default function QuotationEditPanel({
               <span>{t('page.quotationDetail.editPanel.subtotal')}</span>
               <span className="tabular-nums">{formatCurrency(subtotal, form.currency)}</span>
             </div>
-            {form.discount_percent > 0 && (
-              <div className="flex justify-between text-gray-500">
-                <span>{t('page.quotationDetail.editPanel.discount')} ({form.discount_percent}%)</span>
-                <span className="tabular-nums">-{formatCurrency(discountAmount, form.currency)}</span>
-              </div>
-            )}
             <div className="flex justify-between text-gray-500">
               <span>{t('page.quotationDetail.editPanel.shipping')}</span>
               <span className="tabular-nums">{formatCurrency(form.shipping_handling || 0, form.currency)}</span>
