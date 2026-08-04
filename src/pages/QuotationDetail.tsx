@@ -400,8 +400,8 @@ export default function QuotationDetail() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto p-6">
+      <div className="flex-1 overflow-y-auto px-4 py-6 md:px-6">
+        <div>
           <div className="section-band commercial-summary mb-6 p-5">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>

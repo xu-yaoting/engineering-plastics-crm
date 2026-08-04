@@ -224,7 +224,7 @@ export default function ShipmentDetail() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-3xl mx-auto space-y-5">
+        <div className="space-y-5">
           <div className="section-band commercial-summary p-5">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>

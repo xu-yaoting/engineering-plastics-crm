@@ -197,7 +197,7 @@ export default function CompanyDetail() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="mx-auto w-full max-w-7xl px-4 pt-4">
+        <div className="px-4 pt-4 md:px-6">
           <section
             aria-label={t('page.companyDetail.actionSummary')}
             className="data-surface p-4"

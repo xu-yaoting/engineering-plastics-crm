@@ -396,7 +396,7 @@ export default function OrderDetail() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className="space-y-6">
           {/* ── Order Summary ── */}
           <div className="section-band commercial-summary p-5">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
