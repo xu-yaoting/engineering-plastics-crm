@@ -1,5 +1,20 @@
 # CRM Company Workspace Simplification Plan
 
+# CRM Dependency Security Remediation (2026-08-05)
+
+**Current goal:** Resolve production dependency advisories without changing CRM routes, stored data, or deployment state.
+
+**Completed:**
+- [x] Upgrade `multer` to 2.2.0 and `uuid` to 11.1.1.
+- [x] Upgrade `react-router-dom` to 7.18.2; existing client-side `BrowserRouter` usage remains compatible.
+- [x] Replace the unmaintained `xlsx` package with the API-compatible `@e965/xlsx` 0.20.3 alias.
+- [x] Pin transitive `body-parser` to 1.20.6 through npm overrides.
+- [x] Run production audit, full tests, typecheck, build, API write smoke, and diff checks.
+
+**Audit note:** The remaining npm advisory targets React Router RSC mode. This CRM uses `BrowserRouter` and does not use RSC, server actions, or React Router SSR hydration.
+
+**Constraints:** No database migration, production deployment, remote push, or real-customer data write.
+
 # CRM Release Defect Repair Plan (2026-08-04)
 
 **Current goal:** Resolve the defects found in the full CRM acceptance pass while keeping the confirmed quotation-primary workflow, preserving legacy Inquiry URLs as redirects, and avoiding production data or schema changes.
