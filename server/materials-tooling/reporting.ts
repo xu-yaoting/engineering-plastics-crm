@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type Database from 'better-sqlite3';
 import * as XLSX from 'xlsx';
 
 const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 declare namespace PDFKit {
   interface PDFDocument extends NodeJS.ReadableStream {
@@ -662,8 +664,8 @@ export function createMaterialsReportingService(
     const ledger = getLedger(actor, { month: monthValue });
     const showPrices = permissions.getMaterialsPermission(actor).viewPrices;
     const rows = ledger.rows as Row[];
-    const regularFont = path.resolve(process.cwd(), 'server/fonts/NotoSansSC-Regular.ttf');
-    const boldFont = path.resolve(process.cwd(), 'server/fonts/NotoSansSC-Bold.ttf');
+    const regularFont = path.join(__dirname, '..', 'fonts', 'NotoSansSC-Regular.ttf');
+    const boldFont = path.join(__dirname, '..', 'fonts', 'NotoSansSC-Bold.ttf');
     const document = new PDFDocument({ size: 'A3', layout: 'landscape', margin: 36 });
     const chunks: Buffer[] = [];
     document.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));

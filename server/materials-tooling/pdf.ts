@@ -3,10 +3,12 @@ import {
   mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import type Database from 'better-sqlite3';
 
 const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 declare namespace PDFKit {
   interface PDFDocument extends NodeJS.ReadableStream {
@@ -85,8 +87,8 @@ const DOCUMENT_TYPE_NAMES: Record<string, string> = {
 };
 const PURCHASE_TYPES = new Set(['purchase_request', 'purchase_receipt']);
 const FROZEN_STATUSES = new Set(['pending_approval']);
-const REGULAR_FONT = path.resolve(process.cwd(), 'server/fonts/NotoSansSC-Regular.ttf');
-const BOLD_FONT = path.resolve(process.cwd(), 'server/fonts/NotoSansSC-Bold.ttf');
+const REGULAR_FONT = path.join(__dirname, '..', 'fonts', 'NotoSansSC-Regular.ttf');
+const BOLD_FONT = path.join(__dirname, '..', 'fonts', 'NotoSansSC-Bold.ttf');
 const PAGE_MARGIN = 42;
 const CONTENT_WIDTH = 511;
 

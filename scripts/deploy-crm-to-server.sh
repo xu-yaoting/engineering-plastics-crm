@@ -10,8 +10,9 @@ DEST="${CRM_DEPLOY_DIR:-/opt/jekin-crm}"
 
 cd "$ROOT"
 
-echo "== 1/4 build (vite + tsc) =="
+echo "== 1/4 build (vite + tsc + fonts) =="
 npm run build
+test -f dist-server/fonts/NotoSansSC-Regular.ttf && test -f dist-server/fonts/NotoSansSC-Bold.ttf || { echo "❌ dist-server/fonts missing after build"; exit 1; }
 
 echo "== 2/4 ensure remote directory =="
 ssh "$HOST" "mkdir -p '$DEST'"
