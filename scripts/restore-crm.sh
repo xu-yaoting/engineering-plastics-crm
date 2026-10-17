@@ -38,7 +38,11 @@ trap cleanup EXIT
 CHECKSUM_FILE="$BACKUP_FILE.sha256"
 if [ -f "$CHECKSUM_FILE" ]; then
   EXPECTED_CHECKSUM="$(awk 'NR == 1 { print $1 }' "$CHECKSUM_FILE")"
-  ACTUAL_CHECKSUM="$(shasum -a 256 "$BACKUP_FILE" | awk '{ print $1 }')"
+  if command -v sha256sum >/dev/null 2>&1; then
+    ACTUAL_CHECKSUM="$(sha256sum "$BACKUP_FILE" | awk '{ print $1 }')"
+  else
+    ACTUAL_CHECKSUM="$(shasum -a 256 "$BACKUP_FILE" | awk '{ print $1 }')"
+  fi
   if [ -z "$EXPECTED_CHECKSUM" ] || [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then
     echo "Backup checksum verification failed: $BACKUP_FILE" >&2
     exit 1

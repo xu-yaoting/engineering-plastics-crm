@@ -28,19 +28,19 @@ test('authentication requires a hashed PIN instead of passwordless name registra
   assert.doesNotMatch(authRouteSource, /return existing user/);
 });
 
-test('initial setup only trusts the direct loopback socket address', () => {
+test('initial setup only trusts the direct loopback socket address and rejects proxied requests', () => {
   assert.match(authRouteSource, /function isDirectLoopbackAddress/);
   assert.match(authRouteSource, /req\.socket\.remoteAddress/);
   assert.match(authRouteSource, /127\.0\.0\.1/);
   assert.match(authRouteSource, /::ffff:127\.0\.0\.1/);
   assert.match(authRouteSource, /::1/);
   assert.match(authRouteSource, /res\.status\(403\)\.json/);
-  assert.doesNotMatch(authRouteSource, /x-forwarded-for/i);
 
   const setupStart = authRouteSource.indexOf("router.post('/setup'");
   const setupEnd = authRouteSource.indexOf("router.post('/login'");
   const setupRoute = authRouteSource.slice(setupStart, setupEnd);
   assert.ok(setupRoute.indexOf('isDirectLoopbackAddress') < setupRoute.indexOf('hashPin('));
+  assert.match(setupRoute, /x-forwarded-for/);
 });
 
 test('login rate limiting blocks before PIN hashing and clears after success', () => {
@@ -57,6 +57,10 @@ test('login rate limiting blocks before PIN hashing and clears after success', (
   const loginEnd = authRouteSource.indexOf("router.post('/register'");
   const loginRoute = authRouteSource.slice(loginStart, loginEnd);
   assert.ok(loginRoute.indexOf('isRateLimited') < loginRoute.indexOf('pinMatches('));
+
+  assert.match(authRouteSource, /function requestClientIp\(req: Request\)/);
+  assert.match(authRouteSource, /req\.headers\['x-forwarded-for'\]/);
+  assert.match(loginRoute, /const clientIp = requestClientIp\(req\)/);
 });
 
 test('only administrators can list and create colleague accounts', () => {

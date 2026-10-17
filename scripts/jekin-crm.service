@@ -1,0 +1,19 @@
+[Unit]
+Description=JEKIN CRM (Node.js, production)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=admin
+Group=admin
+WorkingDirectory=/opt/jekin-crm
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/jekin-crm/.env
+ExecStart=/usr/local/bin/node /opt/jekin-crm/dist-server/index.js
+Restart=always
+RestartSec=3
+SyslogIdentifier=jekin-crm
+
+[Install]
+WantedBy=multi-user.target

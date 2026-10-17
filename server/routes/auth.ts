@@ -29,6 +29,23 @@ function isDirectLoopbackAddress(address: string | undefined): boolean {
   return address === '127.0.0.1' || address === '::ffff:127.0.0.1' || address === '::1';
 }
 
+/**
+ * Resolve the real client IP for rate limiting. The API listens on loopback
+ * only, so a loopback socket address means the request arrived through the
+ * local reverse proxy; in that case trust the last hop of X-Forwarded-For
+ * (the proxy appends the true remote address last — clients can prepend to
+ * the header but can never replace that final value). Direct connections
+ * keep their socket address.
+ */
+function requestClientIp(req: Request): string {
+  const direct = req.socket.remoteAddress ?? 'unknown';
+  if (!isDirectLoopbackAddress(direct)) return direct;
+  const header = req.headers['x-forwarded-for'];
+  const chain = Array.isArray(header) ? header.join(',') : header;
+  const hops = chain?.split(',').map((part) => part.trim()).filter(Boolean) ?? [];
+  return hops.pop() ?? direct;
+}
+
 function isRateLimited(
   attempts: Map<string, RateLimitEntry>,
   key: string,
@@ -100,7 +117,8 @@ router.get('/status', (_req: Request, res: Response) => {
 /** One-time first-run setup. The first credentialed account becomes administrator. */
 router.post('/setup', (req: Request, res: Response) => {
   const clientIp = req.socket.remoteAddress ?? '';
-  if (!isDirectLoopbackAddress(clientIp)) {
+  const proxied = req.headers['x-forwarded-for'] ?? req.headers['x-real-ip'];
+  if (!isDirectLoopbackAddress(clientIp) || proxied) {
     return res.status(403).json({ error: 'Initial setup is only available from this computer' });
   }
 
@@ -149,7 +167,7 @@ router.post('/login', (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Name and 6-digit PIN are required' });
   }
 
-  const clientIp = req.socket.remoteAddress ?? 'unknown';
+  const clientIp = requestClientIp(req);
   const cleanName = name.trim();
   const normalizedName = name.trim().toLocaleLowerCase();
   const usernameKey = normalizedName;

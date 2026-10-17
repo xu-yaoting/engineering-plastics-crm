@@ -34,7 +34,11 @@ fi
 
 # Create tar archive
 (cd "$STAGING_DIR" && tar -czf "$BACKUP_TAR" .)
-shasum -a 256 "$BACKUP_TAR" > "$CHECKSUM_FILE"
+if command -v sha256sum >/dev/null 2>&1; then
+  sha256sum "$BACKUP_TAR" > "$CHECKSUM_FILE"
+else
+  shasum -a 256 "$BACKUP_TAR" > "$CHECKSUM_FILE"
+fi
 
 echo "CRM backup created:"
 echo "$BACKUP_TAR"
