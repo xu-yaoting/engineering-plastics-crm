@@ -10,7 +10,7 @@ const FONT_B = path.join(__dirname, 'fonts', 'NotoSansSC-Bold.ttf');
 const BLUE = '#2185ff';
 
 const COMPANY = '杰京新材料（江苏）有限公司';
-const COMPANY_EN = 'JEKIN Polymer (Jiangsu) Co., Ltd';
+const COMPANY_EN = 'JEKIN HPM (Jiangsu) Co., Ltd';
 const ADDR = '江苏省盐城市亭湖区新盐路18号';
 const EMAIL = 'nathan@jekinpolymer.com';
 const PHONE = '135 8563 5052';
@@ -168,12 +168,12 @@ export function generateQuotationPDF(quotation: any, lineItems: any[]): PDFKit.P
   y += 16;
   doc.font('R').fontSize(8).fill('#666');
 
+  // Keep this customer-facing list limited to commercial terms.
   const terms = [
     quotation.incoterm && `Incoterm: ${quotation.incoterm}`,
     quotation.payment_term && `Payment Terms: ${quotation.payment_term}`,
     quotation.delivery_term && `Delivery: ${quotation.delivery_term}`,
     `Currency: ${quotation.currency || 'USD'}`,
-    quotation.internal_notes,
   ].filter(Boolean) as string[];
 
   terms.forEach(t => {

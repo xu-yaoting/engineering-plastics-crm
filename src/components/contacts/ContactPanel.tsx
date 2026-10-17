@@ -202,7 +202,7 @@ export default function ContactPanel({
         </div>
         </fieldset>
 
-        <fieldset className="space-y-3 border-t border-gray-100 pt-4">
+        <fieldset className="space-y-3 border-t border-border pt-4">
           <legend className="section-label mb-3">{t('page.contacts.contactMethods')}</legend>
         <div>
           <label className="label" htmlFor="contact-direct-phone">{t('page.contacts.directPhone')}</label>
@@ -218,17 +218,17 @@ export default function ContactPanel({
         </div>
         </fieldset>
 
-        <fieldset className="space-y-2 border-t border-gray-100 pt-4">
+        <fieldset className="space-y-2 border-t border-border pt-4">
           <legend className="section-label mb-3">{t('page.contacts.role')}</legend>
-          <label className="flex cursor-pointer items-center gap-3 rounded-md border border-gray-200 px-3 py-2 hover:bg-gray-50">
-            <input type="checkbox" checked={form.is_primary_contact} onChange={e => set('is_primary_contact', e.target.checked)} className="size-4 rounded border-gray-300 text-blue-600" />
-            <span className={`w-2.5 h-2.5 rounded-full ${form.is_primary_contact ? 'bg-green-500' : 'bg-gray-300'}`} />
-            <span className="text-sm text-gray-700">{t('page.contacts.primaryContact')}</span>
+          <label className="flex cursor-pointer items-center gap-3 rounded-md border border-border px-3 py-2 hover:bg-canvas">
+            <input type="checkbox" checked={form.is_primary_contact} onChange={e => set('is_primary_contact', e.target.checked)} className="size-4 rounded border-border-strong text-brand" />
+            <span className={`w-2.5 h-2.5 rounded-full ${form.is_primary_contact ? 'bg-success' : 'bg-border-strong'}`} />
+            <span className="text-sm text-ink">{t('page.contacts.primaryContact')}</span>
           </label>
-          <label className="flex cursor-pointer items-center gap-3 rounded-md border border-gray-200 px-3 py-2 hover:bg-gray-50">
-            <input type="checkbox" checked={form.is_decision_maker} onChange={e => set('is_decision_maker', e.target.checked)} className="size-4 rounded border-gray-300 text-blue-600" />
-            <span className={`w-2.5 h-2.5 rounded-full ${form.is_decision_maker ? 'bg-red-500' : 'bg-gray-300'}`} />
-            <span className="text-sm text-gray-700">{t('page.contacts.decisionMaker')}</span>
+          <label className="flex cursor-pointer items-center gap-3 rounded-md border border-border px-3 py-2 hover:bg-canvas">
+            <input type="checkbox" checked={form.is_decision_maker} onChange={e => set('is_decision_maker', e.target.checked)} className="size-4 rounded border-border-strong text-brand" />
+            <span className={`w-2.5 h-2.5 rounded-full ${form.is_decision_maker ? 'bg-danger' : 'bg-border-strong'}`} />
+            <span className="text-sm text-ink">{t('page.contacts.decisionMaker')}</span>
           </label>
         </fieldset>
 
@@ -237,7 +237,7 @@ export default function ContactPanel({
           <textarea id="contact-notes" className="input min-h-[60px] resize-y" value={form.notes} onChange={e => set('notes', e.target.value)} />
         </div>
 
-        <div className="sticky bottom-0 z-10 -mx-5 flex gap-2 border-t border-gray-200 bg-white px-5 py-4">
+        <div className="sticky bottom-0 z-10 -mx-5 flex gap-2 border-t border-border bg-surface px-5 py-4">
           <button
             onClick={save}
             disabled={saving}
@@ -249,7 +249,7 @@ export default function ContactPanel({
         </div>
 
         {isEdit && (
-          <button onClick={() => setConfirmDelete(true)} className="text-xs text-red-500 hover:text-red-700 w-full text-center pt-2">
+          <button onClick={() => setConfirmDelete(true)} className="text-xs text-danger hover:text-danger w-full text-center pt-2">
             {t('page.contacts.deleteContact')}
           </button>
         )}

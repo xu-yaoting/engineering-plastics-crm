@@ -40,8 +40,9 @@ export async function exportFullCsv(apiUrl: string, filename: string, excludeFie
 
   try {
     const res = await fetch(apiUrl);
+    if (!res.ok) throw new Error(`Export request failed: ${res.status}`);
     const data = await res.json();
-    if (!data || data.length === 0) return;
+    if (!Array.isArray(data) || data.length === 0) return;
 
     // Use all fields from the first record, minus skip fields
     const headers = Object.keys(data[0]).filter(h => !skipFields.has(h));

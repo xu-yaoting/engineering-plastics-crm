@@ -26,14 +26,26 @@ export default function CompanyEditPanel({
   const [saving, setSaving] = useState(false);
   const [showFullAddress, setShowFullAddress] = useState(false);
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [membersLoadError, setMembersLoadError] = useState(false);
   const [errors, setErrors] = useState<{ name?: string }>({});
+
+  const loadMembers = () => {
+    setMembersLoadError(false);
+    team.list()
+      .then(setMembers)
+      .catch(() => {
+        setMembers([]);
+        setMembersLoadError(true);
+      });
+  };
 
   useEffect(() => {
     if (user?.role !== 'admin') {
       setMembers([]);
+      setMembersLoadError(false);
       return;
     }
-    team.list().then(setMembers).catch(() => setMembers([]));
+    loadMembers();
   }, [user?.role]);
 
   useEffect(() => {
@@ -143,19 +155,27 @@ export default function CompanyEditPanel({
                   <option value="">{t('accountability.unassigned', { defaultValue: 'Unassigned' })}</option>
                   {members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
                 </select>
+                {membersLoadError && (
+                  <div className="mt-1 flex items-center justify-between gap-2" role="alert">
+                    <span className="text-2xs text-danger">{t('page.error.loadFailed')}</span>
+                    <button type="button" onClick={loadMembers} className="text-2xs text-brand hover:underline">
+                      {t('common.refresh')}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </fieldset>
 
         {/* ── Code & Contact ── */}
-        <fieldset className="border-t border-gray-100 pt-4">
+        <fieldset className="border-t border-border pt-4">
           <legend className="section-label mb-3">{t('page.companies.code')}</legend>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="label" htmlFor="company-customer-code">{t('page.companies.customerCode')}</label>
               <input id="company-customer-code" className="input tabular-nums uppercase" value={form.customer_code} onChange={e => set('customer_code', e.target.value.toUpperCase())} placeholder="SMP" maxLength={10} aria-describedby="company-customer-code-help" />
-              <span id="company-customer-code-help" className="text-2xs text-gray-400">{t('page.companies.usedForOrderNumbering')}: {`{PREFIX}-{CODE}-{YYMM}-{SEQ}`}</span>
+              <span id="company-customer-code-help" className="text-2xs text-ink-subtle">{t('page.companies.usedForOrderNumbering')}: {`{PREFIX}-{CODE}-{YYMM}-{SEQ}`}</span>
             </div>
             <div>
               <label className="label" htmlFor="company-registration-number">{t('page.companies.registrationNumber')}</label>
@@ -175,19 +195,19 @@ export default function CompanyEditPanel({
         </fieldset>
 
         {/* ── Address (collapsible) ── */}
-        <fieldset className="border-t border-gray-100 pt-4">
+        <fieldset className="border-t border-border pt-4">
           <legend className="flex w-full items-center justify-between">
             <span className="section-label">{t('page.companies.address')}</span>
             <button
               type="button"
               onClick={() => setShowFullAddress(v => !v)}
-              className="text-xs text-blue-600 hover:underline"
+              className="text-xs text-brand hover:underline"
             >
               {showFullAddress ? t('common.collapse') : t('common.expand')}
             </button>
           </legend>
           {!showFullAddress ? (
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-ink-muted">
               {[form.city, form.state_province, form.country].filter(Boolean).join(', ') || '—'}
             </p>
           ) : (
@@ -225,7 +245,7 @@ export default function CompanyEditPanel({
         </fieldset>
 
         {/* ── Classification ── */}
-        <fieldset className="border-t border-gray-100 pt-4">
+        <fieldset className="border-t border-border pt-4">
           <legend className="section-label mb-3">{t('page.companies.classificationCredit')}</legend>
           <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
@@ -253,7 +273,7 @@ export default function CompanyEditPanel({
         </fieldset>
 
         {/* ── Sticky footer ── */}
-        <div className="sticky bottom-0 z-10 -mx-5 flex gap-2 border-t border-gray-200 bg-white px-5 py-4">
+        <div className="sticky bottom-0 z-10 -mx-5 flex gap-2 border-t border-border bg-surface px-5 py-4">
           <button onClick={save} disabled={saving} className="btn-primary flex-1">
             {saving ? t('page.companies.saving') : t('common.save')}
           </button>

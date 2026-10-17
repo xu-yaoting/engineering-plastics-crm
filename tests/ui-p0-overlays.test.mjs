@@ -11,7 +11,6 @@ const contactPanelSource = readFileSync(
   'utf8',
 );
 const companiesSource = readFileSync(new URL('../src/pages/Companies.tsx', import.meta.url), 'utf8');
-const inventorySource = readFileSync(new URL('../src/pages/InventoryPage.tsx', import.meta.url), 'utf8');
 const quotationDetailSource = readFileSync(new URL('../src/pages/QuotationDetail.tsx', import.meta.url), 'utf8');
 const orderDetailSource = readFileSync(new URL('../src/pages/OrderDetail.tsx', import.meta.url), 'utf8');
 const shipmentsSource = readFileSync(new URL('../src/pages/Shipments.tsx', import.meta.url), 'utf8');
@@ -66,14 +65,6 @@ test('company deletion leaves the table menu and uses the shared confirmation di
   assert.match(companiesSource, /busy=\{deleting\}/);
   assert.doesNotMatch(companiesSource, /confirmDelete !== c\.id/);
   assert.doesNotMatch(companiesSource, /window\.confirm/);
-});
-
-test('inventory product deletion uses the shared confirmation dialog', () => {
-  assert.match(inventorySource, /import ConfirmDialog from '\.\.\/components\/shared\/ConfirmDialog'/);
-  assert.match(inventorySource, /<ConfirmDialog/);
-  assert.match(inventorySource, /open=\{!!deleteTarget\}/);
-  assert.match(inventorySource, /busy=\{deletingProduct\}/);
-  assert.doesNotMatch(inventorySource, /window\.confirm/);
 });
 
 for (const [name, source] of [

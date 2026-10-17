@@ -76,13 +76,13 @@ export default function SettingsProfile() {
 
       <div className="data-surface p-5">
       {/* Avatar */}
-      <div className="flex items-center gap-4 mb-6 border-b border-gray-100 pb-5">
-        <span className="size-14 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-semibold">
+      <div className="flex items-center gap-4 mb-6 border-b border-border pb-5">
+        <span className="size-14 rounded-full bg-brand text-white flex items-center justify-center text-xl font-semibold">
           {form.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
         </span>
         <div>
-          <div className="text-sm font-medium text-gray-900">{form.fullName || t('profile.yourName')}</div>
-          <div className="text-xs text-gray-500">{form.jobTitle || t('profile.yourRole')}</div>
+          <div className="text-sm font-medium text-ink">{form.fullName || t('profile.yourName')}</div>
+          <div className="text-xs text-ink-muted">{form.jobTitle || t('profile.yourRole')}</div>
         </div>
       </div>
 

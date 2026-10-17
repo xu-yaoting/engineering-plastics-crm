@@ -1,4 +1,4 @@
-# Daily Workflow Checklist — Engineering Plastics CRM
+# Daily Workflow Checklist — JEKIN CRM
 
 **用途：** 每日 CRM 操作手动验证清单。数据无价，建议每次重要操作前/后过一遍。
 

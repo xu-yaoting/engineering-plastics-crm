@@ -53,6 +53,14 @@ const QUOTATION_UPDATE_FIELDS = [
   'source',
 ] as const;
 
+function validateQuotationContact(companyId: string, contactId: unknown): string | null {
+  if (contactId === undefined || contactId === null) return null;
+  if (typeof contactId !== 'string') return 'Selected contact does not belong to the company';
+  const contact = db.prepare('SELECT id FROM contacts WHERE id = ? AND company_id = ? AND deleted_at IS NULL')
+    .get(contactId, companyId);
+  return contact ? null : 'Selected contact does not belong to the company';
+}
+
 router.get('/', (req: Request, res: Response) => {
   const { status, company_id } = req.query;
   const q = req.query.q as string | undefined;
@@ -116,6 +124,9 @@ router.post('/', (req: Request, res: Response) => {
   const company = db.prepare("SELECT id, owner_user_id FROM companies WHERE id = ? AND deleted_at IS NULL")
     .get(req.body.company_id) as { id: string; owner_user_id: string | null } | undefined;
   if (!company) return res.status(400).json({ success: false, message: 'Selected company does not exist' });
+  const contactId = req.body.contact_id === '' ? null : req.body.contact_id;
+  const contactError = validateQuotationContact(company.id, contactId);
+  if (contactError) return res.status(400).json({ success: false, message: contactError });
 
   const id = uuidv4();
   const now = new Date().toISOString();
@@ -136,9 +147,13 @@ router.post('/', (req: Request, res: Response) => {
     INSERT INTO quotations (id, quotation_number, company_id, contact_id,
       quotation_date, valid_until, currency, subtotal, total, status, version,
       approval_requested_at, owner_user_id, assigned_to, created_by, updated_by, created_at, updated_at,
-      application_description, target_material_requested, quantity_estimate, urgency, source)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, quotation_number, req.body.company_id, req.body.contact_id,
+      application_description, target_material_requested, quantity_estimate, urgency, source,
+      internal_notes, incoterm, payment_term, delivery_term,
+      tax_type, domestic_vat_rate, export_tax_rebate_rate, tax_amount, shipping_handling,
+      discount_percent, discount_amount)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, quotation_number, req.body.company_id, contactId,
     quotation_date, valid_until, req.body.currency || 'USD',
     req.body.subtotal || 0, total, status, 1,
     total > 100000 ? now2 : null, ownerUserId, ownerName, req.user!.id, req.user!.id, now, now,
@@ -146,17 +161,29 @@ router.post('/', (req: Request, res: Response) => {
     req.body.target_material_requested || '',
     req.body.quantity_estimate || '',
     req.body.urgency || 'within_1_month',
-    req.body.source || 'email');
+    req.body.source || 'email',
+    req.body.internal_notes ?? null,
+    req.body.incoterm ?? null,
+    req.body.payment_term ?? null,
+    req.body.delivery_term ?? null,
+    req.body.tax_type ?? null,
+    req.body.domestic_vat_rate ?? 0,
+    req.body.export_tax_rebate_rate ?? 0,
+    req.body.tax_amount ?? 0,
+    req.body.shipping_handling ?? 0,
+    req.body.discount_percent ?? 0,
+    req.body.discount_amount ?? 0);
 
   if (lineItems.length > 0) {
     const insert = db.prepare(`
       INSERT INTO quotation_line_items (id, quotation_id, line_number, product_grade_snapshot,
-        unit_of_measure, quantity, unit_price, line_total, description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        unit_of_measure, quantity, unit_price, discount_percent, line_total, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const [idx, item] of lineItems.entries()) {
       insert.run(uuidv4(), id, idx + 1, item.product_grade_snapshot,
-        item.unit_of_measure, item.quantity, item.unit_price, item.line_total, item.description);
+        item.unit_of_measure, item.quantity, item.unit_price, item.discount_percent ?? 0,
+        item.line_total, item.description);
     }
   }
   const created = db.prepare("SELECT * FROM quotations WHERE id = ?").get(id) as Record<string, unknown>;
@@ -186,7 +213,10 @@ router.put('/:id', (req: Request, res: Response) => {
   const now = new Date().toISOString();
   const before = db.prepare("SELECT * FROM quotations WHERE id = ? AND deleted_at IS NULL").get(req.params.id) as Record<string, unknown> | undefined;
   if (!before) return res.status(404).json({ success: false, message: 'Record not found' });
-
+  if (Object.prototype.hasOwnProperty.call(req.body, 'line_items')
+    && (!Array.isArray(req.body.line_items) || req.body.line_items.length === 0)) {
+    return res.status(400).json({ success: false, code: 'QUOTATION_LINE_ITEMS_REQUIRED', message: 'At least one quotation line item is required' });
+  }
   if (Object.prototype.hasOwnProperty.call(req.body, 'owner_user_id')) {
     const requestedOwnerId = req.body.owner_user_id || null;
     const currentOwnerId = before.owner_user_id || null;
@@ -198,6 +228,24 @@ router.put('/:id', (req: Request, res: Response) => {
       if (!owner) return res.status(400).json({ error: 'Selected owner is not an active team member' });
     }
     req.body.owner_user_id = requestedOwnerId;
+  }
+
+  if (req.body.contact_id === '') req.body.contact_id = null;
+  const referencesChanged = (['company_id', 'contact_id'] as const).some(field =>
+    Object.prototype.hasOwnProperty.call(req.body, field) && req.body[field] !== before[field],
+  );
+  if (referencesChanged) {
+    const companyId = Object.prototype.hasOwnProperty.call(req.body, 'company_id') ? req.body.company_id : before.company_id;
+    const contactId = Object.prototype.hasOwnProperty.call(req.body, 'contact_id') ? req.body.contact_id : before.contact_id;
+    const company = typeof companyId === 'string'
+      ? db.prepare('SELECT id FROM companies WHERE id = ? AND deleted_at IS NULL').get(companyId) : undefined;
+    if (!company) return res.status(400).json({ success: false, message: 'Selected company does not exist' });
+    if (companyId !== before.company_id) {
+      const linkedOrder = db.prepare('SELECT id FROM orders WHERE quotation_id = ? AND deleted_at IS NULL LIMIT 1').get(req.params.id);
+      if (linkedOrder) return res.status(400).json({ success: false, message: 'Company cannot be changed while this quotation has an active order' });
+    }
+    const contactError = validateQuotationContact(companyId, contactId);
+    if (contactError) return res.status(400).json({ success: false, message: contactError });
   }
 
   const dataFields = { ...req.body };
@@ -240,10 +288,31 @@ router.put('/:id', (req: Request, res: Response) => {
     if (!existing) throw new Error('Quotation update failed');
   }
   const after = db.prepare("SELECT * FROM quotations WHERE id = ?").get(req.params.id) as Record<string, unknown>;
+  const currencyChanged = before.currency !== after.currency;
+  const currencySubmitted = Object.prototype.hasOwnProperty.call(dataFields, 'currency');
   writeAudit(req, 'quotation', req.params.id, 'update', {
     ...computeChanges(before, after),
     line_items_replaced: Boolean(req.body.line_items), line_item_count: req.body.line_items?.length,
   });
+  if (currencyChanged || currencySubmitted) {
+    const linkedOrders = db.prepare(`
+      SELECT * FROM orders
+      WHERE quotation_id = ? AND deleted_at IS NULL AND currency != ?
+    `).all(req.params.id, after.currency) as Record<string, unknown>[];
+    db.prepare(`
+      UPDATE orders
+      SET currency = ?, updated_by = ?, updated_at = ?
+      WHERE quotation_id = ? AND deleted_at IS NULL
+    `).run(after.currency, req.user!.id, now, req.params.id);
+    for (const order of linkedOrders) {
+      writeAudit(req, 'order', order.id as string, 'update', computeChanges(order, {
+        ...order,
+        currency: after.currency,
+        updated_by: req.user!.id,
+        updated_at: now,
+      }));
+    }
+  }
   return after;
   })();
   res.json(updateQuotation);

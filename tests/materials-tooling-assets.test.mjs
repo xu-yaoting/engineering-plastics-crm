@@ -103,6 +103,12 @@ test('tooling assets are available through the authenticated HTTP interface', ()
       assert.equal(created.body.tooling.location, null);
       assert.equal(created.body.tooling.purchase_price, 12500);
 
+      const autoCreated = await call('/tooling', 'clerk', 'POST', {
+        name: 'Auto-coded Fixture', category: 'Fixture', tracked_quantity: 1,
+      });
+      assert.equal(autoCreated.status, 201, JSON.stringify(autoCreated.body));
+      assert.equal(autoCreated.body.tooling.tooling_code, 'TLG-0001');
+
       const toolingRequest = await call('/documents', 'clerk', 'POST', {
         document_type: 'tooling_movement', request_date: '2026-07-15', lines: [],
         tooling_request: {
@@ -254,6 +260,11 @@ test('tooling assets are available through the authenticated HTTP interface', ()
       assert.equal(executedTooling.body.tooling.status, 'loaned');
       assert.equal(executedTooling.body.tooling.custodian_user_id, 'member');
       assert.equal(executedTooling.body.tooling.location, 'External trial');
+      const listedAfterIssue = await call('/tooling', 'clerk');
+      const issuedRow = listedAfterIssue.body.tooling.find((row: any) => row.id === assetId);
+      assert.equal(issuedRow.custodian_name, 'Member Renamed',
+        'tooling list must resolve custodian names for display');
+      assert.equal(issuedRow.custodian_user_id, 'member');
       assert.equal(database.prepare('SELECT status FROM mt_documents WHERE id=?').get(toolingDocumentId).status, 'executed');
       assert.equal(database.prepare('SELECT COUNT(*) count FROM mt_tooling_movements WHERE document_id=?').get(toolingDocumentId).count, 1);
       assert.equal(database.prepare('SELECT COUNT(*) count FROM mt_movements').get().count, 0);

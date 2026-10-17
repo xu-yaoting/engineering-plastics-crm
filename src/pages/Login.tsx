@@ -39,16 +39,16 @@ export default function Login() {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-50">
+    <div className="h-screen flex items-center justify-center bg-canvas">
       <div className="w-full max-w-sm mx-auto p-8">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <img src="/basepoint-logo.svg" alt="" className="w-14 h-14 rounded-full mx-auto mb-4" />
-          <h1 className="text-2xl font-semibold text-gray-900">Basepoint</h1>
-          <p className="text-sm text-gray-500 mt-1">{t('login.subtitle')}</p>
+          <img src="/jekin-logo.svg" alt="" className="w-14 h-14 rounded-full mx-auto mb-4" />
+          <h1 className="text-2xl font-semibold text-ink">JEKIN CRM</h1>
+          <p className="text-sm text-ink-muted mt-1">{t('login.subtitle')}</p>
         </div>
 
-        <h2 className="text-base font-medium text-gray-900 text-center mb-5">
+        <h2 className="text-base font-medium text-ink text-center mb-5">
           {t(requiresSetup ? 'login.setupTitle' : 'login.loginTitle')}
         </h2>
 
@@ -112,7 +112,7 @@ export default function Login() {
             <div
               id="login-error"
               role="alert"
-              className="text-xs text-red-600 text-center bg-red-50 rounded-lg py-2"
+              className="text-xs text-danger text-center bg-danger-soft rounded-lg py-2"
             >
               {error}
             </div>
@@ -127,7 +127,7 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="text-xs text-gray-400 text-center mt-8 leading-relaxed">
+        <p className="text-xs text-ink-subtle text-center mt-8 leading-relaxed">
           {t(requiresSetup ? 'login.setupHint' : 'login.loginHint')}
         </p>
       </div>

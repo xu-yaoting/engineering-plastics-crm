@@ -51,7 +51,10 @@ function upgradeLegacyCoreTables(database: Database.Database): void {
     ['recipient_user_id', 'TEXT REFERENCES users(id)'],
     ['recipient_name', 'TEXT'],
     ['inspection_result', 'TEXT'],
+    ['supplier_name', 'TEXT'],
   ] as const) addColumnIfMissing(database, 'mt_documents', column, definition);
+
+  addColumnIfMissing(database, 'mt_movements', 'supplier_name', 'TEXT');
 
   for (const [column, definition] of [
     ['related_issue_line_id', 'TEXT REFERENCES mt_document_lines(id)'],
@@ -72,7 +75,7 @@ function upgradeLegacyCoreTables(database: Database.Database): void {
   const movementColumns = database.prepare('PRAGMA table_info(mt_movements)').all() as TableColumn[];
   const movementColumnNames = new Set(movementColumns.map((column) => column.name));
   const needsMovementUpgrade = [
-    'supplier_id', 'reference_quantity', 'source_workbook', 'cutover_period',
+    'supplier_id', 'supplier_name', 'reference_quantity', 'source_workbook', 'cutover_period',
   ].some((column) => !movementColumnNames.has(column))
     || !movementTable?.sql?.includes("movement_type = 'reference_purchase' AND quantity_delta = 0");
 
@@ -112,6 +115,7 @@ function upgradeLegacyCoreTables(database: Database.Database): void {
         created_by TEXT NOT NULL REFERENCES users(id),
         created_at TEXT NOT NULL,
         supplier_id TEXT REFERENCES mt_suppliers(id),
+        supplier_name TEXT,
         reference_quantity REAL CHECK (reference_quantity > 0),
         source_workbook TEXT,
         cutover_period TEXT CHECK (
@@ -157,12 +161,13 @@ function upgradeLegacyCoreTables(database: Database.Database): void {
       INSERT INTO mt_movements_upgrade (
         id, item_id, document_id, document_line_id, movement_type, quantity_delta,
         reference_unit_price, movement_date, created_by, created_at,
-        supplier_id, reference_quantity, source_workbook, cutover_period
+        supplier_id, supplier_name, reference_quantity, source_workbook, cutover_period
       )
       SELECT
         id, item_id, document_id, document_line_id, movement_type, quantity_delta,
         reference_unit_price, movement_date, created_by, created_at,
         ${movementColumnNames.has('supplier_id') ? 'supplier_id' : 'NULL'},
+        ${movementColumnNames.has('supplier_name') ? 'supplier_name' : 'NULL'},
         ${movementColumnNames.has('reference_quantity') ? 'reference_quantity' : 'NULL'},
         CASE
           WHEN movement_type = 'opening_balance' THEN COALESCE(
@@ -395,6 +400,7 @@ export function ensureMaterialsToolingSchema(database: Database.Database): void 
       execution_date TEXT,
       purpose TEXT,
       supplier_id TEXT REFERENCES mt_suppliers(id),
+      supplier_name TEXT,
       invoice_number TEXT,
       contract_number TEXT,
       replaces_document_id TEXT REFERENCES mt_documents(id),
@@ -495,6 +501,7 @@ export function ensureMaterialsToolingSchema(database: Database.Database): void 
       created_by TEXT NOT NULL REFERENCES users(id),
       created_at TEXT NOT NULL,
       supplier_id TEXT REFERENCES mt_suppliers(id),
+      supplier_name TEXT,
       reference_quantity REAL CHECK (reference_quantity > 0),
       source_workbook TEXT,
       cutover_period TEXT CHECK (

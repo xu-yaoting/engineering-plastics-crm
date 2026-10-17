@@ -24,8 +24,8 @@ test('materials tooling page uses the shared operational hierarchy', () => {
   assert.match(pageSource, /aria-selected=\{tab === item\.key\}/);
 });
 
-test('materials tooling page has 7 accessible tabs', () => {
-  // tabs are rendered via TABS.map, so the map expression and tab constants verify all 7
+test('materials tooling page has 5 accessible tabs', () => {
+  // tabs are rendered via TABS.map, so the map expression and tab constants verify all 5
   assert.match(pageSource, /TABS\.map/);
   assert.match(pageSource, /role="tab"/);
   assert.match(pageSource, /aria-selected=\{tab === item\.key\}/);
@@ -35,11 +35,11 @@ test('materials tooling page has 7 accessible tabs', () => {
   assert.match(pageSource, /'documents'/);
   assert.match(pageSource, /'ledger'/);
   assert.match(pageSource, /'tooling'/);
-  assert.match(pageSource, /'approvals'/);
-  assert.match(pageSource, /'settings'/);
-  // All 7 tabs are wired as conditional render branches
+  assert.doesNotMatch(pageSource, /'approvals'/);
+  assert.doesNotMatch(pageSource, /'settings'/);
+  // All 5 tabs are wired as conditional render branches
   const tabBranches = pageSource.match(/\{tab === '/g);
-  assert.equal(tabBranches ? tabBranches.length : 0, 7, 'Expected exactly 7 tab condition branches');
+  assert.equal(tabBranches ? tabBranches.length : 0, 5, 'Expected exactly 5 tab condition branches');
 });
 
 test('materials tooling page loads real overview from /api/materials-tooling/overview', () => {
@@ -120,19 +120,19 @@ test('materials tooling overview tab shows price data only when viewPrices is tr
 });
 
 // Dictionary keys come in the V3 navigation batch.
-// This test checks that the page loads real API data, has accessible 6-tab structure,
+// This test checks that the page loads real API data, has accessible 5-tab structure,
 // hides prices when viewPrices=false, and avoids hard-coded English.
 
 test('all tabs are wired with real components, not fake data', () => {
-  // All 7 tabs render real components, not EmptyTab stubs
+  // All 5 tabs render real components, not EmptyTab stubs
   assert.doesNotMatch(pageSource, /EmptyTab/);
   // Each non-overview tab renders its named component
   assert.match(pageSource, /MaterialsTab/);
   assert.match(pageSource, /DocumentsTab/);
   assert.match(pageSource, /LedgerTab/);
   assert.match(pageSource, /ToolingTab/);
-  assert.match(pageSource, /ApprovalsTab/);
-  assert.match(pageSource, /MaterialsSettings/);
+  assert.doesNotMatch(pageSource, /ApprovalsTab/);
+  assert.doesNotMatch(pageSource, /MaterialsSettings/);
 });
 
 test('materials tooling page follows DESIGN.md compact table pattern', () => {
@@ -140,6 +140,12 @@ test('materials tooling page follows DESIGN.md compact table pattern', () => {
   assert.match(pageSource, /table-header/);
   assert.match(pageSource, /metric-strip/);
   assert.match(pageSource, /metric-cell/);
+});
+
+test('materials tooling page summary reflects live tooling list counts', () => {
+  assert.match(pageSource, /toolingCount/);
+  assert.match(pageSource, /onStatsChange/);
+  assert.match(pageSource, /summaryText/);
 });
 
 test('App.tsx lazy-loads authenticated routes and registers /materials-tooling', () => {

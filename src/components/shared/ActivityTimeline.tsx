@@ -40,6 +40,7 @@ export default function ActivityTimeline({
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [followUpDate, setFollowUpDate] = useState('');
   const [lastActivityType, setLastActivityType] = useState('');
+  const [schedulingFollowUp, setSchedulingFollowUp] = useState(false);
 
   // Sync when prop changes
   if (initialActivities !== list && !logging) {
@@ -81,20 +82,27 @@ export default function ActivityTimeline({
   };
 
   const scheduleFollowUp = async () => {
-    if (!followUpDate) return;
+    if (!followUpDate || schedulingFollowUp) return;
     const subject = lastActivityType === 'call' ? t('page.activityTimeline.followUpCall') :
                     lastActivityType === 'email' ? t('page.activityTimeline.followUpEmail') :
                     t('page.activityTimeline.followUp');
-    await tasksApi.create({
-      subject: `${subject} — ${entityType}`,
-      task_type: 'follow_up',
-      priority: 'medium',
-      status: 'pending',
-      due_date: followUpDate,
-      entity_type: entityType,
-      entity_id: entityId,
-    });
-    setShowFollowUp(false);
+    setSchedulingFollowUp(true);
+    try {
+      await tasksApi.create({
+        subject: `${subject} — ${entityType}`,
+        task_type: 'follow_up',
+        priority: 'medium',
+        status: 'pending',
+        due_date: followUpDate,
+        entity_type: entityType,
+        entity_id: entityId,
+      });
+      setShowFollowUp(false);
+    } catch {
+      toast.error(t('page.tasks.taskAddFailed'));
+    } finally {
+      setSchedulingFollowUp(false);
+    }
   };
 
   const getDateGroup = (dateStr: string) => {
@@ -156,12 +164,12 @@ export default function ActivityTimeline({
 
       {/* Follow-up prompt */}
       {showFollowUp && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="bg-warning-soft border border-warning rounded-lg p-3 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <Icon name="calendar" size={14} className="text-gray-400" />
+            <Icon name="calendar" size={14} className="text-ink-subtle" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-yellow-800">{t('page.activityTimeline.scheduleFollowUp')}</p>
-              <p className="text-2xs text-yellow-600">{t('page.activityTimeline.followUpHelp')}</p>
+              <p className="text-xs font-medium text-warning">{t('page.activityTimeline.scheduleFollowUp')}</p>
+              <p className="text-2xs text-warning">{t('page.activityTimeline.followUpHelp')}</p>
             </div>
             <label className="sr-only" htmlFor="activity-timeline-follow-up-date">{t('page.activityTimeline.scheduleFollowUp')}</label>
             <input
@@ -169,14 +177,14 @@ export default function ActivityTimeline({
               type="date"
               value={followUpDate}
               onChange={e => setFollowUpDate(e.target.value)}
-              className="w-full sm:w-auto text-xs border border-yellow-300 rounded px-2 py-1 bg-white ml-0 sm:ml-2"
+              className="w-full sm:w-auto text-xs border border-warning rounded px-2 py-1 bg-surface ml-0 sm:ml-2"
             />
           </div>
           <div className="flex items-center justify-end gap-1 self-end sm:self-auto">
-            <button onClick={scheduleFollowUp} className="text-xs font-medium text-yellow-800 bg-yellow-100 px-2.5 py-1 rounded hover:bg-yellow-200">
+            <button onClick={scheduleFollowUp} disabled={schedulingFollowUp} className="text-xs font-medium text-warning bg-warning-soft px-2.5 py-1 rounded hover:bg-warning-soft">
               {t('page.activityTimeline.schedule')}
             </button>
-            <button onClick={() => setShowFollowUp(false)} className="text-xs text-yellow-600 px-2 py-1 hover:text-yellow-800">
+            <button onClick={() => setShowFollowUp(false)} className="text-xs text-warning px-2 py-1 hover:text-warning" aria-label={t('common.close')} title={t('common.close')}>
               <Icon name="close" size={12} />
             </button>
           </div>
@@ -186,43 +194,43 @@ export default function ActivityTimeline({
       {/* Timeline */}
       {list.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-sm text-gray-400 mb-2">{t('page.activityTimeline.noActivityYet')}</p>
-          <p className="text-xs text-gray-400">{t('page.activityTimeline.logFirstInteraction')}</p>
+          <p className="text-sm text-ink-subtle mb-2">{t('page.activityTimeline.noActivityYet')}</p>
+          <p className="text-xs text-ink-subtle">{t('page.activityTimeline.logFirstInteraction')}</p>
         </div>
       ) : (
         <div className="relative">
-          <div className="absolute left-[7px] top-3 bottom-3 w-0.5 bg-gray-200" />
+          <div className="absolute left-[7px] top-3 bottom-3 w-0.5 bg-border-strong" />
           <div className="space-y-0">
             {Object.entries(groups).map(([dateLabel, items]) => (
               <div key={dateLabel}>
                 <div className="flex items-center gap-3 my-4">
-                  <div className="flex-1 h-px bg-gray-200" />
+                  <div className="flex-1 h-px bg-border-strong" />
                   <span className="section-label">{dateLabel}</span>
-                  <div className="flex-1 h-px bg-gray-200" />
+                  <div className="flex-1 h-px bg-border-strong" />
                 </div>
                 {items.map((a, idx) => (
-                  <div key={a.id} className="relative pl-8 pb-4 group hover:bg-gray-50 rounded-lg px-2 py-2 -mx-2 cursor-default">
+                  <div key={a.id} className="relative pl-8 pb-4 group hover:bg-canvas rounded-lg px-2 py-2 -mx-2 cursor-default">
                     <div className={`absolute left-1 top-1.5 w-3.5 h-3.5 rounded-full border-2 border-white ${
-                      idx === 0 && dateLabel === todayLabel ? 'bg-blue-600' : 'bg-gray-300'
+                      idx === 0 && dateLabel === todayLabel ? 'bg-brand' : 'bg-border-strong'
                     }`} />
                     <div className="flex min-w-0 items-start justify-between gap-2">
-                      <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-gray-500 mb-0.5">
-                        <Icon name={(activityIcons[a.activity_type] || 'edit') as any} size={14} className="text-gray-400" />
-                        <span className="font-medium text-gray-700 capitalize">{activityTypeLabel(a.activity_type)}</span>
+                      <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-ink-muted mb-0.5">
+                        <Icon name={(activityIcons[a.activity_type] || 'edit') as any} size={14} className="text-ink-subtle" />
+                        <span className="font-medium text-ink capitalize">{activityTypeLabel(a.activity_type)}</span>
                         <span>·</span>
                         <span>{new Date(a.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                         {a.duration_minutes && <span>· {a.duration_minutes} min</span>}
                       </div>
                       {a.direction && (
                         <span className={`shrink-0 text-2xs px-1 py-0.5 rounded ${
-                          a.direction === 'inbound' ? 'bg-green-50 text-green-600' :
-                          a.direction === 'outbound' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'
+                          a.direction === 'inbound' ? 'bg-success-soft text-success' :
+                          a.direction === 'outbound' ? 'bg-brand-soft text-brand' : 'bg-surface-hover text-ink-muted'
                         }`}>{a.direction}</span>
                       )}
                     </div>
-                    <p className={`${compact ? 'text-xs' : 'text-sm'} break-words text-gray-700 ml-6`}>{a.subject}</p>
+                    <p className={`${compact ? 'text-xs' : 'text-sm'} break-words text-ink ml-6`}>{a.subject}</p>
                     {a.description && !compact && (
-                      <p className="break-words text-xs text-gray-400 ml-6 mt-0.5">{a.description}</p>
+                      <p className="break-words text-xs text-ink-subtle ml-6 mt-0.5">{a.description}</p>
                     )}
                   </div>
                 ))}

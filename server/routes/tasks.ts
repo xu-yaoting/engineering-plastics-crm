@@ -90,6 +90,9 @@ router.put('/:id', (req: Request, res: Response) => {
   if (req.body.status === 'completed') {
     updates.push("completed_at = ?");
     values.push(now);
+  } else if (Object.prototype.hasOwnProperty.call(req.body, 'status')) {
+    updates.push('completed_at = ?');
+    values.push(null);
   }
 
   const updateFields = TASK_UPDATE_FIELDS.filter((field) =>

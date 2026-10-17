@@ -6,24 +6,37 @@ import { useTranslation } from 'react-i18next';
 import Icon from '../components/shared/Icon';
 import { exportFullCsv } from '../lib/exportCsv';
 import OwnerFilter from '../components/shared/OwnerFilter';
+import Pagination from '../components/shared/Pagination';
+
+const ORDERS_PAGE_SIZE = 11;
 
 export default function Orders() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('order_date_desc');
   const [ownerFilter, setOwnerFilter] = useState('all');
   const [currentUserId, setCurrentUserId] = useState('');
+  const [page, setPage] = useState(1);
   const handleCurrentUserId = useCallback((userId: string) => setCurrentUserId(userId), []);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
+    setLoadError(false);
     fetch('/api/orders')
-      .then(r => r.json())
-      .then(setList)
+      .then(async res => {
+        if (!res.ok) throw new Error(`Orders request failed: ${res.status}`);
+        return res.json();
+      })
+      .then(data => { setList(data); setLoadError(false); })
+      .catch(() => { setList([]); setLoadError(true); })
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
 
   const filtered = list.filter(o => {
     const matchesSearch = !search || o.order_number?.toLowerCase().includes(search.toLowerCase()) ||
@@ -41,36 +54,50 @@ export default function Orders() {
     if (sortBy === 'total_asc') return Number(a.total || 0) - Number(b.total || 0);
     return dateValue(b.order_date || b.created_at) - dateValue(a.order_date || a.created_at);
   });
+  const pageCount = Math.max(1, Math.ceil(sorted.length / ORDERS_PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paged = sorted.slice(
+    (currentPage - 1) * ORDERS_PAGE_SIZE,
+    currentPage * ORDERS_PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, ownerFilter, sortBy]);
+
+  useEffect(() => {
+    setPage(current => Math.min(current, pageCount));
+  }, [pageCount]);
 
   const renderMobileOrder = (o: any) => (
     <button
       key={o.id}
       type="button"
       onClick={() => navigate(`/orders/${o.id}`)}
-      className="block w-full rounded-md border border-gray-200 bg-white p-3 text-left transition-colors hover:border-blue-200 hover:bg-blue-50/30"
+      className="block w-full rounded-md border border-border bg-surface p-3 text-left transition-colors hover:border-stage-order hover:bg-stage-order-soft"
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
-          <span className="block truncate text-sm font-medium tabular-nums text-blue-600">{o.order_number}</span>
-          <span className="mt-0.5 block truncate text-xs text-gray-500">{o.company_name || '—'}</span>
+          <span className="block truncate text-sm font-medium tabular-nums text-stage-order">{o.order_number}</span>
+          <span className="mt-0.5 block truncate text-xs text-ink-muted">{o.company_name || '—'}</span>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-1">
           <StatusBadge status={o.status} />
           <StatusBadge status={o.payment_status} />
         </div>
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-gray-100 pt-3 text-xs">
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border pt-3 text-xs">
         <div className="min-w-0">
-          <dt className="text-2xs text-gray-400">{t('page.orders.total')}</dt>
-          <dd className="mt-0.5 truncate tabular-nums font-medium text-gray-900">{formatCurrency(o.total, o.currency)}</dd>
+          <dt className="text-2xs text-ink-subtle">{t('page.orders.total')}</dt>
+          <dd className="mt-0.5 truncate tabular-nums font-medium text-ink">{formatCurrency(o.total, o.currency)}</dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-2xs text-gray-400">{t('page.orders.date')}</dt>
-          <dd className="mt-0.5 truncate tabular-nums text-gray-500">{o.order_date?.slice(0, 10) || o.created_at?.slice(0, 10) || '—'}</dd>
+          <dt className="text-2xs text-ink-subtle">{t('page.orders.date')}</dt>
+          <dd className="mt-0.5 truncate tabular-nums text-ink-muted">{o.order_date?.slice(0, 10) || o.created_at?.slice(0, 10) || '—'}</dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-2xs text-gray-400">{t('accountability.owner')}</dt>
-          <dd className="mt-0.5 truncate text-gray-700">{o.owner_name || t('accountability.unassigned')}</dd>
+          <dt className="text-2xs text-ink-subtle">{t('accountability.owner')}</dt>
+          <dd className="mt-0.5 truncate text-ink-muted">{o.owner_name || t('accountability.unassigned')}</dd>
         </div>
       </dl>
     </button>
@@ -79,7 +106,7 @@ export default function Orders() {
   return (
     <div className="page-shell">
       <div className="page-header">
-        <div>
+        <div className="px-3">
           <h1 className="page-heading">{t('page.title.orders')}</h1>
           <p className="page-summary tabular-nums">{sorted.length}{search ? ` / ${list.length}` : ''} {t('common.records')}</p>
         </div>
@@ -87,7 +114,7 @@ export default function Orders() {
 
       <div className="toolbar gap-3">
         <div className="relative min-w-[220px] flex-1 sm:max-w-sm">
-          <Icon name="search" size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Icon name="search" size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-subtle" />
           <label className="sr-only" htmlFor="orders-search">{t('common.searchOrders')}</label>
           <input id="orders-search" className="input pl-8" placeholder={t('common.searchOrders')} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
@@ -104,39 +131,54 @@ export default function Orders() {
 
       {loading ? (
         <div className="data-surface rounded-t-none p-3" aria-label={t('common.loading')}>
-          <div className="animate-pulse space-y-2">{[0, 1, 2, 3, 4, 5].map(row => <div key={row} className="h-10 rounded-md bg-gray-100" />)}</div>
+          <div className="animate-pulse space-y-2">{[0, 1, 2, 3, 4, 5].map(row => <div key={row} className="h-10 rounded-md bg-surface-hover" />)}</div>
+        </div>
+      ) : loadError ? (
+        <div className="data-surface rounded-t-none p-6" role="alert">
+          <div className="empty-state">
+            <p>{t('page.error.loadFailed')}</p>
+            <button onClick={load} className="btn-secondary btn-sm mt-3"><Icon name="refresh" size={14} className="mr-1.5" />{t('common.refresh')}</button>
+          </div>
         </div>
       ) : (
         <>
           <div className="space-y-2 md:hidden">
-            {sorted.map(renderMobileOrder)}
+            {paged.map(renderMobileOrder)}
             {sorted.length === 0 && (
-              <div className="empty-state rounded-md border border-gray-200 bg-white">{t('noData.orders')}</div>
+              <div className="empty-state rounded-md border border-border bg-surface">{t('noData.orders')}</div>
             )}
+          </div>
+          <div className="md:hidden">
+            <Pagination
+              page={currentPage}
+              pageSize={ORDERS_PAGE_SIZE}
+              total={sorted.length}
+              onPageChange={setPage}
+            />
           </div>
           <div className="hidden data-surface overflow-x-auto md:block">
             <table className="w-full">
               <thead className="sticky top-0 z-10">
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="table-header text-center">{t('page.orders.orderNumber')}</th>
-                  <th className="table-header text-center">{t('page.orders.company')}</th>
-                  <th className="table-header text-center">{t('accountability.owner')}</th>
-                  <th className="table-header text-center">{t('page.orders.status')}</th>
-                  <th className="table-header text-center">{t('page.orders.payment')}</th>
+                <tr className="border-b border-border bg-surface-subtle">
+                  <th className="table-header">{t('page.orders.orderNumber')}</th>
+                  <th className="table-header">{t('page.orders.company')}</th>
+                  <th className="table-header">{t('accountability.owner')}</th>
+                  <th className="table-header">{t('page.orders.status')}</th>
+                  <th className="table-header">{t('page.orders.payment')}</th>
                   <th className="table-header text-right">{t('page.orders.total')}</th>
-                  <th className="table-header text-center">{t('page.orders.date')}</th>
+                  <th className="table-header">{t('page.orders.date')}</th>
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((o: any) => (
+                {paged.map((o: any) => (
                   <tr key={o.id} className="table-row" onClick={() => navigate(`/orders/${o.id}`)}>
-                    <td className="table-cell font-medium text-blue-600 tabular-nums">{o.order_number}</td>
-                    <td className="table-cell text-gray-900">{o.company_name || '—'}</td>
-                    <td className="table-cell text-xs text-gray-500">{o.owner_name || t('accountability.unassigned')}</td>
+                    <td className="table-cell font-medium text-stage-order tabular-nums">{o.order_number}</td>
+                    <td className="table-cell text-ink">{o.company_name || '—'}</td>
+                    <td className="table-cell text-xs text-ink-muted">{o.owner_name || t('accountability.unassigned')}</td>
                     <td className="table-cell"><StatusBadge status={o.status} /></td>
                     <td className="table-cell"><StatusBadge status={o.payment_status} /></td>
                     <td className="table-cell text-right tabular-nums text-sm font-medium">{formatCurrency(o.total, o.currency)}</td>
-                    <td className="table-cell text-xs text-gray-400">{o.order_date?.slice(0, 10)}</td>
+                    <td className="table-cell text-xs text-ink-subtle">{o.order_date?.slice(0, 10)}</td>
                   </tr>
                 ))}
                 {sorted.length === 0 && (
@@ -144,6 +186,12 @@ export default function Orders() {
                 )}
               </tbody>
             </table>
+            <Pagination
+              page={currentPage}
+              pageSize={ORDERS_PAGE_SIZE}
+              total={sorted.length}
+              onPageChange={setPage}
+            />
           </div>
         </>
       )}

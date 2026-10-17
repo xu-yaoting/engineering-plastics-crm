@@ -11,19 +11,19 @@ function PipelineSkeleton() {
   return (
     <div aria-hidden="true" className="grid h-full min-w-[1040px] grid-cols-4 gap-4">
       {Array.from({ length: 4 }).map((_, columnIndex) => (
-        <div key={columnIndex} className="rounded-md border border-gray-200 bg-white p-3">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <div className="h-3 w-24 rounded bg-gray-200" />
-            <div className="h-5 w-8 rounded bg-gray-100" />
+        <div key={columnIndex} className="rounded-md border border-border bg-surface p-3">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <div className="h-3 w-24 rounded bg-border-strong" />
+            <div className="h-5 w-8 rounded bg-surface-hover" />
           </div>
           <div className="mt-3 space-y-3">
             {Array.from({ length: 3 }).map((_, cardIndex) => (
-              <div key={cardIndex} className="rounded-md border border-gray-100 p-3">
-                <div className="h-3 w-3/4 rounded bg-gray-200" />
-                <div className="mt-3 h-3 w-1/2 rounded bg-gray-100" />
+              <div key={cardIndex} className="rounded-md border border-border p-3">
+                <div className="h-3 w-3/4 rounded bg-border-strong" />
+                <div className="mt-3 h-3 w-1/2 rounded bg-surface-hover" />
                 <div className="mt-5 flex justify-between">
-                  <div className="h-3 w-16 rounded bg-gray-100" />
-                  <div className="h-3 w-12 rounded bg-gray-200" />
+                  <div className="h-3 w-16 rounded bg-surface-hover" />
+                  <div className="h-3 w-12 rounded bg-border-strong" />
                 </div>
               </div>
             ))}
@@ -38,12 +38,12 @@ function PipelineMobileSkeleton() {
   return (
     <div aria-hidden="true" className="space-y-3">
       {Array.from({ length: 4 }).map((_, columnIndex) => (
-        <div key={columnIndex} className="rounded-md border border-gray-200 bg-white p-3">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <div className="h-3 w-24 rounded bg-gray-200" />
-            <div className="h-5 w-8 rounded bg-gray-100" />
+        <div key={columnIndex} className="rounded-md border border-border bg-surface p-3">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <div className="h-3 w-24 rounded bg-border-strong" />
+            <div className="h-5 w-8 rounded bg-surface-hover" />
           </div>
-          <div className="mt-3 h-16 rounded bg-gray-100" />
+          <div className="mt-3 h-16 rounded bg-surface-hover" />
         </div>
       ))}
     </div>
@@ -55,6 +55,7 @@ export default function Pipeline() {
   const location = useLocation();
   const [cards, setCards] = useState<CardData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [filterOwner, setFilterOwner] = useState('all');
   const dragCard = useRef<CardData | null>(null);
 
@@ -67,9 +68,17 @@ export default function Pipeline() {
 
   const load = () => {
     setLoading(true);
+    setLoadError(false);
     fetch('/api/pipeline')
-      .then(r => r.json())
-      .then(setCards)
+      .then(async res => {
+        if (!res.ok) throw new Error(`Pipeline request failed: ${res.status}`);
+        return res.json();
+      })
+      .then(data => setCards(data))
+      .catch(() => {
+        setCards([]);
+        setLoadError(true);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -152,25 +161,25 @@ export default function Pipeline() {
   const cnyTotal = filteredCards.filter(c => c.currency === 'CNY').reduce((s, c) => s + c.value, 0);
 
   const renderMobileColumn = (col: (typeof grouped)[number]) => (
-    <section key={col.key} className="overflow-hidden rounded-md border border-gray-200 bg-white">
-      <div className="border-b border-gray-100 bg-gray-50/70 px-3 py-3">
+    <section key={col.key} className="overflow-hidden rounded-md border border-border bg-surface">
+      <div className="border-b border-border bg-surface-subtle px-3 py-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="truncate text-xs font-semibold text-gray-700">{col.title}</h2>
-          <span className="rounded bg-white px-1.5 py-0.5 text-2xs font-450 text-gray-500 ring-1 ring-gray-200">{col.cards.length}</span>
+          <h2 className="truncate text-xs font-semibold text-ink">{col.title}</h2>
+          <span className="rounded bg-surface px-1.5 py-0.5 text-2xs font-450 text-ink-muted ring-1 ring-border-strong">{col.cards.length}</span>
         </div>
         {(col.usdTotal > 0 || col.cnyTotal > 0) && (
-          <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-2xs tabular-nums text-gray-400">
+          <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-2xs tabular-nums text-ink-subtle">
             {col.usdTotal > 0 && <span>{formatCurrency(col.usdTotal, 'USD')}</span>}
             {col.cnyTotal > 0 && <span>{formatCurrency(col.cnyTotal, 'CNY')}</span>}
           </div>
         )}
       </div>
       {col.cards.length === 0 ? (
-        <div className="m-2 rounded border border-dashed border-gray-200 px-3 py-6 text-center text-2xs text-gray-300">
+        <div className="m-2 rounded border border-dashed border-border px-3 py-6 text-center text-2xs text-ink-subtle">
           {t('page.pipeline.dropItemsHere')}
         </div>
       ) : (
-        <div className="space-y-2 bg-gray-50/50 p-2">
+        <div className="space-y-2 bg-surface-hover/50 p-2">
           {col.cards.map(card => <PipelineCard key={card.id} card={card} onDragStart={handleDragStart} />)}
         </div>
       )}
@@ -178,38 +187,38 @@ export default function Pipeline() {
   );
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-canvas">
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-gray-200 bg-white px-3 py-3 md:px-6 md:py-4">
+      <div className="flex-shrink-0 border-b border-border bg-surface px-3 py-3 md:px-6 md:py-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900 md:text-2xl">{t('page.title.pipeline')}</h1>
+            <h1 className="page-heading">{t('page.title.pipeline')}</h1>
             {loading ? (
-              <div aria-hidden="true" className="mt-2 h-3 w-40 animate-pulse rounded bg-gray-200 motion-reduce:animate-none" />
+              <div aria-hidden="true" className="mt-2 h-3 w-40 animate-pulse rounded bg-border-strong motion-reduce:animate-none" />
             ) : (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-ink-muted mt-1">
                 {filteredCards.length} {t('page.pipeline.deals')}{usdTotal > 0 ? ` · ${formatCurrency(usdTotal, 'USD')}` : ''}{cnyTotal > 0 ? ` · ${formatCurrency(cnyTotal, 'CNY')}` : ''}
               </p>
             )}
             <nav className="mt-3 flex flex-wrap items-center gap-1" aria-label={t('page.pipeline.relatedViews')}>
-              <Link to="/quotations" className="rounded px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700">
+              <Link to="/quotations" className="rounded px-2 py-1 text-xs text-ink-muted transition-colors hover:bg-surface-hover hover:text-ink">
                 {t('nav.quotations')}
               </Link>
-              <Link to="/orders" className="rounded px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700">
+              <Link to="/orders" className="rounded px-2 py-1 text-xs text-ink-muted transition-colors hover:bg-surface-hover hover:text-ink">
                 {t('nav.orders')}
               </Link>
             </nav>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-2 rounded border border-gray-200 bg-gray-50 px-2 py-1">
-              <Filter size={14} strokeWidth={1.75} className="text-gray-400" />
+                <div className="flex items-center gap-2 rounded border border-border bg-surface-subtle px-2 py-1">
+              <Filter size={14} strokeWidth={1.75} className="text-ink-subtle" />
               <label className="sr-only" htmlFor="pipeline-owner-filter">{t('page.pipeline.allOwners')}</label>
               <select
                 id="pipeline-owner-filter"
                 value={filterOwner}
                 onChange={e => setFilterOwner(e.target.value)}
                 disabled={loading}
-                    className="h-7 border-0 bg-transparent px-1 text-xs font-450 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                    className="h-7 border-0 bg-transparent px-1 text-xs font-450 text-ink-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               >
                 <option value="all">{t('page.pipeline.allOwners')}</option>
                 {owners.map(o => <option key={o} value={o}>{o}</option>)}
@@ -236,6 +245,16 @@ export default function Pipeline() {
             </div>
             <div className="hidden md:block h-full">
               <PipelineSkeleton />
+            </div>
+          </div>
+        ) : loadError ? (
+          <div className="flex h-full items-center justify-center p-6" role="alert">
+            <div className="data-surface w-full max-w-md p-6 text-center">
+              <p className="text-sm text-ink-muted">{t('page.error.loadFailed')}</p>
+              <button type="button" onClick={load} className="btn-secondary btn-sm mt-3">
+                <RefreshCw size={14} strokeWidth={1.75} className="mr-1.5" />
+                {t('common.refresh')}
+              </button>
             </div>
           </div>
         ) : (

@@ -17,7 +17,11 @@ const source = files
 const dictionarySource = readFileSync(new URL('../src/lib/i18n.tsx', import.meta.url), 'utf8');
 const ordersSource = readFileSync(new URL('../src/pages/Orders.tsx', import.meta.url), 'utf8');
 const quotationsSource = readFileSync(new URL('../src/pages/Quotations.tsx', import.meta.url), 'utf8');
+const shipmentsSource = readFileSync(new URL('../src/pages/Shipments.tsx', import.meta.url), 'utf8');
 const tasksSource = readFileSync(new URL('../src/pages/Tasks.tsx', import.meta.url), 'utf8');
+const activitiesSource = readFileSync(new URL('../src/pages/Activities.tsx', import.meta.url), 'utf8');
+const contactsSource = readFileSync(new URL('../src/pages/Contacts.tsx', import.meta.url), 'utf8');
+const inventorySource = readFileSync(new URL('../src/pages/InventoryPage.tsx', import.meta.url), 'utf8');
 
 test('list pages use shared page hierarchy with purpose-built list surfaces', () => {
   for (const listSource of [quotationsSource, tasksSource]) {
@@ -125,6 +129,42 @@ test('quotation and order lists keep empty results inside stable table surfaces'
   assert.match(quotationsSource, /colSpan=\{7\}><div className="empty-state"/);
 });
 
+test('quotation, order, and shipment lists paginate the current filtered result set', () => {
+  assert.match(quotationsSource, /QUOTATIONS_PAGE_SIZE = 11/);
+  assert.match(ordersSource, /ORDERS_PAGE_SIZE = 11/);
+  assert.match(shipmentsSource, /SHIPMENTS_PAGE_SIZE = 9/);
+  for (const listSource of [ordersSource, shipmentsSource]) {
+    assert.match(listSource, /Pagination/);
+    assert.match(listSource, /paged\.map/);
+    assert.match(listSource, /setPage\(1\)/);
+    assert.match(listSource, /total=\{(?:sorted|filtered)\.length\}/);
+  }
+});
+
+test('contact and activity lists paginate the current filtered result set', () => {
+  for (const listSource of [contactsSource, activitiesSource]) {
+    assert.match(listSource, /Pagination/);
+    assert.match(listSource, /PAGE_SIZE = 10/);
+    assert.match(listSource, /paged\.map/);
+    assert.match(listSource, /setPage\(1\)/);
+    assert.match(listSource, /total=\{filtered\.length\}/);
+  }
+});
+
+test('tasks and inventory lists paginate their current result sets', () => {
+  assert.match(tasksSource, /Pagination/);
+  assert.match(tasksSource, /TASKS_PAGE_SIZE = 10/);
+  assert.match(tasksSource, /paged\.map/);
+  assert.match(tasksSource, /setPage\(1\)/);
+  assert.match(tasksSource, /total=\{visible\.length\}/);
+
+  assert.match(inventorySource, /Pagination/);
+  assert.match(inventorySource, /INVENTORY_LEDGER_PAGE_SIZE = 10/);
+  assert.match(inventorySource, /pagedMovements\.map/);
+  assert.match(inventorySource, /setLedgerPage\(1\)/);
+  assert.match(inventorySource, /total=\{visibleMovements\.length\}/);
+});
+
 test('inquiry and task filters use the shared empty state', () => {
   assert.match(quotationsSource, /className="empty-state"/);
   assert.match(tasksSource, /className="empty-state"/);
@@ -137,6 +177,17 @@ test('task filters use the shared compact segmented control', () => {
 });
 
 test('task rows do not shadow the translation function when rendering due dates', () => {
-  assert.doesNotMatch(tasksSource, /list\.map\(\(t:\s*any\)/);
-  assert.match(tasksSource, /list\.map\(\(task:\s*any\)/);
+  assert.doesNotMatch(tasksSource, /(?:list|paged)\.map\(\(t:\s*any\)/);
+  assert.match(tasksSource, /paged\.map\(\(task:\s*any\)/);
+});
+
+test('activity and task pages use semantic operational states', () => {
+  assert.match(activitiesSource, /bg-success-soft text-success/);
+  assert.match(activitiesSource, /bg-brand-soft text-brand/);
+  assert.match(activitiesSource, /directionClass/);
+  assert.match(activitiesSource, /hover:text-danger/);
+  assert.match(tasksSource, /border-success bg-success/);
+  assert.match(tasksSource, /bg-danger-soft text-danger/);
+  assert.match(tasksSource, /bg-warning-soft text-warning/);
+  assert.match(tasksSource, /text-danger font-medium/);
 });

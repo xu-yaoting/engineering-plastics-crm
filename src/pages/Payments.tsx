@@ -2,12 +2,15 @@ import { useState, useEffect, useId, useRef } from 'react';
 import StatusBadge from '../components/shared/StatusBadge';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import SidePanel from '../components/shared/SidePanel';
-import { formatCurrency } from '../lib/currency';
+import { currencySymbol, formatCurrency } from '../lib/currency';
 import Icon from '../components/shared/Icon';
 import { useTranslation } from 'react-i18next';
 import { exportFullCsv } from '../lib/exportCsv';
 import { toast } from '../lib/toast';
 import { useAuth } from '../lib/auth';
+import Pagination from '../components/shared/Pagination';
+
+const PAYMENTS_PAGE_SIZE = 6;
 
 export default function Payments() {
   const { t } = useTranslation();
@@ -15,8 +18,10 @@ export default function Payments() {
   const [list, setList] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ order_id: '', total: 0, due_date: '', notes: '' });
   const [payForm, setPayForm] = useState<{ invoiceId: string; amount: number; method: string; ref: string } | null>(null);
@@ -35,8 +40,28 @@ export default function Payments() {
   savingActionRef.current = savingAction;
 
   const load = () => {
-    fetch('/api/payments').then(r => r.json()).then(setList).finally(() => setLoading(false));
-    fetch('/api/orders').then(r => r.json()).then(setOrders);
+    setLoading(true);
+    setLoadError(false);
+    Promise.all([
+      fetch('/api/payments').then(async res => {
+        if (!res.ok) throw new Error(`Payments request failed: ${res.status}`);
+        return res.json();
+      }),
+      fetch('/api/orders').then(async res => {
+        if (!res.ok) throw new Error(`Orders request failed: ${res.status}`);
+        return res.json();
+      }),
+    ])
+      .then(([paymentData, orderData]) => {
+        setList(paymentData);
+        setOrders(orderData);
+      })
+      .catch(() => {
+        setList([]);
+        setOrders([]);
+        setLoadError(true);
+      })
+      .finally(() => setLoading(false));
   };
 
   const readError = async (res: Response, fallback: string) => {
@@ -123,6 +148,8 @@ export default function Payments() {
 
   const saveEdit = async () => {
     if (!editTarget || savingAction) return;
+    if (savingActionRef.current) return;
+    savingActionRef.current = 'edit';
     setSavingAction('edit');
     try {
       const res = await fetch(`/api/payments/${editTarget.id}`, {
@@ -140,12 +167,15 @@ export default function Payments() {
       console.error('Edit failed', e);
       toast.error(t('page.payments.failedUpdateInvoice'));
     } finally {
+      savingActionRef.current = null;
       setSavingAction(null);
     }
   };
 
   const createInvoice = async () => {
     if (!form.order_id || !form.total || savingAction) return;
+    if (savingActionRef.current) return;
+    savingActionRef.current = 'create';
     setSavingAction('create');
     try {
       const res = await fetch('/api/payments', {
@@ -165,12 +195,15 @@ export default function Payments() {
       console.error('Create invoice failed', e);
       toast.error(t('page.payments.failedCreateInvoice'));
     } finally {
+      savingActionRef.current = null;
       setSavingAction(null);
     }
   };
 
   const recordPayment = async () => {
     if (!payForm || savingAction) return;
+    if (savingActionRef.current) return;
+    savingActionRef.current = 'pay';
     setSavingAction('pay');
     try {
       const res = await fetch(`/api/payments/${payForm.invoiceId}/pay`, {
@@ -189,6 +222,7 @@ export default function Payments() {
       console.error('Record payment failed', e);
       toast.error(t('page.payments.failedRecordPayment'));
     } finally {
+      savingActionRef.current = null;
       setSavingAction(null);
     }
   };
@@ -204,6 +238,21 @@ export default function Payments() {
     }
     return true;
   });
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAYMENTS_PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paged = filtered.slice(
+    (currentPage - 1) * PAYMENTS_PAGE_SIZE,
+    currentPage * PAYMENTS_PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, search]);
+
+  useEffect(() => {
+    setPage(current => Math.min(current, pageCount));
+  }, [pageCount]);
+
   const editableOrders = user?.role === 'admin'
     ? orders
     : orders.filter((order: any) => order.owner_user_id === user?.id);
@@ -258,47 +307,47 @@ export default function Payments() {
     return (
       <div
         key={inv.id}
-        className={`rounded-md border p-3 ${overdue ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-white'}`}
+        className={`rounded-md border border-border bg-surface p-3 ${overdue ? 'border-l-2 border-l-danger' : ''}`}
       >
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
-            <span className="block truncate text-sm font-medium tabular-nums text-blue-600">{inv.invoice_number}</span>
-            <span className="mt-0.5 block truncate text-xs text-gray-500">{inv.company_name || '—'}</span>
+            <span className="block truncate text-sm font-medium tabular-nums text-stage-payment">{inv.invoice_number}</span>
+            <span className="mt-0.5 block truncate text-xs text-ink-muted">{inv.company_name || '—'}</span>
           </div>
           <StatusBadge status={inv.status} />
         </div>
-        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-gray-100 pt-3 text-xs">
+        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border pt-3 text-xs">
           <div className="min-w-0">
-            <dt className="text-2xs text-gray-400">{t('page.payments.order')}</dt>
-            <dd className="mt-0.5 truncate tabular-nums text-gray-700">{inv.order_number || '—'}</dd>
+            <dt className="text-2xs text-ink-subtle">{t('page.payments.order')}</dt>
+            <dd className="mt-0.5 truncate tabular-nums text-ink-muted">{inv.order_number || '—'}</dd>
           </div>
           <div className="min-w-0">
-            <dt className="text-2xs text-gray-400">{t('page.payments.dueDate')}</dt>
-            <dd className={`mt-0.5 truncate tabular-nums ${overdue ? 'font-medium text-red-600' : 'text-gray-500'}`}>
+            <dt className="text-2xs text-ink-subtle">{t('page.payments.dueDate')}</dt>
+            <dd className={`mt-0.5 truncate tabular-nums ${overdue ? 'font-medium text-danger' : 'text-ink-muted'}`}>
               {inv.due_date?.slice(0, 10) || '—'}
             </dd>
           </div>
           <div className="min-w-0">
-            <dt className="text-2xs text-gray-400">{t('page.payments.total')}</dt>
-            <dd className="mt-0.5 truncate tabular-nums text-gray-900">{formatCurrency(inv.total, inv.currency)}</dd>
+            <dt className="text-2xs text-ink-subtle">{t('page.payments.total')}</dt>
+            <dd className="mt-0.5 truncate tabular-nums text-ink">{formatCurrency(inv.total, inv.currency)}</dd>
           </div>
           <div className="min-w-0">
-            <dt className="text-2xs text-gray-400">{t('page.payments.paid')}</dt>
-            <dd className="mt-0.5 truncate tabular-nums text-green-600">{formatCurrency(inv.amount_paid, inv.currency)}</dd>
+            <dt className="text-2xs text-ink-subtle">{t('page.payments.paid')}</dt>
+            <dd className="mt-0.5 truncate tabular-nums text-success">{formatCurrency(inv.amount_paid, inv.currency)}</dd>
           </div>
           <div className="min-w-0">
-            <dt className="text-2xs text-gray-400">{t('page.payments.due')}</dt>
-            <dd className={`mt-0.5 truncate tabular-nums ${overdue ? 'font-semibold text-red-600' : 'text-gray-700'}`}>
+            <dt className="text-2xs text-ink-subtle">{t('page.payments.due')}</dt>
+            <dd className={`mt-0.5 truncate tabular-nums ${overdue ? 'font-semibold text-danger' : 'text-ink-muted'}`}>
               {formatCurrency(inv.amount_due ?? inv.total, inv.currency)}
             </dd>
           </div>
           <div className="min-w-0">
-            <dt className="text-2xs text-gray-400">{t('accountability.owner')}</dt>
-            <dd className="mt-0.5 truncate text-gray-500">{inv.owner_name || t('accountability.unassigned')}</dd>
+            <dt className="text-2xs text-ink-subtle">{t('accountability.owner')}</dt>
+            <dd className="mt-0.5 truncate text-ink-muted">{inv.owner_name || t('accountability.unassigned')}</dd>
           </div>
         </dl>
         {(inv.status !== 'paid' && inv.status !== 'cancelled' || inv.can_edit || user?.role === 'admin') && (
-          <div className="mt-3 flex flex-wrap gap-2 border-t border-gray-100 pt-3">
+          <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
             {inv.status !== 'paid' && inv.status !== 'cancelled' && (
               <button
                 onClick={event => {
@@ -320,7 +369,7 @@ export default function Payments() {
               >{t('common.edit')}</button>
             )}
             {user?.role === 'admin' && (
-              <button onClick={() => setDeleteTarget(inv)} className="btn-secondary btn-sm text-red-600 hover:text-red-700">
+              <button onClick={() => setDeleteTarget(inv)} className="btn-secondary btn-sm text-danger hover:text-danger">
                 {t('common.delete')}
               </button>
             )}
@@ -333,11 +382,11 @@ export default function Payments() {
   return (
     <div className="page-shell space-y-6">
       <div className="page-header">
-        <div>
+        <div className="px-3">
           <h1 className="page-heading">{t('nav.payments')}</h1>
           <p className="page-summary">{t('page.payments.outstanding')}</p>
         </div>
-        <div className="page-actions">
+        <div className="page-actions px-3">
           <button onClick={() => setShowForm(true)} className="btn-primary btn-sm"><Icon name="plus" size={16} className="mr-1.5" />{t('page.payments.new')}</button>
           <button onClick={() => exportFullCsv('/api/payments', 'invoices')} className="btn-secondary btn-sm"><Icon name="download" size={14} className="mr-1" />CSV</button>
         </div>
@@ -345,25 +394,25 @@ export default function Payments() {
 
       {/* KPI Cards — Accounts Receivable */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card p-4">
-          <div className="text-xs text-gray-500 font-medium mb-1">{t('page.payments.outstandingReceivables')}</div>
-          <div className="text-xl font-semibold text-gray-900">{fmt(outstandingUSD, outstandingCNY)}</div>
-          <div className="text-2xs text-gray-400 mt-1">{t('page.payments.unpaidInvoices', { count: unpaid.length })}</div>
+        <div className="card border-l-4 border-l-brand p-4">
+          <div className="mb-1 text-xs font-medium text-ink-muted">{t('page.payments.outstandingReceivables')}</div>
+          <div className="text-xl font-semibold tabular-nums text-ink">{fmt(outstandingUSD, outstandingCNY)}</div>
+          <div className="mt-1 text-2xs text-ink-subtle">{t('page.payments.unpaidInvoices', { count: unpaid.length })}</div>
         </div>
-        <div className="card p-4">
-          <div className="text-xs text-gray-500 font-medium mb-1">{t('page.payments.overdueReceivables')}</div>
-          <div className="text-xl font-semibold text-red-600">{fmt(overdueUSD, overdueCNY)}</div>
-          <div className="text-2xs text-red-500 mt-1">{t('page.payments.overdueInvoices', { count: overdueInvs.length })}</div>
+        <div className="card border-l-4 border-l-danger p-4">
+          <div className="mb-1 text-xs font-medium text-ink-muted">{t('page.payments.overdueReceivables')}</div>
+          <div className="text-xl font-semibold tabular-nums text-danger">{fmt(overdueUSD, overdueCNY)}</div>
+          <div className="mt-1 text-2xs text-danger">{t('page.payments.overdueInvoices', { count: overdueInvs.length })}</div>
         </div>
-        <div className="card p-4">
-          <div className="text-xs text-gray-500 font-medium mb-1">{t('page.payments.dueThisMonth')}</div>
-          <div className="text-xl font-semibold text-yellow-600">{fmt(dueThisMonthUSD, dueThisMonthCNY)}</div>
-          <div className="text-2xs text-gray-400 mt-1">{t('page.payments.invoicesDue', { count: dueThisMonth.length })}</div>
+        <div className="card border-l-4 border-l-warning p-4">
+          <div className="mb-1 text-xs font-medium text-ink-muted">{t('page.payments.dueThisMonth')}</div>
+          <div className="text-xl font-semibold tabular-nums text-warning">{fmt(dueThisMonthUSD, dueThisMonthCNY)}</div>
+          <div className="mt-1 text-2xs text-ink-subtle">{t('page.payments.invoicesDue', { count: dueThisMonth.length })}</div>
         </div>
-        <div className="card p-4">
-          <div className="text-xs text-gray-500 font-medium mb-1">{t('page.payments.collectedThisMonth')}</div>
-          <div className="text-xl font-semibold text-green-600">{fmt(collectedUSD, collectedCNY)}</div>
-          <div className="text-2xs text-gray-400 mt-1">{t('page.payments.invoicesPaid', { count: collectedThisMonth.length })}</div>
+        <div className="card border-l-4 border-l-success p-4">
+          <div className="mb-1 text-xs font-medium text-ink-muted">{t('page.payments.collectedThisMonth')}</div>
+          <div className="text-xl font-semibold tabular-nums text-success">{fmt(collectedUSD, collectedCNY)}</div>
+          <div className="mt-1 text-2xs text-ink-subtle">{t('page.payments.invoicesPaid', { count: collectedThisMonth.length })}</div>
         </div>
       </div>
 
@@ -402,10 +451,10 @@ export default function Payments() {
       {editTarget && (
       <SidePanel open={!!editTarget} onClose={() => setEditTarget(null)} title={t('page.payments.editInvoice')} subtitle={editTarget.invoice_number}>
         <div className="space-y-4">
-              <dl className="grid grid-cols-1 gap-2 rounded border border-gray-200 bg-gray-50 p-3 text-xs sm:grid-cols-3">
-                <div><dt className="text-gray-400">{t('accountability.owner')}</dt><dd className="mt-0.5 text-gray-700">{editTarget.owner_name || t('accountability.unassigned')}</dd></div>
-                <div><dt className="text-gray-400">{t('accountability.createdBy')}</dt><dd className="mt-0.5 text-gray-700">{editTarget.created_by_name || t('accountability.historicalActorUnknown')}</dd></div>
-                <div><dt className="text-gray-400">{t('accountability.updatedBy')}</dt><dd className="mt-0.5 text-gray-700">{editTarget.updated_by_name || t('accountability.historicalActorUnknown')}</dd></div>
+              <dl className="grid grid-cols-1 gap-2 rounded border border-border bg-canvas p-3 text-xs sm:grid-cols-3">
+                <div><dt className="text-ink-subtle">{t('accountability.owner')}</dt><dd className="mt-0.5 text-ink">{editTarget.owner_name || t('accountability.unassigned')}</dd></div>
+                <div><dt className="text-ink-subtle">{t('accountability.createdBy')}</dt><dd className="mt-0.5 text-ink">{editTarget.created_by_name || t('accountability.historicalActorUnknown')}</dd></div>
+                <div><dt className="text-ink-subtle">{t('accountability.updatedBy')}</dt><dd className="mt-0.5 text-ink">{editTarget.updated_by_name || t('accountability.historicalActorUnknown')}</dd></div>
               </dl>
               <div>
                 <label className="label" htmlFor="payment-edit-total">{t('page.payments.total')} ({editTarget.currency || 'USD'})</label>
@@ -448,15 +497,15 @@ export default function Payments() {
             aria-labelledby={paymentDialogTitleId}
             className="modal-surface relative z-10 w-[min(400px,calc(100vw-2rem))] p-6"
           >
-            <h3 id={paymentDialogTitleId} className="text-sm font-semibold text-gray-900 mb-4">{t('page.payments.recordPayment')}</h3>
+            <h3 id={paymentDialogTitleId} className="text-sm font-semibold text-ink mb-4">{t('page.payments.recordPayment')}</h3>
             <div className="space-y-3 mb-4">
               <div>
-                <label className="label" htmlFor="payment-amount">{t('page.payments.amount')} ($)</label>
-                <input ref={paymentAmountRef} id="payment-amount" className="input tabular-nums" type="number" value={payForm.amount || ''} onChange={e => setPayForm({...payForm, amount: parseFloat(e.target.value) || 0})} />
+                <label className="label" htmlFor="payment-amount">{t('page.payments.amount')} ({currencySymbol(list.find(invoice => invoice.id === payForm.invoiceId)?.currency)})</label>
+                <input ref={paymentAmountRef} id="payment-amount" className="input tabular-nums" type="number" disabled={savingAction === 'pay'} value={payForm.amount || ''} onChange={e => setPayForm({...payForm, amount: parseFloat(e.target.value) || 0})} />
               </div>
               <div>
                 <label className="label" htmlFor="payment-method">{t('page.payments.method')}</label>
-                <select id="payment-method" className="input" value={payForm.method} onChange={e => setPayForm({...payForm, method: e.target.value})}>
+                <select id="payment-method" className="input" disabled={savingAction === 'pay'} value={payForm.method} onChange={e => setPayForm({...payForm, method: e.target.value})}>
                   <option value="wire_transfer">{t('page.payments.wireTransfer')}</option>
                   <option value="credit_card">{t('page.payments.creditCard')}</option>
                   <option value="check">{t('page.payments.check')}</option>
@@ -465,7 +514,7 @@ export default function Payments() {
               </div>
               <div>
                 <label className="label" htmlFor="payment-reference">{t('page.payments.reference')}</label>
-                <input id="payment-reference" className="input" value={payForm.ref} onChange={e => setPayForm({...payForm, ref: e.target.value})} placeholder={t('page.payments.transactionId')} />
+                <input id="payment-reference" className="input" disabled={savingAction === 'pay'} value={payForm.ref} onChange={e => setPayForm({...payForm, ref: e.target.value})} placeholder={t('page.payments.transactionId')} />
               </div>
             </div>
             <div className="flex gap-2">
@@ -480,7 +529,7 @@ export default function Payments() {
 
       <div className="toolbar gap-3 overflow-x-auto">
         <div className="relative w-full max-w-sm shrink-0">
-          <Icon name="search" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Icon name="search" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
           <label className="sr-only" htmlFor="payments-search">{t('common.searchInvoices')}</label>
           <input id="payments-search" className="input w-full pl-9" placeholder={t('common.searchInvoices')} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
@@ -497,52 +546,68 @@ export default function Payments() {
       {loading ? (
         <div className="data-surface p-3" aria-label={t('common.loading')}>
           <div className="animate-pulse space-y-2">
-            {[0, 1, 2, 3, 4].map(row => <div key={row} className="h-10 rounded bg-gray-100" />)}
+            {[0, 1, 2, 3, 4].map(row => <div key={row} className="h-10 rounded bg-surface-hover" />)}
+          </div>
+        </div>
+      ) : loadError ? (
+        <div className="data-surface p-6" role="alert">
+          <div className="empty-state">
+            <p>{t('page.error.loadFailed')}</p>
+            <button type="button" onClick={load} className="btn-secondary btn-sm mt-3">
+              <Icon name="refresh" size={14} className="mr-1.5" />
+              {t('common.refresh')}
+            </button>
           </div>
         </div>
       ) : (
         <>
           <div className="space-y-2 md:hidden">
-            {filtered.map(renderMobilePayment)}
-            {filtered.length === 0 && <div className="empty-state rounded-md border border-gray-200 bg-white">{t('noData.invoices')}</div>}
+            {paged.map(renderMobilePayment)}
+            {filtered.length === 0 && <div className="empty-state rounded-md border border-border bg-surface">{t('noData.invoices')}</div>}
+            <Pagination
+              page={currentPage}
+              pageSize={PAYMENTS_PAGE_SIZE}
+              total={filtered.length}
+              onPageChange={setPage}
+            />
           </div>
           <div className="hidden md:block">
             <div className="data-surface overflow-x-auto">
           <table className="w-full">
             <thead className="sticky top-0 z-10">
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="table-header text-center">{t('page.payments.invoices')} #</th>
-                <th className="table-header text-center">{t('page.payments.order')}</th>
-                <th className="table-header text-center">{t('page.payments.company')}</th>
-                <th className="table-header text-center">{t('page.payments.status')}</th>
+              <tr className="border-b border-border bg-surface-subtle">
+                <th className="table-header">{t('page.payments.invoices')} #</th>
+                <th className="table-header">{t('page.payments.order')}</th>
+                <th className="table-header">{t('page.payments.company')}</th>
+                <th className="table-header">{t('page.payments.status')}</th>
                 <th className="table-header text-right">{t('page.payments.total')}</th>
                 <th className="table-header text-right">{t('page.payments.paid')}</th>
                 <th className="table-header text-right">{t('page.payments.due')}</th>
-                <th className="table-header text-center">{t('page.payments.dueDate')}</th>
-                <th className="table-header text-center hidden lg:table-cell">{t('accountability.owner')}</th>
+                <th className="table-header">{t('page.payments.dueDate')}</th>
+                <th className="table-header hidden lg:table-cell">{t('accountability.owner')}</th>
                 <th className="table-header w-16"></th>
                 <th className="table-header w-12"></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((inv: any) => (
-                <tr key={inv.id} className={`table-row ${isOverdue(inv) ? 'bg-red-50/30' : ''}`}>
-                  <td className="table-cell font-medium">{inv.invoice_number}</td>
-                  <td className="table-cell text-xs">{inv.order_number || '—'}</td>
-                  <td className="table-cell text-xs">{inv.company_name || '—'}</td>
+              {paged.map((inv: any) => (
+                <tr key={inv.id} className={`table-row ${isOverdue(inv) ? 'border-l-2 border-l-danger' : ''}`}>
+                  <td className="table-cell font-medium text-stage-payment">{inv.invoice_number}</td>
+                  <td className="table-cell text-xs text-ink-muted">{inv.order_number || '—'}</td>
+                  <td className="table-cell text-xs text-ink">{inv.company_name || '—'}</td>
                   <td className="table-cell"><StatusBadge status={inv.status} /></td>
                   <td className="table-cell text-right tabular-nums text-sm">{formatCurrency(inv.total, inv.currency)}</td>
-                  <td className="table-cell text-right tabular-nums text-xs text-green-600">{formatCurrency(inv.amount_paid, inv.currency)}</td>
-                  <td className={`table-cell text-right tabular-nums text-sm ${isOverdue(inv) ? 'text-red-600 font-semibold' : 'text-gray-700'}`}>
+                  <td className="table-cell text-right tabular-nums text-xs text-success">{formatCurrency(inv.amount_paid, inv.currency)}</td>
+                  <td className={`table-cell text-right tabular-nums text-sm ${isOverdue(inv) ? 'font-semibold text-danger' : 'text-ink-muted'}`}>
                     {formatCurrency(inv.amount_due ?? inv.total, inv.currency)}
                   </td>
                   <td className="table-cell">
-                    <span className={`text-xs ${isOverdue(inv) ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                    <span className={`text-xs ${isOverdue(inv) ? 'font-medium text-danger' : 'text-ink-muted'}`}>
                       {inv.due_date?.slice(0, 10)}
                       {isOverdue(inv) && ` `}
                     </span>
                   </td>
-                  <td className="table-cell hidden lg:table-cell text-xs text-gray-500">{inv.owner_name || t('accountability.unassigned')}</td>
+                  <td className="table-cell hidden text-xs text-ink-muted lg:table-cell">{inv.owner_name || t('accountability.unassigned')}</td>
                   {inv.status !== 'paid' && inv.status !== 'cancelled' ? (
                     <td className="table-cell">
                       <button
@@ -552,7 +617,7 @@ export default function Payments() {
                         }}
                         disabled={!inv.can_edit}
                         title={!inv.can_edit ? t('accountability.ownerOrAdminOnly') : undefined}
-                        className="text-xs text-blue-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-300 disabled:no-underline"
+                        className="text-xs text-brand hover:underline disabled:cursor-not-allowed disabled:text-ink-subtle disabled:no-underline"
                       >{t('page.payments.pay')}</button>
                     </td>
                   ) : <td className="table-cell"></td>}
@@ -567,14 +632,14 @@ export default function Payments() {
                             setOpenMenu(null);
                             setEditForm({ total: inv.total || 0, due_date: inv.due_date || '', notes: inv.notes || '' });
                             setEditTarget(inv);
-                          }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-white">
+                          }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-ink-muted hover:bg-surface-hover disabled:cursor-not-allowed disabled:text-ink-subtle disabled:hover:bg-surface">
                             <Icon name="square-pen" size={13} />{t('common.edit')}
                           </button>
                           {user?.role === 'admin' && (
                             <button onClick={() => {
                               setDeleteTarget(inv);
                               setOpenMenu(null);
-                            }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">
+                            }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-danger hover:bg-danger-soft">
                               <Icon name="delete" size={13} />{t('common.delete')}
                             </button>
                           )}
@@ -587,6 +652,12 @@ export default function Payments() {
               {filtered.length === 0 && <tr><td colSpan={11}><div className="empty-state">{t('noData.invoices')}</div></td></tr>}
             </tbody>
           </table>
+              <Pagination
+                page={currentPage}
+                pageSize={PAYMENTS_PAGE_SIZE}
+                total={filtered.length}
+                onPageChange={setPage}
+              />
             </div>
           </div>
         </>

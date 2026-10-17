@@ -203,6 +203,22 @@ function safetyQuantity(body: RecordValue, required: boolean): number | undefine
   return value;
 }
 
+function nextMaterialCode(database: Database.Database): string {
+  const row = database.prepare(`
+    SELECT MAX(CAST(SUBSTR(UPPER(code), 5) AS INTEGER)) AS sequence
+    FROM mt_items
+    WHERE UPPER(code) LIKE 'MAT-%'
+      AND SUBSTR(UPPER(code), 5) <> ''
+      AND SUBSTR(UPPER(code), 5) NOT GLOB '*[^0-9]*'
+  `).get() as { sequence: number | null };
+  let sequence = (row.sequence ?? 0) + 1;
+  while (database.prepare('SELECT 1 FROM mt_items WHERE code = ?').get(`MAT-${String(sequence).padStart(4, '0')}`)) {
+    sequence += 1;
+  }
+  if (sequence > 999999) throw new MaterialsConflictError('Material code sequence is exhausted');
+  return `MAT-${String(sequence).padStart(4, '0')}`;
+}
+
 function computeChanges(before: RecordValue | undefined, after: RecordValue): RecordValue {
   const changes: RecordValue = {};
   const fields = new Set([...Object.keys(before ?? {}), ...Object.keys(after)]);
@@ -372,20 +388,20 @@ export function createMaterialsToolingRouter(
       FROM (
         SELECT movement.reference_unit_price AS unit_price,
           movement.movement_date AS purchase_date, supplier.id AS supplier_id,
-          supplier.name AS supplier_name, 'reference' AS price_type,
+          COALESCE(movement.supplier_name, supplier.name) AS supplier_name, 'reference' AS price_type,
           movement.created_at AS recorded_at
         FROM mt_movements movement
-        JOIN mt_suppliers supplier ON supplier.id = movement.supplier_id
+        LEFT JOIN mt_suppliers supplier ON supplier.id = movement.supplier_id
         WHERE movement.item_id = ? AND movement.movement_type = 'reference_purchase'
         UNION ALL
         SELECT line.tax_inclusive_unit_price AS unit_price,
-          movement.movement_date AS purchase_date, supplier.id AS supplier_id,
-          supplier.name AS supplier_name, 'actual' AS price_type,
+          movement.movement_date AS purchase_date, movement.supplier_id AS supplier_id,
+          COALESCE(movement.supplier_name, document.supplier_name, supplier.name) AS supplier_name, 'actual' AS price_type,
           movement.created_at AS recorded_at
         FROM mt_movements movement
         JOIN mt_document_lines line ON line.id = movement.document_line_id
         JOIN mt_documents document ON document.id = movement.document_id
-        JOIN mt_suppliers supplier ON supplier.id = document.supplier_id
+        LEFT JOIN mt_suppliers supplier ON supplier.id = document.supplier_id
         WHERE movement.item_id = ? AND movement.movement_type = 'purchase_receipt'
           AND line.tax_inclusive_unit_price IS NOT NULL
           AND document.status <> 'voided'
@@ -418,15 +434,16 @@ export function createMaterialsToolingRouter(
 
   router.post('/items', requireManage, safeRoute((req, res) => {
     const body = parseBody(req.body, ITEM_CREATE_FIELDS, 'Item');
-    const code = requiredString(body, 'code').toUpperCase();
+    const requestedCode = optionalString(body, 'code');
     const name = requiredString(body, 'name');
     const category = requiredString(body, 'category');
     const unit = requiredString(body, 'unit');
-    const safety = safetyQuantity(body, false) ?? 0;
+    const safety = safetyQuantity(body, false) ?? 5;
     const isActive = optionalBoolean(body, 'is_active') ?? true;
     const id = randomUUID();
     const now = new Date().toISOString();
     const created = database.transaction(() => {
+      const code = requestedCode ? requestedCode.toUpperCase() : nextMaterialCode(database);
       database.prepare(`
         INSERT INTO mt_items (
           id, code, name, category, specification, unit, warehouse, bin_location,
@@ -440,7 +457,7 @@ export function createMaterialsToolingRouter(
       const row = database.prepare('SELECT * FROM mt_items WHERE id = ?').get(id) as RecordValue;
       writeMaterialsAudit(database, req, 'mt_item', id, 'create', undefined, row);
       return serializeRow(row);
-    })();
+    }).immediate();
     res.status(201).json({ item: created });
   }));
 
@@ -482,6 +499,31 @@ export function createMaterialsToolingRouter(
       return serializeRow(row);
     })();
     res.json({ item: updated });
+  }));
+
+  router.delete('/items/:id', requireManage, safeRoute((req, res) => {
+    database.transaction(() => {
+      const before = database.prepare('SELECT * FROM mt_items WHERE id = ?').get(req.params.id) as RecordValue | undefined;
+      if (!before) throw new MaterialsNotFoundError('Item not found');
+      const references = database.prepare(`
+        SELECT
+          (SELECT COUNT(*) FROM mt_movements WHERE item_id = ?) AS movement_count,
+          (SELECT COUNT(*) FROM mt_document_lines WHERE material_item_id = ?) AS document_line_count
+      `).get(req.params.id, req.params.id) as { movement_count: number; document_line_count: number };
+      if (references.movement_count > 0 || references.document_line_count > 0) {
+        throw new MaterialsConflictError('Item cannot be deleted after inventory or document use');
+      }
+      database.prepare(`
+        INSERT INTO audit_log (id, entity_type, entity_id, user_id, user_name, action, changes, created_at)
+        VALUES (?, 'mt_item', ?, ?, ?, 'delete', ?, ?)
+      `).run(
+        randomUUID(), req.params.id, req.user!.id, req.user!.name,
+        JSON.stringify({ code: before.code, name: before.name, reason: 'user-confirmed delete' }),
+        new Date().toISOString(),
+      );
+      database.prepare('DELETE FROM mt_items WHERE id = ?').run(req.params.id);
+    }).immediate();
+    res.status(204).end();
   }));
 
   router.get('/suppliers', requireEnter, safeRoute((req, res) => {

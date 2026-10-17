@@ -13,3 +13,4 @@ tmp/
 .api-key
 .DS_Store
 *.log
+data/

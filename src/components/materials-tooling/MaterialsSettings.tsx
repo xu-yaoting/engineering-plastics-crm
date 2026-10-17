@@ -15,12 +15,14 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
   const [users, setUsers] = useState<any[]>([]);
   const [approvalConfig, setApprovalConfig] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
   const [savingApprover, setSavingApprover] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   const load = async (): Promise<void> => {
     setLoading(true);
+    setLoadError(false);
     try {
       const me = await auth.me();
       const administrator = me.user.role === 'admin';
@@ -31,7 +33,12 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
       ]);
       setUsers(permsData.users || []);
       setApprovalConfig(configData.config || []);
-    } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+    } catch (error) {
+      setUsers([]);
+      setApprovalConfig([]);
+      setLoadError(true);
+      toast.error(error instanceof Error ? error.message : String(error));
+    }
     finally { setLoading(false); }
   };
 
@@ -71,7 +78,7 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
   if (isAdmin === false) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <p className="text-sm text-gray-500">{t('page.materialsTooling.error.unauthorized')}</p>
+        <p className="text-sm text-ink-muted">{t('page.materialsTooling.error.unauthorized')}</p>
       </div>
     );
   }
@@ -81,9 +88,22 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
           <div key={i} className="data-surface p-4 animate-pulse">
-            <div className="h-4 w-32 rounded bg-gray-100" />
+            <div className="h-4 w-32 rounded bg-surface-hover" />
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="data-surface p-4" role="alert">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-ink-muted">{t('page.error.loadFailed')}</p>
+          <button type="button" onClick={() => { void load(); }} className="btn-secondary btn-sm">
+            {t('common.refresh')}
+          </button>
+        </div>
       </div>
     );
   }
@@ -105,10 +125,10 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
           ];
           return (
             <article key={user.id} className="data-surface space-y-3 p-4">
-              <h4 className="font-medium text-gray-900">{user.name}</h4>
+              <h4 className="font-medium text-ink">{user.name}</h4>
               <div className="grid gap-2 sm:grid-cols-2">
                 {permissionRows.map(permission => (
-                  <label key={permission.field} className="flex min-h-10 items-center justify-between gap-3 rounded border border-gray-200 px-3 py-2 text-sm text-gray-700">
+                  <label key={permission.field} className="flex min-h-10 items-center justify-between gap-3 rounded border border-border px-3 py-2 text-sm text-ink">
                     <span>{permission.label}</span>
                     <input
                       id={`materials-settings-${user.id}-${permission.field}-mobile`}
@@ -116,7 +136,7 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
                       checked={permission.enabled}
                       onChange={() => toggleUserPermission(user.id, permission.field, permission.enabled)}
                       disabled={savingUserId === user.id}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 rounded border-border-strong text-brand focus:ring-brand"
                     />
                   </label>
                 ))}
@@ -128,12 +148,12 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
       </div>
 
       <div className="hidden data-surface overflow-x-auto md:block">
-        <div className="px-4 py-3 border-b border-gray-200">
+        <div className="px-4 py-3 border-b border-border">
           <h3 className="section-label">{t('page.materialsTooling.permissionsTitle')}</h3>
         </div>
         <table className="w-full">
           <thead className="sticky top-0 z-10">
-            <tr className="border-b border-gray-200 bg-gray-50">
+            <tr className="border-b border-border bg-canvas">
               <th className="table-header">{t('page.materialsTooling.name')}</th>
               <th className="table-header text-center">{t('page.materialsTooling.manageMaterialsPermission')}</th>
               <th className="table-header text-center">{t('page.materialsTooling.approvePermission')}</th>
@@ -145,8 +165,8 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
             {users.map((user: any) => {
               const p = user.permissions || {};
               return (
-                <tr key={user.id} className="border-b border-gray-100">
-                  <td className="table-cell font-medium text-gray-900">{user.name}</td>
+                <tr key={user.id} className="border-b border-border">
+                  <td className="table-cell font-medium text-ink">{user.name}</td>
                   <td className="table-cell text-center">
                     <label className="sr-only" htmlFor={`materials-settings-${user.id}-manage-materials`}>
                       {user.name}: {t('page.materialsTooling.manageMaterialsPermission')}
@@ -157,7 +177,7 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
                       checked={!!p.manageMaterials}
                       onChange={() => toggleUserPermission(user.id, 'manageMaterials', !!p.manageMaterials)}
                       disabled={savingUserId === user.id}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="w-4 h-4 rounded border-border-strong text-brand focus:ring-brand"
                     />
                   </td>
                   <td className="table-cell text-center">
@@ -170,7 +190,7 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
                       checked={!!p.approve}
                       onChange={() => toggleUserPermission(user.id, 'approve', !!p.approve)}
                       disabled={savingUserId === user.id}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="w-4 h-4 rounded border-border-strong text-brand focus:ring-brand"
                     />
                   </td>
                   <td className="table-cell text-center">
@@ -183,7 +203,7 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
                       checked={!!p.viewPrices}
                       onChange={() => toggleUserPermission(user.id, 'viewPrices', !!p.viewPrices)}
                       disabled={savingUserId === user.id}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="w-4 h-4 rounded border-border-strong text-brand focus:ring-brand"
                     />
                   </td>
                   <td className="table-cell text-center">
@@ -196,7 +216,7 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
                       checked={!!p.managePeriods}
                       onChange={() => toggleUserPermission(user.id, 'managePeriods', !!p.managePeriods)}
                       disabled={savingUserId === user.id}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="w-4 h-4 rounded border-border-strong text-brand focus:ring-brand"
                     />
                   </td>
                 </tr>
@@ -221,7 +241,7 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
             <article key={docType} className="data-surface space-y-2 p-4">
               <div>
                 <p className="section-label">{t('page.materialsTooling.documentTypeLabel')}</p>
-                <h4 className="font-medium text-gray-900">{t(`page.materialsTooling.documentType.${docType}`)}</h4>
+                <h4 className="font-medium text-ink">{t(`page.materialsTooling.documentType.${docType}`)}</h4>
               </div>
               <label className="label" htmlFor={`materials-settings-approver-${docType}-mobile`}>
                 {t('page.materialsTooling.approver')}
@@ -240,19 +260,19 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
                   </option>
                 ))}
               </select>
-              {savingApprover === docType && <span className="text-xs text-gray-400">{t('common.loading')}</span>}
+              {savingApprover === docType && <span className="text-xs text-ink-subtle">{t('common.loading')}</span>}
             </article>
           );
         })}
       </div>
 
       <div className="hidden data-surface overflow-x-auto md:block">
-        <div className="px-4 py-3 border-b border-gray-200">
+        <div className="px-4 py-3 border-b border-border">
           <h3 className="section-label">{t('page.materialsTooling.approvalConfiguration')}</h3>
         </div>
         <table className="w-full">
           <thead className="sticky top-0 z-10">
-            <tr className="border-b border-gray-200 bg-gray-50">
+            <tr className="border-b border-border bg-canvas">
               <th className="table-header">{t('page.materialsTooling.documentTypeLabel')}</th>
               <th className="table-header">{t('page.materialsTooling.approver')}</th>
             </tr>
@@ -262,8 +282,8 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
                   const config = approvalConfig.find((entry: any) => entry.documentType === docType);
                   const currentApproverId = config?.approver?.id || '';
               return (
-                <tr key={docType} className="border-b border-gray-100">
-                  <td className="table-cell text-xs text-gray-500">{t(`page.materialsTooling.documentType.${docType}`)}</td>
+                <tr key={docType} className="border-b border-border">
+                  <td className="table-cell text-xs text-ink-muted">{t(`page.materialsTooling.documentType.${docType}`)}</td>
                   <td className="table-cell">
                     <label className="sr-only" htmlFor={`materials-settings-approver-${docType}`}>
                       {t(`page.materialsTooling.documentType.${docType}`)}: {t('page.materialsTooling.approver')}
@@ -283,7 +303,7 @@ export function MaterialsSettings({ permissions: _permissions }: { permissions: 
                       ))}
                     </select>
                     {savingApprover === docType && (
-                      <span className="text-xs text-gray-400 ml-2">{t('common.loading')}</span>
+                      <span className="text-xs text-ink-subtle ml-2">{t('common.loading')}</span>
                     )}
                   </td>
                 </tr>

@@ -201,32 +201,32 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
       ref={buttonRef}
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
-        danger ? 'text-red-600 hover:bg-red-50' : 'text-gray-700 hover:bg-gray-50'
+        danger ? 'text-danger hover:bg-danger-soft' : 'text-ink hover:bg-canvas'
       }`}
     >
-      <Icon name={icon as any} size={15} className={danger ? 'text-red-400' : 'text-gray-400'} />
+      <Icon name={icon as any} size={15} className={danger ? 'text-danger' : 'text-ink-subtle'} />
       <span className="flex-1 text-left">{label}</span>
       {right}
     </button>
   );
 
   return (
-    <div className="border-t border-gray-200 relative" ref={ref}>
+    <div className="border-t border-border relative" ref={ref}>
       {/* User button — always visible */}
       <button
         ref={userMenuTriggerRef}
         onClick={() => { setOpen(!open); setShowLang(false); setShowAppearance(false); }}
-        className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center gap-3 p-3 hover:bg-canvas transition-colors"
       >
-        <span className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-medium flex-shrink-0">
+        <span className="w-7 h-7 rounded-full bg-brand text-white flex items-center justify-center text-xs font-medium flex-shrink-0">
           {initials}
         </span>
         {!collapsed && (
           <div className="flex-1 text-left min-w-0">
-            <div className="text-sm font-medium text-gray-900 truncate leading-tight">
+            <div className="text-sm font-medium text-ink truncate leading-tight">
               {displayName}
             </div>
-            <div className="text-2xs text-gray-500 truncate leading-tight mt-0.5">{profile.jobTitle || (user ? t('userMenu.teamMember') : '')}</div>
+            <div className="text-2xs text-ink-muted truncate leading-tight mt-0.5">{profile.jobTitle || (user ? t('userMenu.teamMember') : '')}</div>
           </div>
         )}
       </button>
@@ -235,16 +235,16 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
       {open && (
         <div className="menu-surface absolute bottom-full left-0 right-0 mb-2 z-50 overflow-visible">
           {/* User info header */}
-          <div className="px-4 py-3 border-b border-gray-100">
+          <div className="px-4 py-3 border-b border-border">
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium flex-shrink-0">
+              <span className="w-9 h-9 rounded-full bg-brand text-white flex items-center justify-center text-sm font-medium flex-shrink-0">
                 {initials}
               </span>
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-gray-900 truncate">
+                <div className="text-sm font-semibold text-ink truncate">
                   {displayName}
                 </div>
-                <div className="text-xs text-gray-500 truncate">{profile.jobTitle || ''}</div>
+                <div className="text-xs text-ink-muted truncate">{profile.jobTitle || ''}</div>
               </div>
             </div>
           </div>
@@ -259,23 +259,23 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
             {/* Language */}
             <button
               onClick={() => setShowLang(!showLang)}
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-ink hover:bg-canvas transition-colors"
             >
-              <Icon name="globe" size={15} className="text-gray-400" />
+              <Icon name="globe" size={15} className="text-ink-subtle" />
               <span className="flex-1 text-left">{t('userMenu.language')}</span>
-              <span className="text-xs text-gray-400 mr-1">{currentLang === 'en' ? 'EN' : '中文'}</span>
-              <Icon name={showLang ? 'chevron-down' : 'chevron-right'} size={12} className="text-gray-400" />
+              <span className="text-xs text-ink-subtle mr-1">{currentLang === 'en' ? 'EN' : '中文'}</span>
+              <Icon name={showLang ? 'chevron-down' : 'chevron-right'} size={12} className="text-ink-subtle" />
             </button>
             {showLang && (
-              <div className="bg-gray-50 mx-2 rounded-lg py-1 mb-1">
+              <div className="bg-canvas mx-2 rounded-lg py-1 mb-1">
                 <button onClick={() => { i18n.changeLanguage('en'); setShowLang(false); setOpen(false); }}
-                  className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm ${currentLang === 'en' ? 'text-blue-600 font-medium' : 'text-gray-600'} hover:bg-white rounded`}>
-                  {currentLang === 'en' && <Icon name="check" size={12} className="text-blue-600 ml-1" />}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm ${currentLang === 'en' ? 'text-brand font-medium' : 'text-ink-muted'} hover:bg-surface rounded`}>
+                  {currentLang === 'en' && <Icon name="check" size={12} className="text-brand ml-1" />}
                   <span className={currentLang === 'en' ? 'ml-1' : 'ml-6'}>{t('userMenu.english')}</span>
                 </button>
                 <button onClick={() => { i18n.changeLanguage('zh'); setShowLang(false); setOpen(false); }}
-                  className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm ${currentLang === 'zh' ? 'text-blue-600 font-medium' : 'text-gray-600'} hover:bg-white rounded`}>
-                  {currentLang === 'zh' && <Icon name="check" size={12} className="text-blue-600 ml-1" />}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm ${currentLang === 'zh' ? 'text-brand font-medium' : 'text-ink-muted'} hover:bg-surface rounded`}>
+                  {currentLang === 'zh' && <Icon name="check" size={12} className="text-brand ml-1" />}
                   <span className={currentLang === 'zh' ? 'ml-1' : 'ml-6'}>{t('userMenu.chinese')}</span>
                 </button>
               </div>
@@ -284,19 +284,19 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
             {/* Appearance */}
             <button
               onClick={() => setShowAppearance(!showAppearance)}
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-ink hover:bg-canvas transition-colors"
             >
-              <Icon name="settings" size={15} className="text-gray-400" />
+              <Icon name="settings" size={15} className="text-ink-subtle" />
               <span className="flex-1 text-left">{t('userMenu.appearance')}</span>
-              <span className="text-xs text-gray-400 mr-1 capitalize">{theme}</span>
-              <Icon name={showAppearance ? 'chevron-down' : 'chevron-right'} size={12} className="text-gray-400" />
+              <span className="text-xs text-ink-subtle mr-1 capitalize">{theme}</span>
+              <Icon name={showAppearance ? 'chevron-down' : 'chevron-right'} size={12} className="text-ink-subtle" />
             </button>
             {showAppearance && (
-              <div className="bg-gray-50 mx-2 rounded-lg py-1 mb-1">
+              <div className="bg-canvas mx-2 rounded-lg py-1 mb-1">
                 {(['light', 'dark', 'system'] as const).map(mode => (
                   <button key={mode} onClick={() => { setTheme(mode); setShowAppearance(false); setOpen(false); }}
-                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm capitalize ${theme === mode ? 'text-blue-600 font-medium' : 'text-gray-600'} hover:bg-white rounded`}>
-                    {theme === mode && <Icon name="check" size={12} className="text-blue-600 ml-1" />}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm capitalize ${theme === mode ? 'text-brand font-medium' : 'text-ink-muted'} hover:bg-surface rounded`}>
+                    {theme === mode && <Icon name="check" size={12} className="text-brand ml-1" />}
                     <span className={theme === mode ? 'ml-1' : 'ml-6'}>{mode}</span>
                   </button>
                 ))}
@@ -306,7 +306,7 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
           </div>
 
           {/* Sign Out */}
-          <div className="border-t border-gray-100 py-1">
+          <div className="border-t border-border py-1">
             {menuItem('close', t('userMenu.signOut'), () => { setOpen(false); logout(); }, undefined, true)}
           </div>
         </div>
@@ -315,24 +315,24 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
       {showUserManagement && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 p-4" onMouseDown={event => { event.stopPropagation(); closeUserManagement(); }}>
           <div ref={userManagementDialogRef} className="modal-surface w-full max-w-lg" role="dialog" aria-modal="true" aria-labelledby="user-management-title" onMouseDown={event => event.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-              <h2 id="user-management-title" className="text-base font-semibold text-gray-900">{t('userMenu.manageUsers')}</h2>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h2 id="user-management-title" className="text-base font-semibold text-ink">{t('userMenu.manageUsers')}</h2>
               <button ref={userManagementCloseRef} type="button" className="icon-btn" onClick={closeUserManagement} aria-label={t('common.close')}>
                 <Icon name="close" size={16} />
               </button>
             </div>
 
-            <div className="max-h-56 overflow-y-auto divide-y divide-gray-100">
-              {loadingUsers && <div className="px-5 py-5 text-sm text-gray-500">{t('common.loading')}</div>}
-              {!loadingUsers && managedUsers.length === 0 && <div className="px-5 py-5 text-sm text-gray-500">{t('userMenu.noUsers')}</div>}
+            <div className="max-h-56 overflow-y-auto divide-y divide-border">
+              {loadingUsers && <div className="px-5 py-5 text-sm text-ink-muted">{t('common.loading')}</div>}
+              {!loadingUsers && managedUsers.length === 0 && <div className="px-5 py-5 text-sm text-ink-muted">{t('userMenu.noUsers')}</div>}
               {!loadingUsers && managedUsers.map(account => (
                 <div key={account.id} className="flex items-center gap-3 px-5 py-3">
-                  <span className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs font-medium">
+                  <span className="w-8 h-8 rounded-full bg-surface-hover text-ink-muted flex items-center justify-center text-xs font-medium">
                     {getInitials(account.name)}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-gray-900 truncate">{account.name}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-sm font-medium text-ink truncate">{account.name}</div>
+                    <div className="text-xs text-ink-muted">
                       {t(`userMenu.${account.role === 'admin' ? 'administrator' : 'member'}`)} · {t('userMenu.lastSeen')}: {account.last_seen_at ? new Date(account.last_seen_at).toLocaleString() : t('userMenu.never')}
                     </div>
                   </div>
@@ -341,8 +341,8 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
               ))}
             </div>
 
-            <form onSubmit={createUser} className="px-5 py-4 border-t border-gray-200 space-y-3">
-              <h3 className="text-sm font-medium text-gray-900">{t('userMenu.addColleague')}</h3>
+            <form onSubmit={createUser} className="px-5 py-4 border-t border-border space-y-3">
+              <h3 className="text-sm font-medium text-ink">{t('userMenu.addColleague')}</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label" htmlFor="managed-user-name">{t('userMenu.accountName')}</label>
@@ -354,8 +354,8 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
                     onChange={event => setAccountPin(event.target.value.replace(/\D/g, '').slice(0, 6))} maxLength={6} disabled={creatingUser} />
                 </div>
               </div>
-              {userError && <div className="text-xs text-red-600" role="alert">{userError}</div>}
-              {userSuccess && <div className="text-xs text-green-600" role="status">{userSuccess}</div>}
+              {userError && <div className="text-xs text-danger" role="alert">{userError}</div>}
+              {userSuccess && <div className="text-xs text-success" role="status">{userSuccess}</div>}
               <div className="flex justify-end">
                 <button className="btn-primary" type="submit" disabled={!accountName.trim() || accountPin.length !== 6 || creatingUser}>
                   {creatingUser ? t('userMenu.creatingAccount') : t('userMenu.createAccount')}

@@ -75,10 +75,10 @@ export default function SidePanel({
         className={`modal-surface fixed right-0 top-0 z-40 flex h-dvh ${width} flex-col rounded-none border-y-0 border-r-0 animate-[slideIn_200ms_ease-out]`}
       >
         {/* Header */}
-        <div className="flex items-start justify-between px-5 py-4 border-b border-gray-200">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-border">
           <div className="min-w-0 flex-1 mr-4">
-            <h2 id={titleId} className="text-sm font-semibold text-gray-900 truncate">{title || t('workspace.details')}</h2>
-            {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+            <h2 id={titleId} className="text-sm font-semibold text-ink truncate">{title || t('workspace.details')}</h2>
+            {subtitle && <p className="text-xs text-ink-muted mt-0.5">{subtitle}</p>}
           </div>
           <button
             ref={closeButtonRef}

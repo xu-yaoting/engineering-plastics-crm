@@ -8,6 +8,10 @@ import { canManageOwnedRecord, requireAdministrator, requireOwnedRecord } from '
 
 const router = Router();
 
+function balanceTolerance(...amounts: number[]): number {
+  return Number.EPSILON * Math.max(1, ...amounts.map(amount => Math.abs(amount))) * 4;
+}
+
 router.get('/', (req: Request, res: Response) => {
   const q = req.query.q as string | undefined;
   let sql = `
@@ -131,14 +135,16 @@ router.put('/:id', (req: Request, res: Response) => {
   }
 
   const amountPaid = Number(invoice.amount_paid ?? 0);
-  if (total < amountPaid) {
+  const tolerance = balanceTolerance(total, amountPaid);
+  if (amountPaid - total > tolerance) {
     return res.status(400).json({ error: 'Invoice total cannot be less than amount already paid', amountPaid, total });
   }
 
   const dueDate = req.body.due_date !== undefined ? req.body.due_date : invoice.due_date;
   if (!dueDate) return res.status(400).json({ error: 'Due date is required' });
 
-  const amountDue = Math.max(0, total - amountPaid);
+  const balance = total - amountPaid;
+  const amountDue = Math.abs(balance) <= tolerance ? 0 : Math.max(0, balance);
   const status = amountDue <= 0 ? 'paid' : amountPaid > 0 ? 'partial_paid' : 'issued';
   const now = new Date().toISOString();
 
@@ -183,14 +189,16 @@ router.post('/:id/pay', (req: Request, res: Response) => {
   if (!requireOwnedRecord(req, res, invoice.owner_user_id)) return;
 
   const remainingDue = Number(invoice.amount_due ?? invoice.total ?? 0);
-  if (paymentAmount > remainingDue) {
+  const tolerance = balanceTolerance(remainingDue, paymentAmount, Number(invoice.total));
+  if (paymentAmount - remainingDue > tolerance) {
     return res.status(400).json({ error: 'Payment exceeds remaining balance', remainingDue, paymentAmount });
   }
 
   const payment_number = invoice.order_number ? nextPaymentNumber(invoice.order_number) : null;
 
-  const newPaid = Number(invoice.amount_paid ?? 0) + paymentAmount;
-  const newDue = Math.max(0, remainingDue - paymentAmount);
+  const balance = remainingDue - paymentAmount;
+  const newDue = Math.abs(balance) <= tolerance ? 0 : Math.max(0, balance);
+  const newPaid = newDue === 0 ? Number(invoice.total) : Number(invoice.amount_paid ?? 0) + paymentAmount;
   const newStatus = newDue <= 0 ? 'paid' : 'partial_paid';
 
   const paidInvoice = db.transaction(() => {

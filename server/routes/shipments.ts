@@ -119,6 +119,11 @@ router.put('/:id', (req: Request, res: Response) => {
 
   const before = db.prepare("SELECT * FROM shipments WHERE id = ? AND deleted_at IS NULL").get(req.params.id) as Record<string, unknown> | undefined;
   if (!before) return res.status(404).json({ success: false, message: 'Record not found' });
+  if (Object.prototype.hasOwnProperty.call(req.body, 'order_id') && req.body.order_id !== before.order_id) {
+    const order = typeof req.body.order_id === 'string'
+      ? db.prepare('SELECT id FROM orders WHERE id = ? AND deleted_at IS NULL').get(req.body.order_id) : undefined;
+    if (!order) return res.status(400).json({ success: false, message: 'Selected order does not exist' });
+  }
   const updatedShipment = db.transaction(() => {
     const fields = updateFields.map((field) => `${field} = ?`).join(', ');
     const values = updateFields.map((field) => req.body[field]);

@@ -55,7 +55,7 @@ const EXPECTED_COLUMNS = {
   ],
   mt_documents: [
     'id', 'document_number', 'document_type', 'version', 'status', 'applicant_user_id',
-    'department', 'request_date', 'required_date', 'execution_date', 'purpose', 'supplier_id',
+    'department', 'request_date', 'required_date', 'execution_date', 'purpose', 'supplier_id', 'supplier_name',
     'invoice_number', 'contract_number', 'replaces_document_id', 'replaced_by_document_id',
     'assigned_approver_user_id', 'rejection_reason', 'void_reason', 'created_by', 'updated_by',
     'created_at', 'updated_at', 'notes', 'executed_by_user_id', 'recipient_user_id',
@@ -73,7 +73,7 @@ const EXPECTED_COLUMNS = {
   mt_approvals: ['id', 'document_id', 'version', 'approver_user_id', 'decision', 'comment', 'decided_at'],
   mt_movements: [
     'id', 'item_id', 'document_id', 'document_line_id', 'movement_type', 'quantity_delta',
-    'reference_unit_price', 'movement_date', 'created_by', 'created_at', 'supplier_id',
+    'reference_unit_price', 'movement_date', 'created_by', 'created_at', 'supplier_id', 'supplier_name',
     'reference_quantity', 'source_workbook', 'cutover_period',
   ],
   mt_snapshots: [

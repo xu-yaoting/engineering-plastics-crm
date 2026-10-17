@@ -80,6 +80,14 @@ app.use('/api/audit', auditRouter);
 app.use('/api/team', teamRouter);
 app.use('/api/materials-tooling', createMaterialsToolingRouter(db));
 
+// ── Global error handler: return JSON instead of HTML for unhandled errors ──
+app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('[error]', err);
+  if (res.headersSent) return next(err);
+  const message = err instanceof Error ? err.message : 'Internal server error';
+  res.status(500).json({ error: message });
+});
+
 // ── Production SPA fallback: serve index.html for all non-API routes ──
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (_req, res) => {

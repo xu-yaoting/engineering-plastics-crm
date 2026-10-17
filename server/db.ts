@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 import { ensureMaterialsToolingSchema } from './materials-tooling/schema.js';
+import { ensureInventoryV2Schema } from './inventory/schema.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.CRM_DB_PATH || path.join(__dirname, '..', 'crm.db');
@@ -689,5 +690,9 @@ try {
   const deleted = db.prepare(`UPDATE inquiries SET deleted_at = ? WHERE deleted_at IS NULL`).run(new Date().toISOString());
   if (deleted.changes > 0) console.log(`[migration] Soft-deleted ${deleted.changes} inquiries`);
 } catch (e) { /* ignore */ }
+
+// Inventory V2 reads legacy product ownership metadata during its one-time copy,
+// so initialize it only after all additive legacy-column migrations above.
+ensureInventoryV2Schema(db);
 
 export default db;

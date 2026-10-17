@@ -20,25 +20,16 @@ const companyDetailSource = readFileSync(new URL('../src/pages/CompanyDetail.tsx
 const sidebarSource = readFileSync(new URL('../src/components/layout/Sidebar.tsx', import.meta.url), 'utf8');
 const contactsSource = readFileSync(new URL('../src/pages/Contacts.tsx', import.meta.url), 'utf8');
 const profileSource = readFileSync(new URL('../src/pages/SettingsProfile.tsx', import.meta.url), 'utf8');
-const responsiveWorkspaceSource = readFileSync(new URL('../src/components/shared/ResponsiveWorkspace.tsx', import.meta.url), 'utf8');
 const mediaQuerySource = readFileSync(new URL('../src/lib/useMediaQuery.ts', import.meta.url), 'utf8');
 
 test('company workspace uses the shared menu icon without character overrides', () => {
   assert.doesNotMatch(companyDetailSource, /rightPanelIcon/);
   assert.doesNotMatch(companyDetailSource, /☰/);
-  assert.doesNotMatch(responsiveWorkspaceSource, /rightPanelIcon/);
-  assert.match(responsiveWorkspaceSource, /<Icon name="menu"/);
 });
 
-test('company workspace owns responsive column geometry without nested fixed-width panels', () => {
-  assert.match(responsiveWorkspaceSource, /grid-cols-\[minmax\(/);
-  assert.match(responsiveWorkspaceSource, /minmax\(0,1fr\)/);
-  assert.match(responsiveWorkspaceSource, /<main className=/);
-  assert.match(responsiveWorkspaceSource, /960-1200px: 2-column/);
-  assert.match(responsiveWorkspaceSource, /<960px: Accordion sections/);
+test('company workspace uses shared responsive breakpoints without nested fixed-width panels', () => {
   assert.match(mediaQuerySource, /min-width: 960px\) and \(max-width: 1199px/);
   assert.match(mediaQuerySource, /max-width: 959px/);
-  assert.doesNotMatch(responsiveWorkspaceSource, /w-\[280px\]|w-\[300px\]/);
   assert.doesNotMatch(companyDetailSource, /w-\[280px\]|w-\[300px\]/);
   assert.doesNotMatch(companyDetailSource, /flex-shrink-0 border-[lr]/);
 });
@@ -83,7 +74,7 @@ test('activities and company detail use purpose-built shared visual hierarchy', 
 
 test('company detail opens with one actionable pipeline summary instead of duplicate briefing cards', () => {
   for (const key of [
-    'actionSummary', 'pipelineValue', 'openPipeline', 'nextFollowUp',
+    'actionSummary', 'activeQuotations', 'lastActivity', 'nextFollowUp',
   ]) {
     assert.match(companyDetailSource, new RegExp(`page\\.companyDetail\\.${key}`));
   }
@@ -118,7 +109,7 @@ test('company detail header and action summary reflow without clipping on narrow
 test('company contact directory remains discoverable with correct section state and safe website links', () => {
   assert.match(sidebarSource, /useLocation/);
   assert.match(sidebarSource, /location\.pathname\.startsWith\('\/companies\/'\)/);
-  assert.match(companyDetailSource, /to="\/companies\/contacts"/);
+  assert.match(companyDetailSource, /to=\{\`\/companies\/contacts\?company=\$\{company\.id\}\`\}/);
   assert.match(companyDetailSource, /page\.customerDevelopment\.contactDirectory/);
   assert.match(companyDetailSource, /const websiteHref =/);
   assert.match(companyDetailSource, /https:\/\/\$\{company\.website\}/);

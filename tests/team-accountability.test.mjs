@@ -52,11 +52,7 @@ test('inquiry list uses the shared owner filter and shows ownership', () => {
 test('payment and inventory pages expose authenticated operators without manual impersonation', () => {
   assert.match(paymentsPageSource, /updated_by_name/);
   assert.match(paymentsPageSource, /accountability\.updatedBy/);
-  const transactionForm = inventoryPageSource.slice(
-    inventoryPageSource.indexOf('function TransactionForm'),
-    inventoryPageSource.indexOf('// ─── Import'),
-  );
-  assert.doesNotMatch(transactionForm, /placeholderOperator|form\.operator/);
+  assert.doesNotMatch(inventoryPageSource, /placeholderOperator|form\.operator/);
 });
 
 test('task quick add supports assignees and shows the assigned team member', () => {

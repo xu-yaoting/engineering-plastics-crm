@@ -31,76 +31,76 @@ function ShipmentDetailSkeleton({ label }: { label: string }) {
   return (
     <div role="status" aria-label={label} className="flex h-full flex-col">
       <div aria-hidden="true" className="flex h-full flex-col animate-pulse motion-reduce:animate-none">
-        <header className="flex-shrink-0 border-b border-gray-200 bg-white px-5 py-3">
+        <header className="flex-shrink-0 border-b border-border bg-surface px-5 py-3">
           <div className="flex min-h-8 items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="h-8 w-8 rounded-md bg-gray-200" />
-              <div className="h-5 w-40 rounded bg-gray-200" />
-              <div className="h-5 w-20 rounded bg-gray-100" />
+              <div className="h-8 w-8 rounded-md bg-border-strong" />
+              <div className="h-5 w-40 rounded bg-border-strong" />
+              <div className="h-5 w-20 rounded bg-surface-hover" />
             </div>
-            <div className="h-8 w-8 rounded-md bg-gray-100" />
+            <div className="h-8 w-8 rounded-md bg-surface-hover" />
           </div>
-          <div className="mt-2 h-3 w-72 max-w-full rounded bg-gray-100" />
+          <div className="mt-2 h-3 w-72 max-w-full rounded bg-surface-hover" />
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto bg-gray-50 p-6">
+        <main className="min-h-0 flex-1 overflow-y-auto bg-canvas p-6">
           <div className="mx-auto max-w-3xl space-y-5">
-            <section className="commercial-summary rounded-md border border-gray-200 bg-white p-5">
+            <section className="commercial-summary rounded-md border border-border bg-surface p-5">
               <div className="flex items-end justify-between gap-4">
                 <div className="space-y-3">
-                  <div className="h-3 w-20 rounded bg-gray-100" />
-                  <div className="h-8 w-48 rounded bg-gray-200" />
+                  <div className="h-3 w-20 rounded bg-surface-hover" />
+                  <div className="h-8 w-48 rounded bg-border-strong" />
                 </div>
-                <div className="h-5 w-20 rounded bg-gray-100" />
+                <div className="h-5 w-20 rounded bg-surface-hover" />
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-4 border-t border-gray-200 pt-4 md:grid-cols-4">
+              <div className="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-4 md:grid-cols-4">
                 {Array.from({ length: 4 }, (_, index) => (
                   <div key={index} className="space-y-2">
-                    <div className="h-3 w-16 rounded bg-gray-100" />
-                    <div className="h-4 w-4/5 rounded bg-gray-200" />
+                    <div className="h-3 w-16 rounded bg-surface-hover" />
+                    <div className="h-4 w-4/5 rounded bg-border-strong" />
                   </div>
                 ))}
               </div>
             </section>
 
-            <section className="rounded-md border border-gray-200 bg-white p-4">
-              <div className="h-3 w-28 rounded bg-gray-200" />
+            <section className="rounded-md border border-border bg-surface p-4">
+              <div className="h-3 w-28 rounded bg-border-strong" />
               <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
                 {Array.from({ length: 3 }, (_, index) => (
-                  <div key={index} className="h-4 rounded bg-gray-100" />
+                  <div key={index} className="h-4 rounded bg-surface-hover" />
                 ))}
               </div>
             </section>
 
-            <section className="rounded-md border border-gray-200 bg-white p-4">
-              <div className="h-3 w-24 rounded bg-gray-200" />
+            <section className="rounded-md border border-border bg-surface p-4">
+              <div className="h-3 w-24 rounded bg-border-strong" />
               <div className="mt-4 flex flex-wrap gap-2">
                 {Array.from({ length: 5 }, (_, index) => (
-                  <div key={index} className="h-7 w-24 rounded bg-gray-100" />
+                  <div key={index} className="h-7 w-24 rounded bg-surface-hover" />
                 ))}
               </div>
             </section>
 
-            <section className="rounded-md border border-gray-200 bg-white p-4">
-              <div className="h-3 w-28 rounded bg-gray-200" />
+            <section className="rounded-md border border-border bg-surface p-4">
+              <div className="h-3 w-28 rounded bg-border-strong" />
               <div className="mt-4 grid grid-cols-2 gap-5">
                 {Array.from({ length: 6 }, (_, index) => (
                   <div key={index} className="space-y-2">
-                    <div className="h-3 w-20 rounded bg-gray-100" />
-                    <div className="h-4 w-3/4 rounded bg-gray-200" />
+                    <div className="h-3 w-20 rounded bg-surface-hover" />
+                    <div className="h-4 w-3/4 rounded bg-border-strong" />
                   </div>
                 ))}
               </div>
             </section>
 
-            <section className="rounded-md border border-gray-200 bg-white">
-              <div className="border-b border-gray-200 px-4 py-3">
-                <div className="h-3 w-20 rounded bg-gray-200" />
+            <section className="rounded-md border border-border bg-surface">
+              <div className="border-b border-border px-4 py-3">
+                <div className="h-3 w-20 rounded bg-border-strong" />
               </div>
               {Array.from({ length: 3 }, (_, index) => (
-                <div key={index} className="flex justify-between border-b border-gray-100 px-4 py-4 last:border-b-0">
-                  <div className="h-4 w-40 rounded bg-gray-100" />
-                  <div className="h-4 w-16 rounded bg-gray-200" />
+                <div key={index} className="flex justify-between border-b border-border px-4 py-4 last:border-b-0">
+                  <div className="h-4 w-40 rounded bg-surface-hover" />
+                  <div className="h-4 w-16 rounded bg-border-strong" />
                 </div>
               ))}
             </section>
@@ -117,10 +117,13 @@ export default function ShipmentDetail() {
   const navigate = useNavigate();
   const [shipment, setShipment] = useState<any>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showEditPanel, setShowEditPanel] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
   const [editForm, setEditForm] = useState(emptyEditForm);
 
   const statusOptions = ['pending_pickup', 'in_transit', 'out_for_delivery', 'delivered', 'exception'];
@@ -131,32 +134,74 @@ export default function ShipmentDetail() {
   };
 
   const load = () => {
-    if (!id) return;
-    fetch(`/api/shipments/${id}`).then(r => r.json()).then(data => {
-      setShipment(data);
-      setLineItems(data.line_items || []);
-    });
+    if (!id) {
+      setLoadError(true);
+      return;
+    }
+    setLoadError(false);
+    fetch(`/api/shipments/${id}`)
+      .then(async res => {
+        if (!res.ok) throw new Error(`Shipment request failed: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setShipment(data);
+        setLineItems(data.line_items || []);
+      })
+      .catch(() => {
+        setShipment(null);
+        setLineItems([]);
+        setLoadError(true);
+      });
   };
 
   useEffect(() => { load(); }, [id]);
 
+  const readError = async (res: Response, fallback: string) => {
+    const data = await res.json().catch(() => null);
+    return data?.error || data?.message || fallback;
+  };
+
   const updateStatus = async (status: string) => {
-    await fetch(`/api/shipments/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    load();
+    if (!id || savingStatus || savingEdit) return;
+    setSavingStatus(true);
+    try {
+      const res = await fetch(`/api/shipments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        toast.error(await readError(res, t('page.shipments.shipmentSaveFailed')));
+        return;
+      }
+      load();
+    } catch {
+      toast.error(t('page.shipments.shipmentSaveFailed'));
+    } finally {
+      setSavingStatus(false);
+    }
   };
 
   const saveEdit = async () => {
-    if (!id) return;
-    await fetch(`/api/shipments/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editForm),
-    });
-    setShowEditPanel(false);
-    load();
+    if (!id || savingEdit) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/shipments/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      if (!res.ok) {
+        toast.error(await readError(res, t('page.shipments.shipmentSaveFailed')));
+        return;
+      }
+      setShowEditPanel(false);
+      load();
+    } catch {
+      toast.error(t('page.shipments.shipmentSaveFailed'));
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const remove = async () => {
@@ -176,15 +221,29 @@ export default function ShipmentDetail() {
     }
   };
 
+  if (loadError) {
+    return (
+      <div className="flex h-full items-center justify-center bg-canvas p-6">
+        <div className="empty-state data-surface w-full max-w-md p-6" role="alert">
+          <p>{t('page.error.loadFailed')}</p>
+          <button type="button" onClick={load} className="btn-secondary btn-sm mt-3">
+            <Icon name="refresh" size={14} className="mr-1.5" />
+            {t('common.refresh')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!shipment) return <ShipmentDetailSkeleton label={t('common.loading')} />;
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-shrink-0 border-b border-gray-200 bg-white px-5 py-3">
-        <div className="page-header mb-0 min-h-0 items-center">
+      <div className="flex-shrink-0 border-b border-border bg-surface px-5 py-3">
+        <div className="page-header mb-0 min-h-0 items-start sm:items-center">
           <div className="flex min-w-0 items-center gap-3">
             <Link to="/shipments" className="icon-btn" aria-label={t('common.back')} title={t('page.title.shipments')}><Icon name="back" size={16} /></Link>
-            <h1 className="page-heading truncate tabular-nums">{shipment.shipment_number}</h1>
+            <h1 className="page-heading text-lg sm:text-2xl truncate tabular-nums">{shipment.shipment_number}</h1>
             <StatusBadge status={shipment.status} />
           </div>
           <div className="page-actions relative">
@@ -202,22 +261,22 @@ export default function ShipmentDetail() {
                     shipping_address: shipment.shipping_address || '', notes: shipment.notes || '',
                   });
                   setShowEditPanel(true);
-                }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
+                }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-ink hover:bg-canvas">
                   <Icon name="square-pen" size={13} />{t('common.edit')}
                 </button>
                 <button onClick={() => {
                   setConfirmDelete(true);
                   setShowActionsMenu(false);
-                }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">
+                }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-danger hover:bg-danger-soft">
                   <Icon name="delete" size={13} />{t('common.delete')}
                 </button>
               </div>
             )}
           </div>
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-ink-muted">
           {shipment.company_name && <>{shipment.company_name} · </>}
-          {t('page.shipments.order')}: <Link to={`/orders/${shipment.order_id}`} className="text-blue-600 hover:underline">{shipment.order_number}</Link>
+          {t('page.shipments.order')}: <Link to={`/orders/${shipment.order_id}`} className="text-brand hover:underline">{shipment.order_number}</Link>
           {shipmentCarrier(shipment) && ` · ${shipmentCarrier(shipment)}`}
           {shipmentReference(shipment) && ` · ${shipmentReference(shipment)}`}
         </div>
@@ -228,16 +287,16 @@ export default function ShipmentDetail() {
           <div className="section-band commercial-summary p-5">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>
-                <p className="section-label text-gray-400">{t('page.title.shipments')}</p>
-                <p className="mt-1 text-2xl font-semibold text-gray-900 tabular-nums">{shipment.shipment_number}</p>
+                <p className="section-label text-ink-subtle">{t('page.title.shipments')}</p>
+                <p className="mt-1 text-2xl font-semibold text-ink tabular-nums">{shipment.shipment_number}</p>
               </div>
               <StatusBadge status={shipment.status} />
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-4 border-t border-gray-200 pt-4 md:grid-cols-4">
-              <div><span className="text-2xs text-gray-400">{t('page.dashboard.customer')}</span><p className="mt-1 truncate text-sm text-gray-700">{shipment.company_name || '—'}</p></div>
-              <div><span className="text-2xs text-gray-400">{t('page.shipments.order')}</span><p className="mt-1 text-sm"><Link to={`/orders/${shipment.order_id}`} className="text-blue-600 hover:underline">{shipment.order_number}</Link></p></div>
-              <div><span className="text-2xs text-gray-400">{t('page.shipmentDetail.carrier')}</span><p className="mt-1 text-sm text-gray-700">{shipmentCarrier(shipment) || '—'}</p></div>
-              <div><span className="text-2xs text-gray-400">{t('page.shipmentDetail.trackingNumber')}</span><p className="mt-1 truncate text-sm tabular-nums text-gray-700">{shipmentReference(shipment) || '—'}</p></div>
+            <div className="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-4 md:grid-cols-4">
+              <div><span className="text-2xs text-ink-subtle">{t('page.dashboard.customer')}</span><p className="mt-1 truncate text-sm text-ink">{shipment.company_name || '—'}</p></div>
+              <div><span className="text-2xs text-ink-subtle">{t('page.shipments.order')}</span><p className="mt-1 text-sm"><Link to={`/orders/${shipment.order_id}`} className="text-brand hover:underline">{shipment.order_number}</Link></p></div>
+              <div><span className="text-2xs text-ink-subtle">{t('page.shipmentDetail.carrier')}</span><p className="mt-1 text-sm text-ink">{shipmentCarrier(shipment) || '—'}</p></div>
+              <div><span className="text-2xs text-ink-subtle">{t('page.shipmentDetail.trackingNumber')}</span><p className="mt-1 truncate text-sm tabular-nums text-ink">{shipmentReference(shipment) || '—'}</p></div>
             </div>
           </div>
           <div className="section-band p-4">
@@ -251,10 +310,11 @@ export default function ShipmentDetail() {
                 <button
                   key={s}
                   onClick={() => updateStatus(s)}
+                  disabled={savingStatus || savingEdit}
                   className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                     shipment.status === s
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-brand text-white'
+                      : 'bg-surface-hover text-ink-muted hover:bg-border-strong'
                   }`}
                 >
                   {shipmentStatusLabel(s)}
@@ -267,54 +327,54 @@ export default function ShipmentDetail() {
           <div className="data-surface p-4">
             <h3 className="section-label mb-3">{t('page.shipmentDetail.trackingDetails')}</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><span className="text-2xs text-gray-400 block">{t('page.shipments.shipmentType')}</span><span className="text-gray-700">{shipmentTypeLabel(shipment.shipping_type)}</span></div>
-              <div><span className="text-2xs text-gray-400 block">{t('page.shipmentDetail.carrier')}</span><span className="text-gray-700">{shipmentCarrier(shipment) || '—'}</span></div>
-              <div><span className="text-2xs text-gray-400 block">{t('page.shipmentDetail.trackingNumber')}</span><span className="tabular-nums text-gray-700">{shipmentReference(shipment) || '—'}</span></div>
-              <div><span className="text-2xs text-gray-400 block">{t('page.shipmentDetail.shipDate')}</span><span className="text-gray-700">{shipment.shipped_at?.slice(0, 10) || '—'}</span></div>
-              <div><span className="text-2xs text-gray-400 block">{t('page.shipmentDetail.estDelivery')}</span><span className="text-gray-700">{shipment.estimated_delivery_date || '—'}</span></div>
+              <div><span className="text-2xs text-ink-subtle block">{t('page.shipments.shipmentType')}</span><span className="text-ink">{shipmentTypeLabel(shipment.shipping_type)}</span></div>
+              <div><span className="text-2xs text-ink-subtle block">{t('page.shipmentDetail.carrier')}</span><span className="text-ink">{shipmentCarrier(shipment) || '—'}</span></div>
+              <div><span className="text-2xs text-ink-subtle block">{t('page.shipmentDetail.trackingNumber')}</span><span className="tabular-nums text-ink">{shipmentReference(shipment) || '—'}</span></div>
+              <div><span className="text-2xs text-ink-subtle block">{t('page.shipmentDetail.shipDate')}</span><span className="text-ink">{shipment.shipped_at?.slice(0, 10) || '—'}</span></div>
+              <div><span className="text-2xs text-ink-subtle block">{t('page.shipmentDetail.estDelivery')}</span><span className="text-ink">{shipment.estimated_delivery_date || '—'}</span></div>
               {shipment.shipping_type === 'sea_freight' && <>
-                <div><span className="text-2xs text-gray-400 block">{t('page.shipments.containerNo')}</span><span className="tabular-nums text-gray-700">{shipment.container_no || '—'}</span></div>
-                <div><span className="text-2xs text-gray-400 block">{t('page.shipments.vessel')}</span><span className="text-gray-700">{shipment.vessel || '—'}</span></div>
-                <div><span className="text-2xs text-gray-400 block">{t('page.shipments.voyage')}</span><span className="text-gray-700">{shipment.voyage || '—'}</span></div>
-                <div><span className="text-2xs text-gray-400 block">{t('page.shipments.etd')}</span><span className="text-gray-700">{shipment.etd || '—'}</span></div>
-                <div><span className="text-2xs text-gray-400 block">{t('page.shipments.eta')}</span><span className="text-gray-700">{shipment.eta || '—'}</span></div>
+                <div><span className="text-2xs text-ink-subtle block">{t('page.shipments.containerNo')}</span><span className="tabular-nums text-ink">{shipment.container_no || '—'}</span></div>
+                <div><span className="text-2xs text-ink-subtle block">{t('page.shipments.vessel')}</span><span className="text-ink">{shipment.vessel || '—'}</span></div>
+                <div><span className="text-2xs text-ink-subtle block">{t('page.shipments.voyage')}</span><span className="text-ink">{shipment.voyage || '—'}</span></div>
+                <div><span className="text-2xs text-ink-subtle block">{t('page.shipments.etd')}</span><span className="text-ink">{shipment.etd || '—'}</span></div>
+                <div><span className="text-2xs text-ink-subtle block">{t('page.shipments.eta')}</span><span className="text-ink">{shipment.eta || '—'}</span></div>
               </>}
               {shipment.shipping_type === 'air_freight' && <>
-                <div><span className="text-2xs text-gray-400 block">{t('page.shipments.etd')}</span><span className="text-gray-700">{shipment.etd || '—'}</span></div>
-                <div><span className="text-2xs text-gray-400 block">{t('page.shipments.eta')}</span><span className="text-gray-700">{shipment.eta || '—'}</span></div>
+                <div><span className="text-2xs text-ink-subtle block">{t('page.shipments.etd')}</span><span className="text-ink">{shipment.etd || '—'}</span></div>
+                <div><span className="text-2xs text-ink-subtle block">{t('page.shipments.eta')}</span><span className="text-ink">{shipment.eta || '—'}</span></div>
               </>}
-              {shipment.shipping_type === 'pickup' && shipment.shipping_address && <div className="col-span-2"><span className="text-2xs text-gray-400 block">{t('page.shipments.address')}</span><span className="text-gray-700">{shipment.shipping_address}</span></div>}
+              {shipment.shipping_type === 'pickup' && shipment.shipping_address && <div className="col-span-2"><span className="text-2xs text-ink-subtle block">{t('page.shipments.address')}</span><span className="text-ink">{shipment.shipping_address}</span></div>}
             </div>
           </div>
 
           {/* Line Items */}
           <div className="data-surface overflow-x-auto">
-            <h3 className="section-label border-b border-gray-200 px-4 py-3">{t('page.shipmentDetail.items')}</h3>
+            <h3 className="section-label border-b border-border px-4 py-3">{t('page.shipmentDetail.items')}</h3>
             {lineItems.length === 0 ? (
-              <p className="px-4 py-6 text-xs text-gray-400">{t('page.shipmentDetail.noItemsTracked')}</p>
+              <p className="px-4 py-6 text-xs text-ink-subtle">{t('page.shipmentDetail.noItemsTracked')}</p>
             ) : (
               <>
                 <div className="space-y-2 p-3 md:hidden">
                   {lineItems.map((li: any) => (
-                    <article key={li.id} className="flex items-center justify-between gap-4 rounded border border-gray-200 bg-gray-50/50 p-3">
+                    <article key={li.id} className="flex items-center justify-between gap-4 rounded border border-border bg-canvas/50 p-3">
                       <div className="min-w-0">
                         <p className="section-label">{t('page.shipmentDetail.item')}</p>
-                        <p className="truncate text-sm text-gray-700">{li.order_line_item_id?.slice(0, 8) || t('page.shipmentDetail.item')}</p>
+                        <p className="truncate text-sm text-ink">{li.order_line_item_id?.slice(0, 8) || t('page.shipmentDetail.item')}</p>
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="section-label">{t('page.shipmentDetail.qty')}</p>
-                        <p className="tabular-nums text-sm font-medium text-gray-900">{li.quantity_shipped}</p>
+                        <p className="tabular-nums text-sm font-medium text-ink">{li.quantity_shipped}</p>
                       </div>
                     </article>
                   ))}
                 </div>
                 <div className="hidden overflow-x-auto md:block">
                   <table className="w-full text-sm">
-                    <thead className="sticky top-0 z-10"><tr className="border-b border-gray-200 bg-gray-50"><th className="table-header">{t('page.shipmentDetail.item')}</th><th className="table-header text-right">{t('page.shipmentDetail.qty')}</th></tr></thead>
+                    <thead className="sticky top-0 z-10"><tr className="border-b border-border bg-canvas"><th className="table-header">{t('page.shipmentDetail.item')}</th><th className="table-header text-right">{t('page.shipmentDetail.qty')}</th></tr></thead>
                     <tbody>
                       {lineItems.map((li: any) => (
-                        <tr key={li.id} className="border-b border-gray-100">
-                          <td className="table-cell text-xs text-gray-700">{li.order_line_item_id?.slice(0, 8) || t('page.shipmentDetail.item')}</td>
+                        <tr key={li.id} className="border-b border-border">
+                          <td className="table-cell text-xs text-ink">{li.order_line_item_id?.slice(0, 8) || t('page.shipmentDetail.item')}</td>
                           <td className="table-cell text-right tabular-nums text-xs">{li.quantity_shipped}</td>
                         </tr>
                       ))}
@@ -328,7 +388,7 @@ export default function ShipmentDetail() {
           {shipment.notes && (
             <div className="section-band p-4">
               <h3 className="section-label mb-2">{t('page.shipmentDetail.notes')}</h3>
-              <p className="text-sm text-gray-700">{shipment.notes}</p>
+              <p className="text-sm text-ink">{shipment.notes}</p>
             </div>
           )}
         </div>
@@ -336,7 +396,7 @@ export default function ShipmentDetail() {
 
       <SidePanel
         open={showEditPanel}
-        onClose={() => setShowEditPanel(false)}
+        onClose={() => { if (!savingEdit) setShowEditPanel(false); }}
         title={t('page.shipments.editShipment')}
         subtitle={shipment.shipment_number}
         width="w-[min(560px,calc(100vw-1rem))]"
@@ -381,8 +441,8 @@ export default function ShipmentDetail() {
                 <textarea id="shipment-edit-notes" className="input min-h-[60px] resize-y" value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} />
               </div>
               <div className="flex gap-2 pt-2">
-                <button onClick={saveEdit} className="btn-primary flex-1">{t('page.shipments.saveChanges')}</button>
-                <button onClick={() => setShowEditPanel(false)} className="btn-secondary">{t('common.cancel')}</button>
+                <button onClick={saveEdit} disabled={savingEdit} className="btn-primary flex-1">{savingEdit ? t('page.shipments.saving') : t('page.shipments.saveChanges')}</button>
+                <button onClick={() => setShowEditPanel(false)} disabled={savingEdit} className="btn-secondary">{t('common.cancel')}</button>
               </div>
             </div>
       </SidePanel>

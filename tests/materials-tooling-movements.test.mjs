@@ -123,10 +123,11 @@ test('materials execute approved frozen quantities atomically and preserve refer
 
       const missingPrice=executable('purchase_receipt',1,{executionDate:'2026-07-06'});
       const beforeMissingPriceAudit=db.prepare("SELECT COUNT(*) n FROM audit_log WHERE action='execute'").get().n;
-      assert.equal((await call('/documents/'+missingPrice.id+'/execute')).status,409,'a receipt without an approved price cannot execute');
-      assert.equal(movementService.getCurrentQuantity('item'),11);
-      assert.equal(db.prepare('SELECT status FROM mt_documents WHERE id=?').get(missingPrice.id).status,'pending_execution');
-      assert.equal(db.prepare("SELECT COUNT(*) n FROM audit_log WHERE action='execute'").get().n,beforeMissingPriceAudit);
+      assert.equal((await call('/documents/'+missingPrice.id+'/execute')).status,200,'a receipt may execute without a purchase price');
+      assert.equal(movementService.getCurrentQuantity('item'),12);
+      assert.equal(db.prepare('SELECT status FROM mt_documents WHERE id=?').get(missingPrice.id).status,'executed');
+      assert.equal(db.prepare('SELECT reference_unit_price p FROM mt_movements WHERE document_id=?').get(missingPrice.id).p,null);
+      assert.equal(db.prepare("SELECT COUNT(*) n FROM audit_log WHERE action='execute'").get().n,beforeMissingPriceAudit + 1);
 
       db.prepare(\`INSERT INTO mt_documents(id,document_number,document_type,status,applicant_user_id,request_date,created_by,updated_by,created_at,updated_at)
         VALUES('draft-request','PR-2026-9000','purchase_request','draft','member','2026-07-10','member','member','x','x')\`).run();
@@ -146,8 +147,8 @@ test('materials execute approved frozen quantities atomically and preserve refer
       assert.equal(received.body.document.status,'executed');
       assert.equal(db.prepare('SELECT quantity_delta q,reference_unit_price p FROM mt_movements WHERE document_id=?').get(receipt.id).q,3);
       assert.equal(db.prepare('SELECT reference_unit_price p FROM mt_movements WHERE document_id=?').get(receipt.id).p,12);
-      assert.equal(movementService.getCurrentQuantity('item'),14);
-      assert.equal(movementService.getCurrentQuantity('item','2026-07-09'),11);
+      assert.equal(movementService.getCurrentQuantity('item'),15);
+      assert.equal(movementService.getCurrentQuantity('item','2026-07-09'),12);
       assert.equal((await call('/documents/'+receipt.id+'/execute')).status,409,'duplicate execution is rejected');
       assert.equal(db.prepare('SELECT COUNT(*) n FROM mt_movements WHERE document_id=?').get(receipt.id).n,1);
 
@@ -168,7 +169,7 @@ test('materials execute approved frozen quantities atomically and preserve refer
       assert.equal((await call('/documents/'+issue.id+'/execute')).status,200);
       const issueMovement=db.prepare('SELECT quantity_delta q,reference_unit_price p FROM mt_movements WHERE document_id=?').get(issue.id);
       assert.deepEqual(issueMovement,{q:-4,p:11});
-      assert.equal(movementService.getCurrentQuantity('item'),12);
+      assert.equal(movementService.getCurrentQuantity('item'),13);
 
       const linkedReturn=executable('material_return',2,{issueLineId:issue.lineId,executionDate:'2026-07-13'});
       assert.equal((await call('/documents/'+linkedReturn.id+'/execute')).status,200);
@@ -186,10 +187,10 @@ test('materials execute approved frozen quantities atomically and preserve refer
       assert.equal((await call('/documents/'+scrap.id+'/execute')).status,200);
       assert.equal(db.prepare('SELECT quantity_delta q FROM mt_movements WHERE document_id=?').get(scrap.id).q,-1);
 
-      const adjustment=executable('count_adjustment',2,{systemQuantity:15,countedQuantity:17,adjustmentDelta:2,executionDate:'2026-07-16'});
+      const adjustment=executable('count_adjustment',2,{systemQuantity:16,countedQuantity:18,adjustmentDelta:2,executionDate:'2026-07-16'});
       assert.equal((await call('/documents/'+adjustment.id+'/execute')).status,200);
       assert.equal(db.prepare('SELECT quantity_delta q FROM mt_movements WHERE document_id=?').get(adjustment.id).q,2);
-      const zero=executable('count_adjustment',1,{requestedQuantity:1,systemQuantity:17,countedQuantity:17,adjustmentDelta:0,executionDate:'2026-07-16'});
+      const zero=executable('count_adjustment',1,{requestedQuantity:1,systemQuantity:18,countedQuantity:18,adjustmentDelta:0,executionDate:'2026-07-16'});
       assert.equal((await call('/documents/'+zero.id+'/execute')).status,200);
       assert.equal(db.prepare('SELECT COUNT(*) n FROM mt_movements WHERE document_id=?').get(zero.id).n,0,'zero adjustment completes without a movement');
 

@@ -86,8 +86,8 @@ export default function ConfirmDialog({
         aria-describedby={descriptionId}
         className="modal-surface relative z-10 w-[min(420px,calc(100vw-2rem))] p-5"
       >
-        <h2 id={titleId} className="text-sm font-semibold text-gray-900">{title}</h2>
-        <p id={descriptionId} className="mt-2 text-sm leading-6 text-gray-600">{description}</p>
+        <h2 id={titleId} className="text-sm font-semibold text-ink">{title}</h2>
+        <p id={descriptionId} className="mt-2 text-sm leading-6 text-ink-muted">{description}</p>
         <div className="mt-5 flex justify-end gap-2">
           <button
             ref={cancelButtonRef}
@@ -100,7 +100,7 @@ export default function ConfirmDialog({
           </button>
           <button
             type="button"
-            className="btn bg-red-600 text-white hover:bg-red-700"
+            className="btn bg-danger text-white hover:bg-danger"
             onClick={onConfirm}
             disabled={busy}
           >

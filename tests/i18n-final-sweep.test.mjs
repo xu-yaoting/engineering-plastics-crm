@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const files = [
-  '../src/components/shared/EmailDraftPanel.tsx',
   '../src/components/companies/CompanyEditPanel.tsx',
 ];
 
@@ -75,13 +74,4 @@ test('company edit save surfaces field and backend errors while locking actions 
   assert.match(companyEditSource, /if \(!form\.name\.trim\(\)\) \{[\s\S]*setErrors\(\{ name:/);
   assert.match(companyEditSource, /<button onClick=\{save\} disabled=\{saving\} className="btn-primary flex-1">/);
   assert.match(companyEditSource, /<button onClick=\{onClose\} disabled=\{saving\} className="btn-secondary">/);
-});
-
-
-test('email drafts use compact filters and flat template rows', () => {
-  const emailSource = readFileSync(new URL('../src/components/shared/EmailDraftPanel.tsx', import.meta.url), 'utf8');
-  assert.match(emailSource, /segmented-control/);
-  assert.match(emailSource, /segmented-option-active/);
-  assert.match(emailSource, /data-surface divide-y/);
-  assert.doesNotMatch(emailSource, /hover:shadow-sm|rounded-lg text-xs font-medium/);
 });

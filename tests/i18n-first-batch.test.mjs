@@ -121,23 +121,10 @@ test('new customer controls have complete labels, autofill hints, and linked hel
 });
 
 test('customer list edit and search controls have persistent labels', () => {
-  for (const fieldId of [
-    'company-list-edit-name',
-    'company-list-edit-type',
-    'company-list-edit-industry',
-    'company-list-edit-owner',
-    'company-list-edit-country',
-    'company-list-edit-city',
-    'company-list-edit-status',
-    'company-list-edit-classification',
-    'company-search',
-  ]) {
-    assert.match(companiesSource, new RegExp(`htmlFor="${fieldId}"`));
-    assert.match(companiesSource, new RegExp(`id="${fieldId}"`));
-  }
-  assert.match(companiesSource, /id="company-list-edit-name"[\s\S]*autoComplete="organization"/);
-  assert.match(companiesSource, /id="company-list-edit-country"[\s\S]*autoComplete="country-name"/);
-  assert.match(companiesSource, /id="company-list-edit-city"[\s\S]*autoComplete="address-level2"/);
+  assert.match(companiesSource, /htmlFor="company-search"/);
+  assert.match(companiesSource, /id="company-search"/);
+  // List editing reuses the shared full-company panel; its labels are covered by the company panel tests.
+  assert.match(companiesSource, /<CompanyEditPanel company=\{editTarget\}/);
 });
 
 test('customers establishes the shared operational list-page pattern', () => {

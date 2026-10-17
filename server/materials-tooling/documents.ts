@@ -19,7 +19,7 @@ const PREFIX: Record<MaterialDocumentType, string> = {
 };
 const CREATE_FIELDS = new Set([
   'document_type', 'department', 'request_date', 'required_date', 'execution_date', 'purpose',
-  'supplier_id', 'invoice_number', 'contract_number', 'notes', 'recipient_user_id',
+  'supplier_id', 'supplier_name', 'invoice_number', 'contract_number', 'notes', 'recipient_user_id',
   'recipient_name', 'inspection_result', 'lines', 'tooling_request',
 ]);
 const UPDATE_FIELDS = new Set([...CREATE_FIELDS].filter((field) => field !== 'document_type'));
@@ -30,7 +30,7 @@ const LINE_FIELDS = new Set([
 ]);
 const DATE_FIELDS = ['request_date', 'required_date', 'execution_date'] as const;
 const TEXT_FIELDS = [
-  'department', 'purpose', 'invoice_number', 'contract_number', 'notes', 'recipient_user_id',
+  'department', 'purpose', 'supplier_name', 'invoice_number', 'contract_number', 'notes', 'recipient_user_id',
   'recipient_name', 'inspection_result',
 ] as const;
 const TOOLING_REQUEST_FIELDS = new Set([
@@ -123,7 +123,15 @@ export function createMaterialsDocumentService(database: Database.Database, perm
   if (incompleteHistory) {
     throw new Error('Materials document version history is incomplete; manual migration is required');
   }
-  const fetchRaw = (id: string): JsonObject | undefined => database.prepare('SELECT * FROM mt_documents WHERE id=?').get(id) as JsonObject | undefined;
+  const withSupplierDisplay = (row: JsonObject): JsonObject => {
+    if (row.supplier_name != null || row.supplier_id == null) return row;
+    const supplier = database.prepare('SELECT name FROM mt_suppliers WHERE id=?').get(row.supplier_id) as { name: string } | undefined;
+    return { ...row, supplier_name: supplier?.name ?? null };
+  };
+  const fetchRaw = (id: string): JsonObject | undefined => {
+    const row = database.prepare('SELECT * FROM mt_documents WHERE id=?').get(id) as JsonObject | undefined;
+    return row ? withSupplierDisplay(row) : undefined;
+  };
   const fetchLines = (id: string): JsonObject[] => database.prepare('SELECT * FROM mt_document_lines WHERE document_id=? ORDER BY line_number').all(id) as JsonObject[];
   const fetchToolingRequest = (id: string): JsonObject | null => (
     database.prepare('SELECT * FROM mt_tooling_requests WHERE document_id=?').get(id) as JsonObject | undefined
@@ -193,15 +201,23 @@ export function createMaterialsDocumentService(database: Database.Database, perm
     });
     return result;
   }
-  function freezeVersion(document: JsonObject, version: number, actor: Actor, approver: unknown): void {
+  function freezeVersion(
+    document: JsonObject,
+    version: number,
+    actor: Actor,
+    approver: string | null,
+    workflowStatus: 'pending_approval' | 'pending_execution',
+  ): void {
     const submittedAt = new Date().toISOString();
     const applicant = database.prepare('SELECT name FROM users WHERE id=?').get(document.applicant_user_id) as { name: string } | undefined;
-    const assignedApprover = database.prepare('SELECT name FROM users WHERE id=?').get(approver) as { name: string } | undefined;
-    if (!applicant || !assignedApprover) {
+    const assignedApprover = approver
+      ? database.prepare('SELECT name FROM users WHERE id=?').get(approver) as { name: string } | undefined
+      : null;
+    if (!applicant || (approver && !assignedApprover)) {
       throw new MaterialsDocumentError('Document participant display names are unavailable', 409, 'MATERIALS_DOCUMENT_INTEGRITY_ERROR');
     }
-    let supplierName: string | null = null;
-    if (document.supplier_id != null) {
+    let supplierName = optionalText(document.supplier_name, 'supplier_name');
+    if (!supplierName && document.supplier_id != null) {
       const supplier = database.prepare('SELECT name FROM mt_suppliers WHERE id=?').get(document.supplier_id) as { name: string } | undefined;
       if (!supplier) throw new MaterialsDocumentError('Document supplier display name is unavailable', 409, 'MATERIALS_DOCUMENT_INTEGRITY_ERROR');
       supplierName = supplier.name;
@@ -241,9 +257,9 @@ export function createMaterialsDocumentService(database: Database.Database, perm
       ...document,
       applicant_name: applicant.name,
       version,
-      status: 'pending_approval',
+      status: workflowStatus,
       assigned_approver_user_id: approver,
-      assigned_approver_name: assignedApprover.name,
+      assigned_approver_name: assignedApprover?.name ?? null,
       supplier_name: supplierName,
       recipient_display_name: recipientDisplayName,
       tooling_request: frozenToolingRequest,
@@ -413,13 +429,12 @@ export function createMaterialsDocumentService(database: Database.Database, perm
     if (type === 'purchase_request') {
       for (const field of ['invoice_number','contract_number','inspection_result','recipient_user_id','recipient_name']) forbid(field);
     } else if (type === 'purchase_receipt') {
-      if (!has('supplier_id')) throw new MaterialsDocumentError('supplier_id is required on purchase receipts');
       for (const field of ['recipient_user_id','recipient_name']) forbid(field);
     } else if (type === 'material_issue') {
-      for (const field of ['supplier_id','invoice_number','contract_number','inspection_result']) forbid(field);
+      for (const field of ['supplier_id','supplier_name','invoice_number','contract_number','inspection_result']) forbid(field);
       if (!has('recipient_user_id') && !has('recipient_name')) throw new MaterialsDocumentError('A recipient is required on material issues');
     } else {
-      for (const field of ['supplier_id','invoice_number','contract_number','inspection_result','recipient_user_id','recipient_name']) forbid(field);
+      for (const field of ['supplier_id','supplier_name','invoice_number','contract_number','inspection_result','recipient_user_id','recipient_name']) forbid(field);
     }
     if (has('recipient_user_id') && !database.prepare('SELECT 1 FROM users WHERE id=? AND is_active=1').get(fields.recipient_user_id)) {
       throw new MaterialsDocumentError('Active recipient user not found', 404, 'MATERIALS_DOCUMENT_NOT_FOUND');
@@ -437,10 +452,10 @@ export function createMaterialsDocumentService(database: Database.Database, perm
       const lines = validateLines(type, body.lines);
       const number = nextNumber(type, String(fields.request_date));
       database.prepare(`INSERT INTO mt_documents
-        (id,document_number,document_type,version,status,applicant_user_id,department,request_date,required_date,execution_date,purpose,supplier_id,invoice_number,contract_number,created_by,updated_by,created_at,updated_at,notes,recipient_user_id,recipient_name,inspection_result)
-        VALUES (?,?,?,1,'draft',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+        (id,document_number,document_type,version,status,applicant_user_id,department,request_date,required_date,execution_date,purpose,supplier_id,supplier_name,invoice_number,contract_number,created_by,updated_by,created_at,updated_at,notes,recipient_user_id,recipient_name,inspection_result)
+        VALUES (?,?,?,1,'draft',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
         id, number, type, actor.id, fields.department, fields.request_date, fields.required_date,
-        fields.execution_date, fields.purpose, fields.supplier_id, fields.invoice_number,
+        fields.execution_date, fields.purpose, fields.supplier_id, fields.supplier_name, fields.invoice_number,
         fields.contract_number, actor.id, actor.id, now, now, fields.notes, fields.recipient_user_id,
         fields.recipient_name, fields.inspection_result,
       ); insertLines(id, lines); writeToolingRequest(id, toolingRequest);
@@ -467,9 +482,9 @@ export function createMaterialsDocumentService(database: Database.Database, perm
       const nextVersion = current.status === 'rejected'
         ? Number((database.prepare('SELECT MAX(version) version FROM mt_document_versions WHERE document_id=?').get(id) as { version: number | null }).version ?? current.version) + 1
         : Number(current.version);
-      database.prepare(`UPDATE mt_documents SET department=?,request_date=?,required_date=?,execution_date=?,purpose=?,supplier_id=?,invoice_number=?,contract_number=?,notes=?,recipient_user_id=?,recipient_name=?,inspection_result=?,status='draft',version=?,assigned_approver_user_id=NULL,rejection_reason=NULL,updated_by=?,updated_at=? WHERE id=?`).run(
+      database.prepare(`UPDATE mt_documents SET department=?,request_date=?,required_date=?,execution_date=?,purpose=?,supplier_id=?,supplier_name=?,invoice_number=?,contract_number=?,notes=?,recipient_user_id=?,recipient_name=?,inspection_result=?,status='draft',version=?,assigned_approver_user_id=NULL,rejection_reason=NULL,updated_by=?,updated_at=? WHERE id=?`).run(
         fields.department, fields.request_date, fields.required_date, fields.execution_date, fields.purpose,
-        fields.supplier_id, fields.invoice_number, fields.contract_number, fields.notes, fields.recipient_user_id,
+        fields.supplier_id, fields.supplier_name, fields.invoice_number, fields.contract_number, fields.notes, fields.recipient_user_id,
         fields.recipient_name, fields.inspection_result, nextVersion, actor.id, new Date().toISOString(), id,
       ); if (lines) { database.prepare('DELETE FROM mt_document_lines WHERE document_id=?').run(id); insertLines(id, lines); }
       if (body.tooling_request !== undefined) writeToolingRequest(id, toolingRequest);
@@ -487,18 +502,33 @@ export function createMaterialsDocumentService(database: Database.Database, perm
     if (action === 'withdraw') { const b = exact(input, new Set(['reason']), 'Withdrawal', true); reason = optionalText(b.reason, 'reason'); }
     return database.transaction(() => {
       const current = requireDocument(id); const status = String(current.status);
-      let next: string; let version = Number(current.version); let approver = current.assigned_approver_user_id;
+      let next: 'pending_approval' | 'pending_execution' | 'rejected' | 'withdrawn' | 'approved';
+      let version = Number(current.version);
+      let approver: string | null = typeof current.assigned_approver_user_id === 'string'
+        ? current.assigned_approver_user_id
+        : null;
       if (action === 'submit') {
         if (status !== 'draft' && status !== 'rejected') throw new MaterialsDocumentError('Only draft or rejected documents can be submitted', 409);
         if (current.applicant_user_id !== actor.id && actor.role !== 'admin') throw new MaterialsDocumentError('Only the applicant can submit', 403);
-        approver = permissions.resolveApprover(current.document_type as MaterialDocumentType, String(current.applicant_user_id));
+        if (current.document_type !== 'count_adjustment') {
+          try {
+            approver = permissions.resolveApprover(current.document_type as MaterialDocumentType, String(current.applicant_user_id));
+          } catch (error) {
+            // A small-team deployment may intentionally omit approval configuration.
+            // Keep the frozen document/audit trail, but route new work straight to execution.
+            if (error instanceof Error && /No active and authorized approver is configured/.test(error.message)) approver = null;
+            else throw error;
+          }
+        } else {
+          approver = null;
+        }
         if (status === 'rejected') {
           requireFrozenVersion(current);
           const frozen = database.prepare('SELECT MAX(version) version FROM mt_document_versions WHERE document_id=?').get(id) as { version: number | null };
           version = Number(frozen.version ?? current.version) + 1;
         }
-        freezeVersion(current, version, actor, approver);
-        next = 'pending_approval'; reason = null;
+        next = approver ? 'pending_approval' : 'pending_execution';
+        freezeVersion(current, version, actor, approver, next); reason = null;
       } else if (action === 'withdraw') {
         if (!['draft','pending_approval','rejected'].includes(status)) throw new MaterialsDocumentError('Document cannot be withdrawn', 409);
         if (current.applicant_user_id !== actor.id && actor.role !== 'admin') throw new MaterialsDocumentError('Only applicant or administrator can withdraw', 403);
@@ -535,11 +565,11 @@ export function createMaterialsDocumentService(database: Database.Database, perm
       const originalLines = fetchLines(id); const replacementId = randomUUID(); const now = new Date().toISOString();
       const number = nextNumber(original.document_type as MaterialDocumentType, String(original.request_date));
       database.prepare(`INSERT INTO mt_documents
-        (id,document_number,document_type,version,status,applicant_user_id,department,request_date,required_date,execution_date,purpose,supplier_id,invoice_number,contract_number,replaces_document_id,created_by,updated_by,created_at,updated_at,notes,recipient_user_id,recipient_name,inspection_result)
-        VALUES (?,?,?,1,'draft',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+        (id,document_number,document_type,version,status,applicant_user_id,department,request_date,required_date,execution_date,purpose,supplier_id,supplier_name,invoice_number,contract_number,replaces_document_id,created_by,updated_by,created_at,updated_at,notes,recipient_user_id,recipient_name,inspection_result)
+        VALUES (?,?,?,1,'draft',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
         replacementId, number, original.document_type, original.applicant_user_id, original.department,
         original.request_date, original.required_date, null, original.purpose,
-        original.supplier_id, original.invoice_number, original.contract_number, id, actor.id, actor.id,
+        original.supplier_id, original.supplier_name, original.invoice_number, original.contract_number, id, actor.id, actor.id,
         now, now, original.notes, original.recipient_user_id, original.recipient_name, original.inspection_result);
       insertLines(replacementId, originalLines);
       const toolingRequest = fetchToolingRequest(id);
@@ -554,7 +584,7 @@ export function createMaterialsDocumentService(database: Database.Database, perm
     }).immediate();
   }
   return {
-    list: (actor: Actor) => (database.prepare('SELECT * FROM mt_documents ORDER BY created_at DESC,document_number DESC').all() as JsonObject[]).map((row) => redact(row, permissions.getMaterialsPermission(actor).viewPrices)),
+    list: (actor: Actor) => (database.prepare('SELECT * FROM mt_documents ORDER BY created_at DESC,document_number DESC').all() as JsonObject[]).map((row) => redact(withSupplierDisplay(row), permissions.getMaterialsPermission(actor).viewPrices)),
     get: (actor: Actor, id: string) => redact(requireDocument(id), permissions.getMaterialsPermission(actor).viewPrices, true),
     create, update,
     submit: (a:Actor,id:string,b:unknown) => workflow(a,id,'submit',b),

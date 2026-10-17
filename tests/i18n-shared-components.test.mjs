@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const files = [
-  '../src/components/shared/ResponsiveWorkspace.tsx',
   '../src/components/shared/StatusBadge.tsx',
   '../src/components/layout/Sidebar.tsx',
   '../src/components/shared/AboutModal.tsx',
@@ -90,19 +89,19 @@ test('app shell uses a dismissible mobile navigation drawer without changing des
 test('shared informational overlays use restrained standard surfaces', () => {
   assert.match(source, /modal-surface/);
   assert.doesNotMatch(source, /rounded-xl|shadow-2xl|from-blue-600 to-blue-700/);
-  assert.match(source, /rounded-full bg-blue-600/);
 });
 
 test('pipeline uses flat six-pixel drag surfaces with neutral record text', () => {
   assert.doesNotMatch(pipelineSurfaceSource, /rounded-lg|shadow-\[0_1px_1px/);
   assert.match(pipelineSurfaceSource, /cursor-grab rounded border/);
-  assert.match(pipelineSurfaceSource, /truncate text-2xs font-450 text-gray-500/);
-  assert.match(pipelineSurfaceSource, /group-hover:text-gray-600/);
+  assert.match(pipelineSurfaceSource, /truncate text-2xs font-450 text-ink-muted/);
+  assert.match(pipelineSurfaceSource, /group-hover:text-ink-muted/);
+  assert.match(pipelineSurfaceSource, /border-border bg-surface/);
 });
 
 test('pipeline owner filter uses the shared control radius and focus treatment', () => {
   const pipelinePageSource = readFileSync(new URL('../src/pages/Pipeline.tsx', import.meta.url), 'utf8');
-  assert.match(pipelinePageSource, /rounded border border-gray-200/);
-  assert.doesNotMatch(pipelinePageSource, /rounded-lg border border-gray-200/);
-  assert.match(pipelinePageSource, /focus-visible:ring-2 focus-visible:ring-blue-600/);
+  assert.match(pipelinePageSource, /rounded border border-border/);
+  assert.doesNotMatch(pipelinePageSource, /rounded-lg border border-border/);
+  assert.match(pipelinePageSource, /focus-visible:ring-2 focus-visible:ring-brand/);
 });

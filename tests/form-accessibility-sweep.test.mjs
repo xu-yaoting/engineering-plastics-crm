@@ -12,7 +12,6 @@ const quotationsSource = readSource('src/pages/Quotations.tsx');
 const documentsTabSource = readSource('src/components/materials-tooling/DocumentsTab.tsx');
 const ledgerTabSource = readSource('src/components/materials-tooling/LedgerTab.tsx');
 const activityTimelineSource = readSource('src/components/shared/ActivityTimeline.tsx');
-const emailDraftSource = readSource('src/components/shared/EmailDraftPanel.tsx');
 const orderDetailSource = readSource('src/pages/OrderDetail.tsx');
 const ordersSource = readSource('src/pages/Orders.tsx');
 const topBarSource = readSource('src/components/layout/TopBar.tsx');
@@ -96,12 +95,6 @@ test('activity capture and follow-up controls have persistent labels', () => {
     'activity-timeline-note',
     'activity-timeline-follow-up-date',
   ]);
-});
-
-test('email draft variable and body controls have persistent labels', () => {
-  assert.match(emailDraftSource, /htmlFor=\{`email-draft-variable-\$\{v\}`\}/);
-  assert.match(emailDraftSource, /id=\{`email-draft-variable-\$\{v\}`\}/);
-  assertStaticLabelPairs(emailDraftSource, ['email-draft-body']);
 });
 
 test('quotation list search and status filter have persistent labels', () => {

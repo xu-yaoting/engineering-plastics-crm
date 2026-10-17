@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import Icon from './Icon';
 
 const ABOUT = {
   version: 'Pilot 0.9',
@@ -79,10 +78,10 @@ export default function AboutModal({
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-blue-600 px-5 py-6 text-center">
-          <Icon name="target" size={28} className="text-white/90 inline-block mb-2" />
-          <h2 id={titleId} className="text-lg font-semibold text-white">Basepoint</h2>
-          <p className="text-xs text-blue-200 mt-0.5">{t('about.subtitle')}</p>
+        <div className="bg-brand px-5 py-6 text-center">
+          <img src="/jekin-logo-white.svg" alt="" className="w-10 h-10 mx-auto mb-2" />
+          <h2 id={titleId} className="text-lg font-semibold text-white">JEKIN CRM</h2>
+          <p className="text-xs text-brand-100 mt-0.5">{t('about.subtitle')}</p>
         </div>
 
         {/* Details */}
@@ -94,14 +93,14 @@ export default function AboutModal({
             { label: t('about.ui'), value: ABOUT.ui },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">{item.label}</span>
-              <span className="text-sm font-medium text-gray-900">{item.value}</span>
+              <span className="text-xs text-ink-muted">{item.label}</span>
+              <span className="text-sm font-medium text-ink">{item.value}</span>
             </div>
           ))}
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-100 px-5 py-3">
+        <div className="border-t border-border px-5 py-3">
           <button
             ref={closeButtonRef}
             type="button"

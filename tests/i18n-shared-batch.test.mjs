@@ -21,6 +21,9 @@ const taskSectionSource = readFileSync(new URL('../src/components/shared/TaskSec
 const quotationDetailSource = readFileSync(new URL('../src/pages/QuotationDetail.tsx', import.meta.url), 'utf8');
 const shipmentDetailSource = readFileSync(new URL('../src/pages/ShipmentDetail.tsx', import.meta.url), 'utf8');
 const companyDetailSource = readFileSync(new URL('../src/pages/CompanyDetail.tsx', import.meta.url), 'utf8');
+const companiesSource = readFileSync(new URL('../src/pages/Companies.tsx', import.meta.url), 'utf8');
+const statusBadgeSource = readFileSync(new URL('../src/components/shared/StatusBadge.tsx', import.meta.url), 'utf8');
+const companiesTableHeader = companiesSource.match(/<thead[\s\S]*?<\/thead>/)?.[0] || '';
 
 test('quotation detail and shared tasks use consistent icon interactions', () => {
   assert.match(quotationDetailSource, /className="page-header mb-0/);
@@ -67,12 +70,31 @@ test('company and quotation details use layout-shaped accessible loading states'
 });
 
 test('company detail uses a responsive two-column single-scroll workspace', () => {
-  assert.doesNotMatch(companyDetailSource, /import ResponsiveWorkspace/);
-  assert.doesNotMatch(companyDetailSource, /<ResponsiveWorkspace/);
-  assert.match(companyDetailSource, /className="flex-1 overflow-y-auto bg-gray-50"/);
+  assert.match(companyDetailSource, /className="flex-1 overflow-y-auto bg-canvas"/);
   assert.match(companyDetailSource, /lg:grid-cols-\[minmax\(0,1fr\)_minmax\(18rem,22rem\)\]/);
-  assert.match(companyDetailSource, /className="order-1 min-w-0 space-y-6"/);
+  assert.match(companyDetailSource, /className="min-w-0 space-y-6"/);
+  assert.match(companyDetailSource, /order-first section-band p-4 lg:order-2 lg:sticky lg:top-4/);
   assert.doesNotMatch(companyDetailSource, /max-w-3xl/);
+});
+
+test('company surfaces use semantic customer and pipeline colors', () => {
+  assert.match(companyDetailSource, /bg-canvas/);
+  assert.match(companyDetailSource, /border-l-stage-quotation/);
+  assert.match(companyDetailSource, /text-danger/);
+  assert.match(companyDetailSource, /text-brand/);
+  assert.match(companyDetailSource, /border-l-2/);
+  assert.match(companiesSource, /bg-brand-soft text-brand/);
+  assert.match(statusBadgeSource, /bg-success-soft text-success/);
+  assert.match(statusBadgeSource, /bg-warning-soft text-warning/);
+  assert.match(statusBadgeSource, /bg-surface-hover text-ink-muted/);
+  assert.match(companiesSource, /text-danger hover:bg-danger-soft/);
+  assert.match(companiesSource, /divide-border/);
+  assert.match(companiesSource, /<StatusBadge status=\{c\.status\} \/>/);
+  assert.doesNotMatch(companiesSource, /\.slice\(0, 2\)\.toUpperCase\(\)/);
+  assert.match(companiesTableHeader, /page\.companies\.name[\s\S]*page\.companies\.status[\s\S]*accountability\.owner[\s\S]*page\.companies\.location[\s\S]*page\.companies\.industry/);
+  assert.match(companiesSource, /const \[statusFilter, setStatusFilter\] = useState\('all'\)/);
+  assert.match(companiesSource, /matchesStatus/);
+  assert.match(companiesSource, /page\.companies\.allStatuses/);
 });
 
 test('quotation and meeting editors use grouped responsive panel forms', () => {

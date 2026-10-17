@@ -18,7 +18,6 @@ const dictionarySource = readFileSync(new URL('../src/lib/i18n.tsx', import.meta
 const paymentsSource = readFileSync(new URL('../src/pages/Payments.tsx', import.meta.url), 'utf8');
 const shipmentsSource = readFileSync(new URL('../src/pages/Shipments.tsx', import.meta.url), 'utf8');
 const shipmentDetailSource = readFileSync(new URL('../src/pages/ShipmentDetail.tsx', import.meta.url), 'utf8');
-const responsiveWorkspaceSource = readFileSync(new URL('../src/components/shared/ResponsiveWorkspace.tsx', import.meta.url), 'utf8');
 const companiesSource = readFileSync(new URL('../src/pages/Companies.tsx', import.meta.url), 'utf8');
 const inventorySource = readFileSync(new URL('../src/pages/InventoryPage.tsx', import.meta.url), 'utf8');
 const orderDetailSource = readFileSync(new URL('../src/pages/OrderDetail.tsx', import.meta.url), 'utf8');
@@ -109,7 +108,8 @@ test('company and payment create and edit flows use side panels while payment re
     assert.match(pageSource, /import SidePanel from '\.\.\/components\/shared\/SidePanel'/);
   }
 
-  assert.match(companiesSource, /<SidePanel open=\{!!editTarget\}/);
+  assert.match(companiesSource, /import CompanyEditPanel from '\.\.\/components\/companies\/CompanyEditPanel'/);
+  assert.match(companiesSource, /<CompanyEditPanel company=\{editTarget\}/);
   assert.doesNotMatch(companiesSource, /\{\/\* Edit Modal \*\/\}/);
   assert.match(paymentsSource, /<SidePanel open=\{showForm\}/);
   assert.match(paymentsSource, /<SidePanel open=\{!!editTarget\}/);
@@ -128,11 +128,14 @@ test('inquiry and shipment detail editors use side panels instead of centered lo
 });
 
 test('shipment and inventory list forms use side panels instead of expanding inside list content', () => {
-  for (const pageSource of [shipmentsSource, inventorySource]) {
-    assert.match(pageSource, /import SidePanel from '\.\.\/components\/shared\/SidePanel'/);
-    assert.match(pageSource, /<SidePanel\s+open=\{showForm\}/);
-    assert.doesNotMatch(pageSource, /\{showForm && \(/);
-  }
+  assert.match(shipmentsSource, /import SidePanel from '\.\.\/components\/shared\/SidePanel'/);
+  assert.match(shipmentsSource, /<SidePanel\s+open=\{showForm\}/);
+  assert.doesNotMatch(shipmentsSource, /\{showForm && \(/);
+
+  assert.match(inventorySource, /import SidePanel from '\.\.\/components\/shared\/SidePanel'/);
+  assert.match(inventorySource, /<SidePanel\s+open=\{createOpen\}/);
+  assert.match(inventorySource, /<SidePanel\s+open=\{!!selected\}/);
+  assert.doesNotMatch(inventorySource, /\{showForm && \(/);
 });
 
 test('order editing and quotation sample requests use side panels instead of centered long-form modals', () => {
@@ -156,14 +159,6 @@ test('shipment detail and responsive workspace use accessible record interaction
   assert.match(shipmentDetailSource, /className="sticky top-0 z-10"/);
   assert.match(shipmentDetailSource, /animate-pulse/);
   assert.doesNotMatch(shipmentDetailSource, />⋮</);
-
-  assert.match(responsiveWorkspaceSource, /aria-label=\{resolvedRightPanelLabel\}/);
-  assert.match(responsiveWorkspaceSource, /aria-expanded=\{rightOpen\}/);
-  assert.match(responsiveWorkspaceSource, /<Icon name="close"/);
-  assert.match(responsiveWorkspaceSource, /<Icon name="chevron-down"/);
-  assert.match(responsiveWorkspaceSource, /h-dvh/);
-  assert.doesNotMatch(responsiveWorkspaceSource, />✕</);
-  assert.doesNotMatch(responsiveWorkspaceSource, />\s*▼\s*</);
 });
 
 test('shipment detail leads with a compact fulfillment summary', () => {
@@ -178,8 +173,8 @@ test('shipment detail leads with a compact fulfillment summary', () => {
 test('shipment details use sentence-case labels and neutral order context', () => {
   assert.match(shipmentDetailSource, /section-label/);
   assert.doesNotMatch(shipmentDetailSource, /uppercase tracking-\[0\.08em\]/);
-  assert.match(shipmentsSource, /border border-gray-200 bg-gray-50/);
-  assert.doesNotMatch(shipmentsSource, /bg-blue-50 rounded-lg p-3 mb-4/);
+  assert.match(shipmentsSource, /border border-border bg-canvas/);
+  assert.doesNotMatch(shipmentsSource, /bg-brand-soft rounded-lg p-3 mb-4/);
 });
 
 test('payments and shipments use the shared operational list surfaces', () => {
@@ -196,6 +191,14 @@ test('payments and shipments use the shared operational list surfaces', () => {
   }
 });
 
+test('payment list paginates the current filtered result set', () => {
+  assert.match(paymentsSource, /Pagination/);
+  assert.match(paymentsSource, /PAYMENTS_PAGE_SIZE = 6/);
+  assert.match(paymentsSource, /paged\.map/);
+  assert.match(paymentsSource, /setPage\(1\)/);
+  assert.match(paymentsSource, /total=\{filtered\.length\}/);
+});
+
 test('payment and shipment overlays and empty states use shared surfaces', () => {
   for (const pageSource of [paymentsSource, shipmentsSource]) {
     assert.match(pageSource, /menu-surface/);
@@ -204,6 +207,15 @@ test('payment and shipment overlays and empty states use shared surfaces', () =>
   }
   assert.equal((paymentsSource.match(/modal-surface/g) || []).length, 1);
   assert.match(shipmentsSource, /className="data-surface p-4 mb-6"/);
+});
+
+test('payment and shipment lists use stage and semantic risk colors', () => {
+  assert.match(shipmentsSource, /text-stage-shipment/);
+  assert.match(shipmentsSource, /bg-stage-shipment-soft/);
+  assert.match(paymentsSource, /text-stage-payment/);
+  assert.match(paymentsSource, /border-l-danger/);
+  assert.match(paymentsSource, /text-danger/);
+  assert.match(paymentsSource, /text-success/);
 });
 
 test('payment status filters use the shared compact segmented control', () => {

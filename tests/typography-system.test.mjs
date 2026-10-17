@@ -23,12 +23,12 @@ const appSource = [
 
 test('semantic color and surface tokens define the CRM visual hierarchy', () => {
   const requiredTokens = [
-    '--color-brand: #2563eb', '--color-text: #172033', '--color-text-muted: #667085',
-    '--color-text-subtle: #98a2b3', '--surface-canvas: #f7f8fa',
-    '--surface-subtle: #fafbfc', '--surface-hover: #f2f5f9',
-    '--border-subtle: #e4e7ec', '--color-success: #168a5b',
+    '--color-brand: #000000', '--color-text: #141414', '--color-text-muted: #6f6f6f',
+    '--color-text-subtle: #a3a3a3', '--surface-canvas: #f5f5f5',
+    '--surface-subtle: #fafafa', '--surface-hover: #f1f1f1',
+    '--border-subtle: #ececec', '--color-success: #168a5b',
     '--color-warning: #b7791f', '--color-danger: #d64545',
-    '--radius-surface: 6px',
+    '--radius-surface: 12px',
   ];
 
   for (const token of requiredTokens) assert.match(css, new RegExp(token));
@@ -64,14 +64,14 @@ test('page shells wrap actions cleanly on narrow layouts', () => {
   assert.match(css, /\.page-actions \{[\s\S]*flex-wrap/);
 });
 
-test('application shell uses shared six-pixel controls and sentence-case navigation labels', () => {
+test('application shell uses shared control classes and sentence-case navigation labels', () => {
   const shellSource = [
     '../src/components/layout/Sidebar.tsx',
     '../src/components/layout/TopBar.tsx',
   ].map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
   assert.doesNotMatch(shellSource, /rounded-lg/);
   assert.doesNotMatch(shellSource, /tracking-\[0\.08em\] uppercase/);
-  assert.match(shellSource, /className="input h-9 pl-9"/);
+  assert.match(shellSource, /className="input h-9 pl-9 pr-12"/);
   assert.ok((shellSource.match(/icon-btn/g) || []).length >= 2);
 });
 
@@ -99,7 +99,8 @@ test('common UI does not fall back to heavy section labels or 700 weight', () =>
 
 test('quotation and order lists use the interface font with aligned numerals', () => {
   assert.doesNotMatch(commercialListSource, /font-mono/);
-  assert.equal((commercialListSource.match(/table-cell font-medium text-blue-600 tabular-nums/g) || []).length, 2);
+  assert.match(commercialListSource, /table-cell font-medium text-stage-quotation tabular-nums/);
+  assert.match(commercialListSource, /table-cell font-medium text-stage-order tabular-nums/);
   assert.equal((commercialListSource.match(/table-cell text-right tabular-nums text-sm font-medium/g) || []).length, 2);
 });
 
@@ -156,13 +157,34 @@ test('shipment and company details use the interface font for identifiers and mo
   assert.match(detailSource, /tabular-nums/);
 });
 
-test('companies list, edit panel, and quote assistant use the interface font', () => {
+test('companies list and edit panel use the interface font', () => {
   const remainingSource = [
     '../src/pages/Companies.tsx',
     '../src/components/companies/CompanyEditPanel.tsx',
-    '../src/components/shared/QuoteAssistant.tsx',
   ].map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
 
   assert.doesNotMatch(remainingSource, /font-mono/);
   assert.match(remainingSource, /tabular-nums/);
+});
+
+test('detail page headings share one compact scale and headers stay left-aligned on mobile', () => {
+  const shipmentDetail = readFileSync(new URL('../src/pages/ShipmentDetail.tsx', import.meta.url), 'utf8');
+  const orderDetail = readFileSync(new URL('../src/pages/OrderDetail.tsx', import.meta.url), 'utf8');
+
+  assert.match(shipmentDetail, /page-header mb-0 min-h-0 items-start sm:items-center/);
+  assert.match(shipmentDetail, /page-heading text-lg sm:text-2xl truncate tabular-nums/);
+  assert.match(orderDetail, /text-ink whitespace-nowrap">\{inv\.invoice_number\}<\/span>\{' '\}/);
+  assert.match(orderDetail, /ml-2 whitespace-nowrap">\{t\('page\.payments\.due'\)/);
+});
+
+test('pipeline heading and top bar search placeholder follow the shared scale and locale punctuation', () => {
+  const pipelineSource = readFileSync(new URL('../src/pages/Pipeline.tsx', import.meta.url), 'utf8');
+  const topBarSource = readFileSync(new URL('../src/components/layout/TopBar.tsx', import.meta.url), 'utf8');
+
+  assert.match(pipelineSource, /<h1 className="page-heading">\{t\('page\.title\.pipeline'\)\}<\/h1>/);
+  assert.doesNotMatch(pipelineSource, /text-xl font-semibold text-ink md:text-2xl/);
+  assert.match(topBarSource, /startsWith\('zh'\)/);
+  assert.match(topBarSource, /'、'/);
+  assert.match(topBarSource, /'…'/);
+  assert.doesNotMatch(topBarSource, /t\('nav\.quotations'\) \+ '\.\.\.'/);
 });

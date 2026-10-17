@@ -7,7 +7,7 @@ const approvalsSource = readFileSync(new URL('../src/components/materials-toolin
 
 test('ledger provides readable mobile cards alongside the desktop ledger table', () => {
   assert.match(ledgerSource, /className="space-y-2 md:hidden"/);
-  assert.match(ledgerSource, /className="hidden data-surface overflow-x-auto md:block"/);
+  assert.match(ledgerSource, /className="hidden data-surface overflow-x-auto border-t-0 rounded-t-none md:block"/);
   assert.match(ledgerSource, /openingQty/);
   assert.match(ledgerSource, /closingQty/);
 });

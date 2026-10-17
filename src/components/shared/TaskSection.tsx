@@ -35,10 +35,21 @@ export default function TaskSection({
   const [showInput, setShowInput] = useState(false);
   const [saving, setSaving] = useState(false);
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [membersLoadError, setMembersLoadError] = useState(false);
   const [assigneeId, setAssigneeId] = useState('');
 
+  const loadMembers = () => {
+    setMembersLoadError(false);
+    team.list()
+      .then(setMembers)
+      .catch(() => {
+        setMembers([]);
+        setMembersLoadError(true);
+      });
+  };
+
   useEffect(() => {
-    team.list().then(setMembers).catch(() => setMembers([]));
+    loadMembers();
   }, []);
 
   // Sync when prop changes
@@ -91,9 +102,9 @@ export default function TaskSection({
 
   const priorityDot = (task: Task) => {
     if (task.status === 'completed') return null;
-    if (isOverdue(task.due_date)) return <span className="mt-1.5 size-1.5 flex-shrink-0 rounded-full bg-red-500" title={t('page.tasks.overdue')} />;
-    if (isDueSoon(task.due_date)) return <span className="mt-1.5 size-1.5 flex-shrink-0 rounded-full bg-yellow-500" title={t('page.tasks.dueSoon')} />;
-    return <span className="mt-1.5 size-1.5 flex-shrink-0 rounded-full bg-gray-300" />;
+    if (isOverdue(task.due_date)) return <span className="mt-1.5 size-1.5 flex-shrink-0 rounded-full bg-danger" title={t('page.tasks.overdue')} />;
+    if (isDueSoon(task.due_date)) return <span className="mt-1.5 size-1.5 flex-shrink-0 rounded-full bg-warning" title={t('page.tasks.dueSoon')} />;
+    return <span className="mt-1.5 size-1.5 flex-shrink-0 rounded-full bg-border-strong" />;
   };
 
   const openTasks = list.filter(t => t.status !== 'completed');
@@ -102,12 +113,12 @@ export default function TaskSection({
     <div>
       <div className="space-y-1">
         {(compact ? openTasks : list).map(task => (
-          <div key={task.id} className="flex items-start gap-2 p-1.5 rounded-lg hover:bg-gray-50 group">
+          <div key={task.id} className="flex items-start gap-2 p-1.5 rounded-lg hover:bg-canvas group">
             <button
               onClick={() => toggleTask(task)}
               aria-label={`${task.status === 'completed' ? t('page.tasks.completed') : t('page.tasks.open')}: ${task.subject}`}
               className={`size-4 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
-                task.status === 'completed' ? 'bg-blue-600 border-blue-600' : 'border-gray-300 hover:border-blue-600'
+                task.status === 'completed' ? 'bg-brand border-brand' : 'border-border-strong hover:border-brand'
               }`}
             >
               {task.status === 'completed' && <Icon name="check" size={11} className="text-white" />}
@@ -115,13 +126,13 @@ export default function TaskSection({
             {priorityDot(task)}
             <div className="flex-1 min-w-0">
               <p className={`min-w-0 break-words ${compact ? 'text-xs' : 'text-sm'} ${
-                task.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-700'
+                task.status === 'completed' ? 'text-ink-subtle line-through' : 'text-ink'
               }`}>
                 {task.subject}
               </p>
               {(task.due_date || task.assignee_name) && (
                 <p className={`break-words text-2xs mt-0.5 ${
-                  isOverdue(task.due_date) && task.status !== 'completed' ? 'text-red-500 font-medium' : 'text-gray-400'
+                  isOverdue(task.due_date) && task.status !== 'completed' ? 'text-danger font-medium' : 'text-ink-subtle'
                 }`}>
                   {task.due_date && (isOverdue(task.due_date) && task.status !== 'completed' ? `${t('page.tasks.overdue')}: ${task.due_date}` : `${t('page.tasks.due')}: ${task.due_date}`)}
                   {task.due_date && task.assignee_name && ' · '}
@@ -131,8 +142,14 @@ export default function TaskSection({
             </div>
           </div>
         ))}
-        {list.length === 0 && (
-          <p className="text-xs text-gray-400 py-2 text-center">{t('page.tasks.noTasks')}</p>
+        {list.length === 0 && !showInput && (
+          <div className="empty-state">
+            <p className="text-xs">{t('page.tasks.noTasks')}</p>
+            <button type="button" onClick={() => setShowInput(true)} className="btn-primary btn-sm">
+              <Icon name="plus" size={13} className="mr-1" />
+              {t('page.tasks.addTask')}
+            </button>
+          </div>
         )}
       </div>
 
@@ -159,12 +176,21 @@ export default function TaskSection({
             <option value="">{t('accountability.defaultToMe')}</option>
             {members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
           </select>
+          {membersLoadError && (
+            <div className="flex items-center justify-between gap-2" role="alert">
+              <span className="text-2xs text-danger">{t('page.error.loadFailed')}</span>
+              <button type="button" onClick={loadMembers} className="inline-flex items-center gap-1 text-2xs text-brand hover:underline">
+                <Icon name="refresh" size={12} />
+                {t('common.refresh')}
+              </button>
+            </div>
+          )}
         </div>
-      ) : (
-        <button onClick={() => setShowInput(true)} className="text-xs text-blue-600 hover:text-blue-700 mt-2 inline-flex items-center gap-1">
+      ) : list.length > 0 ? (
+        <button onClick={() => setShowInput(true)} className="text-xs text-brand hover:text-brand-700 mt-2 inline-flex items-center gap-1">
           <Icon name="plus" size={13} />{t('page.tasks.addTask')}
         </button>
-      )}
+      ) : null}
     </div>
   );
 }

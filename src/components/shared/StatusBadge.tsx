@@ -18,11 +18,11 @@ const ACTIVE_STATUSES = new Set([
 ]);
 
 const statusStyles = {
-  success: 'bg-green-50 text-green-700',
-  waiting: 'bg-yellow-50 text-yellow-700',
-  risk: 'bg-red-50 text-red-700',
-  active: 'bg-blue-50 text-blue-700',
-  neutral: 'bg-gray-100 text-gray-500',
+  success: 'bg-success-soft text-success',
+  waiting: 'bg-warning-soft text-warning',
+  risk: 'bg-danger-soft text-danger',
+  active: 'bg-brand-soft text-brand',
+  neutral: 'bg-surface-hover text-ink-muted',
 };
 
 function getStatusStyle(status: string): string {
@@ -88,7 +88,7 @@ export default function StatusBadge({
     ? t(`status.${labelKey}`, { defaultValue: formatFallbackStatus(status) })
     : formatFallbackStatus(status);
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-450 ${style} ${className}`}>
+    <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-2xs font-450 ${style} ${className}`}>
       {label}
     </span>
   );

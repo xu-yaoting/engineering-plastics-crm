@@ -1,4 +1,4 @@
-# Engineering Plastics CRM
+# JEKIN CRM
 
 This context defines the customer-development language used across company records, contacts, follow-ups, and downstream sales work.
 

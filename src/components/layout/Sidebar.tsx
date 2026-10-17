@@ -48,10 +48,10 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
   const location = useLocation();
 
   return (
-    <aside className={`${collapsed ? 'w-14' : 'w-60'} flex-shrink-0 bg-white border-r border-gray-200 flex flex-col transition-all duration-200`}>
-      <div className={`h-14 flex items-center border-b border-gray-200 ${collapsed ? 'justify-center px-0' : 'gap-3 px-4'}`}>
-        <BasepointLogo />
-        {!collapsed && <span className="text-base font-medium text-gray-900">Basepoint</span>}
+    <aside className={`${collapsed ? 'w-14' : 'w-60'} flex-shrink-0 bg-surface border-r border-border flex flex-col transition-all duration-200`}>
+      <div className={`h-14 flex items-center border-b border-border ${collapsed ? 'justify-center px-0' : 'gap-3 px-4'}`}>
+        <JekinLogo />
+        {!collapsed && <span className="text-base font-semibold text-ink">JEKIN CRM</span>}
       </div>
 
       <nav className="flex-1 overflow-y-auto py-2">
@@ -75,8 +75,8 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
                   className={({ isActive }) =>
                     `flex items-center justify-center gap-3 ${collapsed ? 'px-0' : 'mx-2 px-3'} py-2 rounded-md text-sm font-medium transition-colors ${
                       isActive || companySectionActive
-                        ? 'bg-blue-50 text-blue-600 font-450'
-                        : 'text-gray-600 hover:bg-gray-100'
+                        ? 'bg-brand-soft text-brand font-450'
+                        : 'text-ink-muted hover:bg-surface-hover'
                     }`
                   }
                 >
@@ -94,11 +94,11 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-function BasepointLogo() {
+function JekinLogo() {
   return (
     <img
-      src="/basepoint-logo.svg"
-      alt="Basepoint"
+      src="/jekin-logo.svg"
+      alt="JEKIN CRM"
       className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
     />
   );

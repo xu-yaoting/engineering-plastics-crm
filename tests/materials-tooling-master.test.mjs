@@ -83,7 +83,7 @@ test('materials and suppliers expose permission-safe authenticated HTTP CRUD', (
         method: options.method || 'GET', headers,
         body: options.raw ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
       });
-      return { response, body: await response.json() };
+      return { response, body: response.status === 204 ? null : await response.json() };
     }
 
     try {
@@ -125,11 +125,15 @@ test('materials and suppliers expose permission-safe authenticated HTTP CRUD', (
 
       const itemWithDefaultSafety = await request('/items', {
         user: 'clerk', method: 'POST', body: {
-          code: 'mat-default', name: 'Default safety', category: '耗材', unit: '个',
+          name: 'Default safety', category: '耗材', unit: '个',
         },
       });
       assert.equal(itemWithDefaultSafety.response.status, 201);
-      assert.equal(itemWithDefaultSafety.body.item.safety_quantity, 0);
+      assert.equal(itemWithDefaultSafety.body.item.safety_quantity, 5);
+      assert.equal(itemWithDefaultSafety.body.item.code, 'MAT-0002');
+      assert.equal((await request('/items/' + itemWithDefaultSafety.body.item.id, {
+        user: 'member', method: 'DELETE',
+      })).response.status, 403);
 
       for (const invalid of [
         { code: 'MAT-2', name: 'Bad', category: ['耗材'], unit: '个', safety_quantity: 0 },
@@ -156,16 +160,25 @@ test('materials and suppliers expose permission-safe authenticated HTTP CRUD', (
           '2026-05-01T00:00:00Z', 'legacy.xlsx', '2026-05')
       \`).run(item.body.item.id);
 
+      assert.equal((await request('/items/' + itemWithDefaultSafety.body.item.id, {
+        user: 'clerk', method: 'DELETE',
+      })).response.status, 204);
+      assert.equal((await request('/items/' + item.body.item.id, {
+        user: 'clerk', method: 'DELETE',
+      })).response.status, 409);
+
       const memberItems = await request('/items', { user: 'member' });
       assert.equal(memberItems.response.status, 200);
       const memberSerialized = JSON.stringify(memberItems.body);
       assert(!memberSerialized.includes('purchaseSummary'));
       assert(!memberSerialized.includes('12.5'));
       assert(!memberSerialized.includes('Supplier One'));
-      assert.equal(memberItems.body.items[0].current_quantity, 10);
+      const memberItem = memberItems.body.items.find((entry: any) => entry.id === item.body.item.id);
+      assert.equal(memberItem.current_quantity, 10);
       const clerkItems = await request('/items', { user: 'clerk' });
       assert.equal(clerkItems.response.status, 200);
-      assert.deepEqual(clerkItems.body.items[0].purchaseSummary, {
+      const clerkItem = clerkItems.body.items.find((entry: any) => entry.id === item.body.item.id);
+      assert.deepEqual(clerkItem.purchaseSummary, {
         unitPrice: 12.5, purchaseDate: '2026-05-02', supplierId: supplier.body.supplier.id,
         supplierName: 'Supplier One', priceType: 'reference',
       });
@@ -182,7 +195,7 @@ test('materials and suppliers expose permission-safe authenticated HTTP CRUD', (
       });
       assert.equal(itemInactive.response.status, 200);
       assert.equal(itemInactive.body.item.is_active, false);
-      assert.equal((await request('/items/' + item.body.item.id, { user: 'clerk', method: 'DELETE' })).response.status, 404);
+      assert.equal((await request('/items/' + item.body.item.id, { user: 'clerk', method: 'DELETE' })).response.status, 409);
 
       assert.equal((await request('/suppliers', { user: 'clerk', method: 'POST', body: {
         code: 'SUP-1', name: 'Again',
@@ -196,6 +209,7 @@ test('materials and suppliers expose permission-safe authenticated HTTP CRUD', (
         SELECT entity_type, entity_id, user_id, user_name, action, changes FROM audit_log ORDER BY created_at, id
       \`).all();
       assert(audits.some((row: any) => row.entity_type === 'mt_item' && row.entity_id === item.body.item.id && row.user_id === 'clerk-1'));
+      assert(audits.some((row: any) => row.entity_type === 'mt_item' && row.action === 'delete' && row.user_name === 'Moana'));
       assert(audits.some((row: any) => row.entity_type === 'mt_supplier' && row.user_name === 'Moana'));
       assert(audits.some((row: any) => JSON.parse(row.changes).is_active?.new === false));
 

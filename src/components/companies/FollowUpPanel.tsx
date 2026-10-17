@@ -87,6 +87,7 @@ export default function FollowUpPanel({
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [assigneeId, setAssigneeId] = useState('');
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [membersLoadError, setMembersLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -102,7 +103,7 @@ export default function FollowUpPanel({
     setScheduleNext(true);
     setNextSubject(
       currentTask
-        ? t('page.activityTimeline.followUpSubject', { subject: currentTask.subject })
+        ? t('page.meetingNotes.followUpSubject', { subject: currentTask.subject })
         : '',
     );
     setDueDate(dateAfterDays(7));
@@ -111,9 +112,19 @@ export default function FollowUpPanel({
     setAssigneeId('');
   }, [company, contacts, currentTask, open, t]);
 
+  const loadMembers = () => {
+    setMembersLoadError(false);
+    team.list()
+      .then(setMembers)
+      .catch(() => {
+        setMembers([]);
+        setMembersLoadError(true);
+      });
+  };
+
   useEffect(() => {
     if (!open) return;
-    team.list().then(setMembers).catch(() => setMembers([]));
+    loadMembers();
   }, [open]);
 
   const changeActivityType = (value: 'email' | 'call' | 'meeting' | 'note') => {
@@ -302,7 +313,7 @@ export default function FollowUpPanel({
 
         {currentTask && (
           <label
-            className="flex items-start gap-2 border-t border-gray-100 pt-4 text-sm text-gray-700"
+            className="flex items-start gap-2 border-t border-border pt-4 text-sm text-ink"
             htmlFor="follow-up-complete-current"
           >
             <input
@@ -310,19 +321,19 @@ export default function FollowUpPanel({
               type="checkbox"
               checked={completeCurrentTask}
               onChange={(event) => setCompleteCurrentTask(event.target.checked)}
-              className="mt-0.5 size-4 rounded border-gray-300 text-blue-600"
+              className="mt-0.5 size-4 rounded border-border-strong text-brand"
             />
             <span>
               {t('page.customerDevelopment.completeCurrentTask')}
-              <span className="mt-0.5 block text-xs text-gray-500">{currentTask.subject}</span>
+              <span className="mt-0.5 block text-xs text-ink-muted">{currentTask.subject}</span>
             </span>
           </label>
         )}
 
-        <fieldset className="space-y-3 border-t border-gray-100 pt-4">
+        <fieldset className="space-y-3 border-t border-border pt-4">
           <legend className="sr-only">{t('page.customerDevelopment.nextFollowUp')}</legend>
           <label
-            className="flex items-center gap-2 text-sm font-medium text-gray-800"
+            className="flex items-center gap-2 text-sm font-medium text-ink"
             htmlFor="follow-up-schedule-next"
           >
             <input
@@ -330,7 +341,7 @@ export default function FollowUpPanel({
               type="checkbox"
               checked={scheduleNext}
               onChange={(event) => setScheduleNext(event.target.checked)}
-              className="size-4 rounded border-gray-300 text-blue-600"
+              className="size-4 rounded border-border-strong text-brand"
             />
             {t('page.customerDevelopment.nextFollowUp')}
           </label>
@@ -411,13 +422,21 @@ export default function FollowUpPanel({
                       <option key={member.id} value={member.id}>{member.name}</option>
                     ))}
                   </select>
+                  {membersLoadError && (
+                    <div className="mt-1 flex items-center justify-between gap-2" role="alert">
+                      <span className="text-2xs text-danger">{t('page.error.loadFailed')}</span>
+                      <button type="button" onClick={loadMembers} className="text-2xs text-brand hover:underline">
+                        {t('common.refresh')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
         </fieldset>
 
-        <div className="sticky bottom-0 z-10 -mx-5 flex gap-2 border-t border-gray-200 bg-white px-5 py-4">
+        <div className="sticky bottom-0 z-10 -mx-5 flex gap-2 border-t border-border bg-surface px-5 py-4">
           <button type="submit" disabled={saving} className="btn-primary flex-1">
             {saving
               ? t('page.customerDevelopment.saving')

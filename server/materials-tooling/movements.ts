@@ -59,6 +59,11 @@ function finiteNumber(value: unknown, label: string): number {
   return value;
 }
 
+function optionalFiniteNumber(value: unknown, label: string): number | null {
+  if (value === undefined || value === null) return null;
+  return finiteNumber(value, label);
+}
+
 function parseFrozenVersion(
   database: Database.Database,
   document: JsonObject,
@@ -94,7 +99,7 @@ function parseFrozenVersion(
       header.id !== document.id
       || header.version !== document.version
       || header.document_type !== document.document_type
-      || header.status !== 'pending_approval'
+      || !['pending_approval', 'pending_execution'].includes(String(header.status))
     ) throw new Error('header mismatch');
     return { header, lines: frozen.lines as JsonObject[] };
   } catch {
@@ -143,9 +148,8 @@ export function createMaterialsMovementService(
     const frozen = parseFrozenVersion(database, document);
     const assignedApproverUserId = frozen.header.assigned_approver_user_id;
     if (typeof assignedApproverUserId !== 'string' || !assignedApproverUserId.trim()) {
-      throw new MaterialsDocumentError(
-        'The approved version has no assigned approver', 409, 'MATERIALS_DOCUMENT_INTEGRITY_ERROR',
-      );
+      if (frozen.header.status === 'pending_execution') return frozen;
+      throw new MaterialsDocumentError('The approved version has no assigned approver', 409, 'MATERIALS_DOCUMENT_INTEGRITY_ERROR');
     }
     if (!database.prepare(`
       SELECT 1 FROM mt_approvals
@@ -164,8 +168,8 @@ export function createMaterialsMovementService(
     if (!document || document.document_type !== 'purchase_request') {
       throw new MaterialsDocumentError('Purchase request not found', 404, 'MATERIALS_DOCUMENT_NOT_FOUND');
     }
-    if (!['approved', 'executed', 'awaiting_signed_copy', 'completed'].includes(String(document.status))) {
-      throw new MaterialsDocumentError('Purchase request is not approved', 409, 'MATERIALS_EXECUTION_CONFLICT');
+    if (!['pending_execution', 'approved', 'executed', 'awaiting_signed_copy', 'completed'].includes(String(document.status))) {
+      throw new MaterialsDocumentError('Purchase request is not ready for fulfillment', 409, 'MATERIALS_EXECUTION_CONFLICT');
     }
     const frozen = requireApprovedFrozenVersion(document);
     const lines = frozen.lines.map((line, index) => {
@@ -210,7 +214,7 @@ export function createMaterialsMovementService(
       FROM mt_document_lines request_line
       JOIN mt_documents request ON request.id = request_line.document_id
       WHERE request_line.id = ? AND request.document_type = 'purchase_request'
-        AND request.status IN ('approved', 'executed', 'awaiting_signed_copy', 'completed')
+        AND request.status IN ('pending_execution', 'approved', 'executed', 'awaiting_signed_copy', 'completed')
     `).get(lineId) as JsonObject | undefined;
     if (!request) {
       throw new MaterialsDocumentError('Related purchase request is not executable', 409, 'MATERIALS_EXECUTION_INVALID');
@@ -284,8 +288,8 @@ export function createMaterialsMovementService(
         let referencePrice: number | null = null;
         if (type === 'purchase_receipt') {
           delta = executionQuantity;
-          referencePrice = finiteNumber(line.tax_inclusive_unit_price, `Line ${index + 1} price`);
-          if (referencePrice < 0) {
+          referencePrice = optionalFiniteNumber(line.tax_inclusive_unit_price, `Line ${index + 1} price`);
+          if (referencePrice != null && referencePrice < 0) {
             throw new MaterialsDocumentError('Purchase price cannot be negative', 409, 'MATERIALS_EXECUTION_INVALID');
           }
           if (line.related_request_line_id) {
@@ -368,12 +372,13 @@ export function createMaterialsMovementService(
           database.prepare(`
             INSERT INTO mt_movements (
               id, item_id, document_id, document_line_id, movement_type, quantity_delta,
-              reference_unit_price, movement_date, created_by, created_at, supplier_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              reference_unit_price, movement_date, created_by, created_at, supplier_id, supplier_name
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             randomUUID(), itemId, documentId, lineId, type, delta, referencePrice,
             movementDate, actor.id, createdAt,
             type === 'purchase_receipt' ? frozen.header.supplier_id : null,
+            type === 'purchase_receipt' ? frozen.header.supplier_name : null,
           );
         }
       }
@@ -493,14 +498,15 @@ export function createMaterialsMovementService(
       const insertReversal = database.prepare(`
         INSERT INTO mt_movements (
           id, item_id, document_id, document_line_id, movement_type, quantity_delta,
-          reference_unit_price, movement_date, created_by, created_at, supplier_id
-        ) VALUES (?, ?, ?, ?, 'void_reversal', ?, ?, ?, ?, ?, ?)
+          reference_unit_price, movement_date, created_by, created_at, supplier_id, supplier_name
+        ) VALUES (?, ?, ?, ?, 'void_reversal', ?, ?, ?, ?, ?, ?, ?)
       `);
       for (const movement of originalMovements) {
         insertReversal.run(
           randomUUID(), movement.item_id, documentId, movement.document_line_id,
           -finiteNumber(movement.quantity_delta, 'Original movement quantity'),
           movement.reference_unit_price, movement.movement_date, actor.id, now, movement.supplier_id,
+          movement.supplier_name,
         );
       }
 
@@ -521,18 +527,18 @@ export function createMaterialsMovementService(
         INSERT INTO mt_documents (
           id, document_number, document_type, version, status, applicant_user_id,
           department, request_date, required_date, execution_date, purpose, supplier_id,
-          invoice_number, contract_number, replaces_document_id, replaced_by_document_id,
+          supplier_name, invoice_number, contract_number, replaces_document_id, replaced_by_document_id,
           assigned_approver_user_id, rejection_reason, void_reason, created_by, updated_by,
           created_at, updated_at, notes, executed_by_user_id, recipient_user_id,
           recipient_name, inspection_result
         ) VALUES (
-          ?, ?, ?, 1, 'draft', ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, NULL,
+          ?, ?, ?, 1, 'draft', ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, NULL,
           NULL, NULL, NULL, ?, ?, ?, ?, ?, NULL, ?, ?, ?
         )
       `).run(
         replacementId, replacementNumber, type, original.applicant_user_id,
         original.department, original.request_date, original.required_date, original.purpose,
-        original.supplier_id, original.invoice_number, original.contract_number, documentId,
+        original.supplier_id, original.supplier_name, original.invoice_number, original.contract_number, documentId,
         actor.id, actor.id, now, now, original.notes, original.recipient_user_id,
         original.recipient_name, original.inspection_result,
       );

@@ -12,7 +12,7 @@ const ASSET_FIELDS = new Set([
   'supplier_id', 'purchase_price', 'contract_number', 'invoice_number', 'acquired_at',
   'expected_life_months', 'next_maintenance_date', 'notes',
 ]);
-const REQUIRED_CREATE_FIELDS = ['tooling_code', 'name', 'category'] as const;
+const REQUIRED_CREATE_FIELDS = ['name', 'category'] as const;
 const SENSITIVE_INPUT_FIELDS = new Set([
   'supplier_id', 'purchase_price', 'contract_number', 'invoice_number',
 ]);
@@ -77,7 +77,7 @@ function body(value: unknown, creating: boolean): JsonObject {
     throw new MaterialsToolingError('Tooling asset contains unsupported fields');
   }
   if (creating && REQUIRED_CREATE_FIELDS.some((field) => !(field in result))) {
-    throw new MaterialsToolingError('tooling_code, name, and category are required');
+    throw new MaterialsToolingError('name and category are required');
   }
   return result;
 }
@@ -113,6 +113,22 @@ function optionalPositiveNumber(value: unknown, label: string, integer = false):
   return value;
 }
 
+function nextToolingCode(database: Database.Database): string {
+  const row = database.prepare(`
+    SELECT MAX(CAST(SUBSTR(UPPER(tooling_code), 5) AS INTEGER)) AS sequence
+    FROM mt_tooling_assets
+    WHERE UPPER(tooling_code) LIKE 'TLG-%'
+      AND SUBSTR(UPPER(tooling_code), 5) <> ''
+      AND SUBSTR(UPPER(tooling_code), 5) NOT GLOB '*[^0-9]*'
+  `).get() as { sequence: number | null };
+  let sequence = (row.sequence ?? 0) + 1;
+  while (database.prepare('SELECT 1 FROM mt_tooling_assets WHERE tooling_code = ?').get(`TLG-${String(sequence).padStart(4, '0')}`)) {
+    sequence += 1;
+  }
+  if (sequence > 999999) throw new MaterialsToolingError('Tooling code sequence is exhausted', 409, 'MATERIALS_TOOLING_CONFLICT');
+  return `TLG-${String(sequence).padStart(4, '0')}`;
+}
+
 function optionalPrice(value: unknown): number | null {
   if (value === undefined || value === null) return null;
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
@@ -133,9 +149,10 @@ export function createMaterialsToolingService(
   permissions: PermissionPort,
 ) {
   const selectAsset = database.prepare(`
-    SELECT asset.*, supplier.name AS supplier_name
+    SELECT asset.*, supplier.name AS supplier_name, custodian.name AS custodian_name
     FROM mt_tooling_assets asset
     LEFT JOIN mt_suppliers supplier ON supplier.id = asset.supplier_id
+    LEFT JOIN users custodian ON custodian.id = asset.custodian_user_id
     WHERE asset.id = ?
   `);
 
@@ -194,9 +211,10 @@ export function createMaterialsToolingService(
 
   function list(actor: Actor): JsonObject[] {
     const rows = database.prepare(`
-      SELECT asset.*, supplier.name AS supplier_name
+      SELECT asset.*, supplier.name AS supplier_name, custodian.name AS custodian_name
       FROM mt_tooling_assets asset
       LEFT JOIN mt_suppliers supplier ON supplier.id = asset.supplier_id
+      LEFT JOIN users custodian ON custodian.id = asset.custodian_user_id
       ORDER BY asset.tooling_code COLLATE NOCASE, asset.id
     `).all() as JsonObject[];
     const canViewPrices = permissions.getMaterialsPermission(actor).viewPrices;
@@ -236,9 +254,11 @@ export function createMaterialsToolingService(
     assertManage(actor);
     const values = body(input, true);
     assertSensitiveAccess(actor, values);
+    const requestedCode = optionalText(values.tooling_code, 'tooling_code');
     const id = randomUUID();
     const now = new Date().toISOString();
     return database.transaction(() => {
+      const toolingCode = requestedCode ? requestedCode.toUpperCase() : nextToolingCode(database);
       database.prepare(`INSERT INTO mt_tooling_assets (
         id, tooling_code, name, category, specification, serial_number, tracked_quantity,
         supplier_id, purchase_price, contract_number, invoice_number, acquired_at,
@@ -246,7 +266,7 @@ export function createMaterialsToolingService(
         created_by, updated_by, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .run(
-          id, requiredText(values.tooling_code, 'tooling_code').toUpperCase(),
+          id, toolingCode,
           requiredText(values.name, 'name'), requiredText(values.category, 'category'),
           optionalText(values.specification, 'specification'), optionalText(values.serial_number, 'serial_number'),
           optionalPositiveNumber(values.tracked_quantity, 'tracked_quantity') ?? 1,

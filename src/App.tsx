@@ -33,17 +33,17 @@ function RouteLoadingFallback() {
   return (
     <div role="status" aria-label={t('common.loading')} className="page-shell">
       <div aria-hidden="true" className="animate-pulse motion-reduce:animate-none">
-        <div className="h-7 w-40 rounded-md bg-gray-200" />
-        <div className="mt-3 h-3 w-64 max-w-full rounded bg-gray-100" />
+        <div className="h-7 w-40 rounded-md bg-border-strong" />
+        <div className="mt-3 h-3 w-64 max-w-full rounded bg-surface-hover" />
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="h-28 rounded-lg border border-gray-200 bg-white p-4">
-              <div className="h-3 w-24 rounded bg-gray-100" />
-              <div className="mt-5 h-7 w-20 rounded bg-gray-200" />
+            <div key={index} className="h-28 rounded-lg border border-border bg-surface p-4">
+              <div className="h-3 w-24 rounded bg-surface-hover" />
+              <div className="mt-5 h-7 w-20 rounded bg-border-strong" />
             </div>
           ))}
         </div>
-        <div className="mt-5 h-64 rounded-lg border border-gray-200 bg-white" />
+        <div className="mt-5 h-64 rounded-lg border border-border bg-surface" />
       </div>
     </div>
   );
@@ -96,34 +96,34 @@ export default function App() {
       <div
         role="status"
         aria-label={t('common.loading')}
-        className="flex h-dvh overflow-hidden bg-gray-50"
+        className="flex h-dvh overflow-hidden bg-canvas"
       >
         <div aria-hidden="true" className="flex min-w-0 flex-1 animate-pulse motion-reduce:animate-none">
-          <aside className="hidden w-56 shrink-0 flex-col border-r border-gray-200 bg-white p-4 sm:flex">
-            <div className="h-8 w-32 rounded-md bg-gray-200" />
+          <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface p-4 sm:flex">
+            <div className="h-8 w-32 rounded-md bg-border-strong" />
             <div className="mt-8 space-y-3">
               {Array.from({ length: 7 }).map((_, index) => (
-                <div key={index} className="h-8 rounded-md bg-gray-100" />
+                <div key={index} className="h-8 rounded-md bg-surface-hover" />
               ))}
             </div>
           </aside>
           <div className="flex min-w-0 flex-1 flex-col">
-            <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-5">
-              <div className="h-7 w-7 rounded-md bg-gray-200" />
-              <div className="h-8 w-28 rounded-md bg-gray-100" />
+            <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-5">
+              <div className="h-7 w-7 rounded-md bg-border-strong" />
+              <div className="h-8 w-28 rounded-md bg-surface-hover" />
             </header>
             <main className="flex-1 p-5">
-              <div className="h-7 w-40 rounded-md bg-gray-200" />
-              <div className="mt-3 h-3 w-64 max-w-full rounded bg-gray-100" />
+              <div className="h-7 w-40 rounded-md bg-border-strong" />
+              <div className="mt-3 h-3 w-64 max-w-full rounded bg-surface-hover" />
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="h-28 rounded-lg border border-gray-200 bg-white p-4">
-                    <div className="h-3 w-24 rounded bg-gray-100" />
-                    <div className="mt-5 h-7 w-20 rounded bg-gray-200" />
+                  <div key={index} className="h-28 rounded-lg border border-border bg-surface p-4">
+                    <div className="h-3 w-24 rounded bg-surface-hover" />
+                    <div className="mt-5 h-7 w-20 rounded bg-border-strong" />
                   </div>
                 ))}
               </div>
-              <div className="mt-5 h-64 rounded-lg border border-gray-200 bg-white" />
+              <div className="mt-5 h-64 rounded-lg border border-border bg-surface" />
             </main>
           </div>
         </div>
@@ -151,7 +151,7 @@ export default function App() {
           >
             <button
               type="button"
-              className="absolute inset-0 bg-gray-950/35"
+              className="absolute inset-0 bg-black/35"
               aria-label={t('common.close')}
               onClick={() => setMobileSidebarOpen(false)}
             />

@@ -7,7 +7,7 @@ const settingsSource = readFileSync(new URL('../src/components/materials-tooling
 
 test('documents provides mobile cards before the desktop workflow table', () => {
   assert.match(documentsSource, /className="space-y-2 md:hidden"/);
-  assert.match(documentsSource, /className="hidden data-surface overflow-x-auto md:block"/);
+  assert.match(documentsSource, /className="hidden data-surface overflow-x-auto border-t-0 rounded-t-none md:block"/);
   assert.match(documentsSource, /downloadPdf/);
   assert.match(documentsSource, /voidAndReplace/);
 });

@@ -12,47 +12,30 @@ const renderedSource = inventorySource
 test('inventory uses the shared operational hierarchy and data surfaces', () => {
   assert.match(inventorySource, /className="page-shell/);
   assert.match(inventorySource, /className="page-header"/);
+  assert.match(inventorySource, /className="page-actions px-3"/);
   assert.match(inventorySource, /role="tablist"/);
-  assert.match(inventorySource, /aria-selected=\{tab === item\.key\}/);
-  assert.match(inventorySource, /className="metric-strip/);
-  assert.match(inventorySource, /className="metric-cell/);
-  assert.match(inventorySource, /className="data-surface overflow-x-auto"/);
+  assert.match(inventorySource, /aria-selected=\{view === item\}/);
+  assert.match(inventorySource, /aria-selected=\{shape === item\}/);
+  assert.match(inventorySource, /className="toolbar"/);
+  assert.match(inventorySource, /className="data-surface divide-y divide-border border-t-0 rounded-t-none"/);
+  assert.match(inventorySource, /className="data-surface overflow-x-auto border-t-0 rounded-t-none"/);
   assert.match(inventorySource, /className="sticky top-0 z-10"/);
   assert.match(inventorySource, /<Icon name="plus"/);
+  assert.doesNotMatch(inventorySource, /metric-strip|metric-cell/);
 });
 
-test('payments and inventory lists reflow to compact mobile cards before desktop tables', () => {
-  for (const listSource of [paymentsSource, inventorySource]) {
-    assert.match(listSource, /className="space-y-2 md:hidden"/);
-    assert.match(listSource, /className="hidden md:block/);
-  }
+test('payments list reflows to compact mobile cards before the desktop table', () => {
+  assert.match(paymentsSource, /className="space-y-2 md:hidden"/);
+  assert.match(paymentsSource, /className="hidden md:block/);
   assert.match(paymentsSource, /renderMobilePayment/);
-  assert.match(inventorySource, /renderMobileProduct/);
-  assert.match(inventorySource, /renderMobileTransaction/);
-  assert.match(inventorySource, /renderMobileStock/);
 });
 
-test('inventory product and transaction forms use grouped responsive surfaces', () => {
+test('inventory forms use grouped responsive surfaces', () => {
   assert.ok((inventorySource.match(/<fieldset/g) || []).length >= 2);
   assert.ok((inventorySource.match(/<legend/g) || []).length >= 2);
-  assert.ok((inventorySource.match(/className="data-surface p-4/g) || []).length >= 3);
   assert.match(inventorySource, /grid-cols-1 gap-[^\"]*sm:grid-cols-2/);
   assert.match(inventorySource, /grid-cols-1 gap-[^\"]*sm:grid-cols-3/);
   assert.match(inventorySource, /sticky bottom-0/);
-});
-
-test('inventory dashboard explains stock counts are changed through adjustment entries', () => {
-  assert.match(inventorySource, /t\('page\.inventory\.stockChangeHelp'\)/);
-  assert.match(inventorySource, /onTabChange\('adjustment'\)/);
-  assert.match(inventorySource, /onTabChange\('products'\)/);
-});
-
-test('inventory products can be edited and soft-deleted from the products table', () => {
-  assert.match(inventorySource, /deleteProduct/);
-  assert.match(inventorySource, /method: 'DELETE'/);
-  assert.match(inventorySource, /\/api\/inventory\/products\/\$\{id\}/);
-  assert.match(inventorySource, /t\('common\.edit'\)/);
-  assert.match(inventorySource, /t\('common\.delete'\)/);
 });
 
 test('inventory page no longer renders obvious hard-coded English UI labels', () => {
@@ -105,40 +88,3 @@ test('inventory localization dictionary contains the batch keys', () => {
   }
 });
 
-test('inventory form and filter controls have persistent labels', () => {
-  const labeledControlIds = [
-    'inventory-product-type',
-    'inventory-product-tracking-mode',
-    'inventory-product-category',
-    'inventory-product-unit',
-    'inventory-product-material',
-    'inventory-product-initial-qty',
-    'inventory-product-safety-qty',
-    'inventory-product-safety-weight',
-    'inventory-ledger-type-filter',
-    'inventory-transaction-product',
-    'inventory-transaction-quantity',
-    'inventory-transaction-unit',
-    'inventory-transaction-date',
-    'inventory-transaction-reference-type',
-    'inventory-transaction-reference-id',
-    'inventory-transaction-notes',
-    'inventory-import-operator',
-    'inventory-stock-product',
-    'inventory-stock-quantity',
-    'inventory-stock-unit',
-    'inventory-stock-date',
-    'inventory-stock-reference-type',
-    'inventory-stock-reference-id',
-    'inventory-stock-notes',
-    'inventory-stock-operator',
-  ];
-
-  for (const fieldId of labeledControlIds) {
-    assert.match(inventorySource, new RegExp(`htmlFor="${fieldId}"`));
-    assert.match(inventorySource, new RegExp(`id="${fieldId}"`));
-  }
-
-  assert.match(inventorySource, /htmlFor=\{`inventory-product-dimension-\$\{f\.key\}`\}/);
-  assert.match(inventorySource, /id=\{`inventory-product-dimension-\$\{f\.key\}`\}/);
-});

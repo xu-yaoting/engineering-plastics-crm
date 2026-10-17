@@ -95,10 +95,12 @@ test('dashboard localization dictionary contains the batch keys', () => {
 
 test('dashboard sales pipeline uses real module counts without unused stages', () => {
   assert.match(source, /fetch\('\/api\/shipments'\)/);
-  assert.match(source, /count: quotations\.length/);
-  assert.match(source, /count: orders\.length/);
-  assert.match(source, /count: shipments\.length/);
-  assert.match(source, /count: invoices\.length/);
+  assert.match(source, /const activeShipments = shipments\.filter/);
+  assert.match(source, /const activeOrders = orders\.filter/);
+  assert.match(source, /count: openQuotes\.length/);
+  assert.match(source, /count: activeOrders\.length/);
+  assert.match(source, /count: activeShipments\.length/);
+  assert.match(source, /count: unpaid\.length/);
   assert.match(source, /link: '\/shipments'/);
   assert.doesNotMatch(source, /stageInquiry/);
   assert.doesNotMatch(source, /stageSample/);
@@ -107,15 +109,15 @@ test('dashboard sales pipeline uses real module counts without unused stages', (
 });
 
 test('dashboard uses the shared workspace hierarchy and continuous KPI strip', () => {
-  assert.match(source, /const WORKSPACE_CARD = 'card overflow-hidden border-gray-200'/);
-  assert.match(source, /const WORKSPACE_CARD_HEADER = 'px-4 py-3 border-b border-gray-100 bg-gray-50\/60 flex items-center justify-between min-h-\[52px\]'/);
-  assert.match(source, /const WORKSPACE_CARD_TITLE = 'text-base font-semibold text-gray-700 flex items-center gap-2'/);
+  assert.match(source, /const WORKSPACE_CARD = 'card overflow-hidden shadow-\[var\(--shadow-card\)\]'/);
+  assert.match(source, /const WORKSPACE_CARD_HEADER = 'flex min-h-\[52px\] items-center justify-between border-b border-border bg-surface-subtle px-4 py-3'/);
+  assert.match(source, /const WORKSPACE_CARD_TITLE = 'flex items-center gap-2 text-base font-semibold text-ink'/);
   assert.match(source, /const WORKSPACE_CARD_BODY = 'p-4'/);
   assert.match(source, /className="metric-strip"/);
-  assert.ok((source.match(/className="metric-cell group"/g) || []).length >= 3);
+  assert.ok((source.match(/className="metric-cell group/g) || []).length >= 3);
   assert.doesNotMatch(source, /const KPI_CARD/);
   assert.match(source, /data-surface.*status-edge-danger/);
-  assert.match(source, /diffDays < 0 \? 'border-l-2 border-l-red-500'/);
+  assert.match(source, /diffDays < 0 \? 'border-l-2 border-l-danger'/);
 });
 
 test('dashboard and inventory overview hide premature zero metrics behind layout skeletons', () => {
@@ -127,8 +129,7 @@ test('dashboard and inventory overview hide premature zero metrics behind layout
   assert.match(source, /motion-reduce:animate-none/);
 
   assert.match(inventorySource, /function InventoryDashboardSkeleton/);
-  assert.match(inventorySource, /const \[loadingDashboard, setLoadingDashboard\] = useState\(true\)/);
-  assert.match(inventorySource, /if \(loadingDashboard\) return <InventoryDashboardSkeleton label=\{t\('common\.loading'\)\} \/>/);
+  assert.match(inventorySource, /<InventoryDashboardSkeleton label=\{t\('common\.loading'\)\} \/>/);
   assert.match(inventorySource, /motion-reduce:animate-none/);
 });
 
@@ -140,12 +141,25 @@ test('dashboard pipeline and aging cards expose summary-oriented layouts', () =>
   assert.match(source, /const unpaidWithDueDate = invoices\.filter/);
   assert.match(source, /const totalAgingItems = aging\.reduce/);
   assert.match(source, /page\.dashboard\.trackedReceivables/);
-  assert.match(source, /grid grid-cols-1 divide-y divide-gray-100 md:grid-cols-4 md:divide-x md:divide-y-0/);
+  assert.match(source, /grid grid-cols-1 divide-y divide-border md:grid-cols-4 md:divide-x md:divide-y-0/);
   assert.match(source, /ArrowRight size=\{15\}/);
   assert.doesNotMatch(source, />→</);
   assert.doesNotMatch(source, /bg-violet-500|bg-emerald-500|bg-slate-400/);
   assert.match(source, /labelKey: 'stagePayment'/);
   assert.doesNotMatch(source, /ml-\[120px\]/);
+});
+
+test('dashboard monthly sales use confirmed orders and actionable empty states', () => {
+  assert.match(source, /const closedOrderStatuses = new Set/);
+  assert.match(source, /const thisMonthClosedOrders = orders\.filter/);
+  assert.match(source, /o\.order_date \|\| o\.created_at/);
+  assert.match(source, /const salesRows = Object\.entries\(salesByCurrency\)/);
+  assert.doesNotMatch(source, /combinedDeals|thisMonthQuotes/);
+  assert.match(source, /salesRows\.length > 0/);
+  assert.match(source, /to="\/quotations"/);
+  assert.match(source, /to="\/orders"/);
+  assert.match(source, /topCustomers\.length > 0 \? 'lg:grid-cols-2' : ''/);
+  assert.match(source, /c\.companyId/);
 });
 
 test('dashboard receivable alert shows order numbers instead of invoice numbers', () => {
@@ -156,24 +170,17 @@ test('dashboard receivable alert shows order numbers instead of invoice numbers'
 
 test('dashboard reserves semantic colors for actions and business states', () => {
   assert.match(source, /status-edge-danger/);
-  assert.match(source, /text-gray-700">\{inv\.order_number/);
-  assert.match(source, /bg-gray-100 text-gray-500/);
+  assert.match(source, /text-ink-muted">\{inv\.order_number/);
+  assert.match(source, /text-ink-muted bg-surface-hover/);
   assert.doesNotMatch(source, /stage\.labelKey === 'stagePayment'.*text-red/s);
-  assert.match(source, /group-hover:bg-blue-50 group-hover:text-blue-600/);
-  assert.match(source, /pctUSD >= 70 \? 'text-yellow-600' : 'text-blue-600'/);
-  assert.match(source, /pctUSD >= 70 \? 'bg-yellow-500' : 'bg-blue-500'/);
+  assert.match(source, /bg-stage-quotation-soft text-stage-quotation/);
+  assert.match(source, /row\.percentage >= 70 \? 'text-warning' : 'text-brand'/);
+  assert.match(source, /row\.percentage === null \? 'text-ink-subtle'/);
   assert.doesNotMatch(source, /bg-orange-50|text-orange-600/);
 });
 
-test('inventory uses red only for risk, failure, and destructive states', () => {
-  assert.match(inventorySource, /stockOutTab'\)\}<\/div>\s*<div className="text-lg font-semibold text-blue-600/s);
-  assert.match(inventorySource, /transaction_type === 'stock_out' \? 'bg-blue-50 text-blue-600'/);
-  assert.match(inventorySource, /txn\.quantity > 0 \? 'text-green-600' : 'text-blue-600'/);
-  assert.match(inventorySource, /btnColor="bg-blue-600" isOut=\{true\}/);
-  assert.match(inventorySource, /lowStock\.length > 0 \? 'text-red-600'/);
-  assert.match(inventorySource, /setDeleteTarget\(p\).*text-red-600/);
-  assert.match(inventorySource, /<ConfirmDialog[\s\S]*onConfirm=\{deleteProduct\}/);
-  assert.match(inventorySource, /insufficientInventory.*text-red-700/s);
+test('inventory movements use semantic risk and success states', () => {
+  assert.match(inventorySource, /Number\(movement\.quantity_delta\) < 0 \? 'text-danger' : 'text-success'/);
 });
 
 test('shared status badges use consistent success waiting risk and neutral groups', () => {
@@ -181,10 +188,12 @@ test('shared status badges use consistent success waiting risk and neutral group
   assert.match(statusBadgeSource, /const WAITING_STATUSES/);
   assert.match(statusBadgeSource, /const RISK_STATUSES/);
   assert.match(statusBadgeSource, /const ACTIVE_STATUSES/);
-  assert.match(statusBadgeSource, /bg-green-50 text-green-700/);
-  assert.match(statusBadgeSource, /bg-yellow-50 text-yellow-700/);
-  assert.match(statusBadgeSource, /bg-red-50 text-red-700/);
-  assert.match(statusBadgeSource, /bg-blue-50 text-blue-700/);
+  assert.match(statusBadgeSource, /bg-success-soft text-success/);
+  assert.match(statusBadgeSource, /bg-warning-soft text-warning/);
+  assert.match(statusBadgeSource, /bg-danger-soft text-danger/);
+  assert.match(statusBadgeSource, /bg-brand-soft text-brand/);
+  assert.match(statusBadgeSource, /bg-surface-hover text-ink-muted/);
+  assert.match(statusBadgeSource, /rounded-full/);
 });
 
 test('workspace and activity feeds use stable shared empty states', () => {

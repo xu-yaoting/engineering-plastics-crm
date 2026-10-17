@@ -91,6 +91,7 @@ export const materialsToolingApi = {
   listItems: () => request<{ items: any[] }>('/items'),
   createItem: (data: any) => request<any>('/items', { method: 'POST', body: JSON.stringify(data) }),
   updateItem: (id: string, data: any) => request<any>(`/items/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteItem: (id: string) => request<void>(`/items/${id}`, { method: 'DELETE' }),
   listSuppliers: () => request<{ suppliers: any[] }>('/suppliers'),
 
   // Documents
@@ -140,6 +141,7 @@ export const materialsToolingApi = {
   listTooling: () => request<{ tooling: any[] }>('/tooling'),
   getTooling: (id: string) => request<{ tooling: any }>(`/tooling/${id}`),
   createTooling: (data: any) => request<any>('/tooling', { method: 'POST', body: JSON.stringify(data) }),
+  updateTooling: (id: string, data: any) => request<any>(`/tooling/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   moveTooling: (id: string, data: any) => request<any>(`/tooling/${id}/movements`, { method: 'POST', body: JSON.stringify(data) }),
 
   // Permissions management

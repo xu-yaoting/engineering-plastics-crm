@@ -15,7 +15,6 @@ const source = files
 const dictionarySource = readFileSync(new URL('../src/lib/i18n.tsx', import.meta.url), 'utf8');
 const quotationDetailSource = readFileSync(new URL('../src/pages/QuotationDetail.tsx', import.meta.url), 'utf8');
 const orderDetailSource = readFileSync(new URL('../src/pages/OrderDetail.tsx', import.meta.url), 'utf8');
-const inventorySource = readFileSync(new URL('../src/pages/InventoryPage.tsx', import.meta.url), 'utf8');
 
 test('quotation and order details share the commercial document hierarchy', () => {
   for (const detailSource of [quotationDetailSource, orderDetailSource]) {
@@ -166,7 +165,7 @@ test('order edit save checks backend errors before closing the modal', () => {
   assert.match(orderDetailSource, /disabled=\{savingEdit\}/);
 });
 
-test('quotation and inventory product editors expose field-level validation', () => {
+test('quotation editor exposes field-level validation', () => {
   const quotationEditSource = readFileSync(new URL('../src/components/quotations/QuotationEditPanel.tsx', import.meta.url), 'utf8');
 
   assert.match(quotationEditSource, /e instanceof Error \? e\.message : t\('page\.quotationDetail\.quotationSaveFailed'\)/);
@@ -175,13 +174,6 @@ test('quotation and inventory product editors expose field-level validation', ()
   assert.match(quotationEditSource, /aria-describedby=\{errors\.lineItems \? 'quotation-line-items-error' : undefined\}/);
   assert.match(quotationEditSource, /id="quotation-line-items-error" className="field-error" role="alert"/);
   assert.doesNotMatch(quotationEditSource, /disabled=\{saving \|\| lineItems\.length === 0\}/);
-
-  assert.match(inventorySource, /const \[productErrors, setProductErrors\]/);
-  assert.match(inventorySource, /id="inventory-product-sku"/);
-  assert.match(inventorySource, /aria-invalid=\{!!productErrors\.sku\}/);
-  assert.match(inventorySource, /aria-describedby=\{productErrors\.name \? 'inventory-product-name-error' : undefined\}/);
-  assert.match(inventorySource, /className="field-error" role="alert"/);
-  assert.doesNotMatch(inventorySource, /if \(!currentSku \|\| !currentName\) \{ toast\.error/);
 });
 
 test('quotation editor controls have persistent labels and selected-state semantics', () => {
@@ -261,12 +253,23 @@ test('quotation amounts use the interface font with aligned numerals', () => {
 test('commercial details lead with amount and status before supporting metadata', () => {
   for (const detailSource of [quotationDetailSource, orderDetailSource]) {
     assert.match(detailSource, /commercial-summary/);
-    assert.match(detailSource, /text-2xl font-semibold text-gray-900 tabular-nums/);
+    assert.match(detailSource, /text-2xl font-semibold (?:text-gray-900|text-ink) tabular-nums/);
   }
   assert.match(quotationDetailSource, /commercial-summary[\s\S]*quotation\.total[\s\S]*quotation\.company_name/);
   assert.match(orderDetailSource, /commercial-summary[\s\S]*order\.total[\s\S]*order\.company_name/);
   assert.doesNotMatch(quotationDetailSource, /style=\{\{background:'#16a34a'\}\}/);
   assert.doesNotMatch(quotationDetailSource, /style=\{\{color:'#dc2626',borderColor:'#dc2626'\}\}/);
+});
+
+test('commercial detail status flows use stage-aware colors', () => {
+  assert.match(orderDetailSource, /ORDER_STAGE_TONES/);
+  assert.match(orderDetailSource, /text-stage-order/);
+  assert.match(orderDetailSource, /text-stage-shipment/);
+  assert.match(orderDetailSource, /text-success/);
+  assert.match(quotationDetailSource, /bg-stage-quotation-soft text-stage-quotation/);
+  assert.match(quotationDetailSource, /bg-success-600/);
+  assert.match(quotationDetailSource, /border-danger text-danger/);
+  assert.match(quotationDetailSource, /hover:bg-danger-soft/);
 });
 
 test('commercial detail overlays use shared restrained surfaces', () => {

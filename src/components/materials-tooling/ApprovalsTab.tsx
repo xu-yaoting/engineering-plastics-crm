@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import SidePanel from '../shared/SidePanel';
+import Pagination from '../shared/Pagination';
 import { auth } from '../../lib/api';
 import { materialsToolingApi } from '../../lib/materials-tooling-api';
 import type { MaterialsPermission } from '../../lib/materials-tooling-api';
+
+const APPROVALS_PAGE_SIZE = 10;
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'page.materialsTooling.status.draft',
@@ -43,18 +46,27 @@ export function ApprovalsTab({ permissions }: { permissions: MaterialsPermission
   const { t } = useTranslation();
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [selected, setSelected] = useState<any | null>(null);
+  const [detailErrorId, setDetailErrorId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const canApprove = permissions?.approve ?? false;
 
   const load = () => {
     setLoading(true);
+    setLoadError(false);
     Promise.all([materialsToolingApi.listDocuments(), auth.me()])
       .then(([data, me]) => { setDocuments(data.documents); setCurrentUserId(me.user.id); })
-      .catch(err => toast.error(err.message))
+      .catch(err => {
+        setDocuments([]);
+        setCurrentUserId(null);
+        setLoadError(true);
+        toast.error(err.message);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -64,6 +76,16 @@ export function ApprovalsTab({ permissions }: { permissions: MaterialsPermission
   const pendingDocs = documents.filter(doc => (
     doc.status === 'pending_approval' && doc.assigned_approver_user_id === currentUserId
   ));
+  const pageCount = Math.max(1, Math.ceil(pendingDocs.length / APPROVALS_PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paged = pendingDocs.slice(
+    (currentPage - 1) * APPROVALS_PAGE_SIZE,
+    currentPage * APPROVALS_PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setPage(current => Math.min(current, pageCount));
+  }, [pageCount]);
 
   const doApprove = async (docId: string) => {
     try {
@@ -88,8 +110,13 @@ export function ApprovalsTab({ permissions }: { permissions: MaterialsPermission
     }
   };
   const openDetail = async (docId: string): Promise<void> => {
+    setSelected(null);
+    setDetailErrorId(null);
     try { setSelected((await materialsToolingApi.getDocument(docId)).document); }
-    catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+    catch (error) {
+      setDetailErrorId(docId);
+      toast.error(error instanceof Error ? error.message : String(error));
+    }
   };
   const downloadApplicationPdf = async (doc: any): Promise<void> => {
     try { saveBlob(await materialsToolingApi.downloadApplicationPdf(doc.id), `${doc.document_number}-application.pdf`); }
@@ -98,13 +125,13 @@ export function ApprovalsTab({ permissions }: { permissions: MaterialsPermission
 
   const renderActions = (doc: any, compact = false) => (
     <div className={compact ? 'flex w-full flex-wrap items-center gap-3' : 'inline-flex items-center gap-2'}>
-      <button onClick={() => openDetail(doc.id)} className="text-xs text-blue-600 hover:underline">{t('page.materialsTooling.reviewDetails')}</button>
-      <button onClick={() => downloadApplicationPdf(doc)} className="text-xs text-blue-600 hover:underline">{t('page.materialsTooling.applicationPdf')}</button>
+      <button onClick={() => openDetail(doc.id)} className="text-xs text-brand hover:underline">{t('page.materialsTooling.reviewDetails')}</button>
+      <button onClick={() => downloadApplicationPdf(doc)} className="text-xs text-brand hover:underline">{t('page.materialsTooling.applicationPdf')}</button>
       {canApprove && (
         <>
           <button
             onClick={() => doApprove(doc.id)}
-            className="text-xs font-medium text-green-600 hover:underline"
+            className="text-xs font-medium text-success hover:underline"
           >{t('page.materialsTooling.approveAction')}</button>
           {rejectId === doc.id ? (
             <div className={compact ? 'flex w-full flex-wrap items-center gap-2' : 'inline-flex items-center gap-1'}>
@@ -121,17 +148,17 @@ export function ApprovalsTab({ permissions }: { permissions: MaterialsPermission
               <button
                 onClick={() => doReject(doc.id)}
                 disabled={!rejectReason.trim()}
-                className="text-xs text-red-600 hover:underline"
+                className="text-xs text-danger hover:underline"
               >{t('page.materialsTooling.rejectAction')}</button>
               <button
                 onClick={() => { setRejectId(null); setRejectReason(''); }}
-                className="text-xs text-gray-400 hover:underline"
+                className="text-xs text-ink-subtle hover:underline"
               >{t('common.cancel')}</button>
             </div>
           ) : (
             <button
               onClick={() => setRejectId(doc.id)}
-              className="text-xs text-red-500 hover:underline"
+              className="text-xs text-danger hover:underline"
             >{t('page.materialsTooling.rejectAction')}</button>
           )}
         </>
@@ -143,66 +170,94 @@ export function ApprovalsTab({ permissions }: { permissions: MaterialsPermission
     <div>
       <div className="toolbar mb-4">
         <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-500 tabular-nums">
+          <span className="text-xs text-ink-muted tabular-nums">
             {t('page.materialsTooling.pendingApprovals')}: {pendingDocs.length}
           </span>
         </div>
       </div>
 
       {!canApprove && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-500 mb-4">
+        <div className="bg-canvas border border-border rounded-lg px-4 py-3 text-sm text-ink-muted mb-4">
           {t('page.materialsTooling.error.unauthorized')}
+        </div>
+      )}
+
+      {detailErrorId && (
+        <div className="data-surface mb-4 p-4" role="alert">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-ink-muted">{t('page.error.loadFailed')}</p>
+            <button type="button" onClick={() => { void openDetail(detailErrorId); }} className="btn-secondary btn-sm">
+              {t('common.refresh')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loadError && (
+        <div className="data-surface mb-4 p-4" role="alert">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-ink-muted">{t('page.error.loadFailed')}</p>
+            <button type="button" onClick={load} className="btn-secondary btn-sm">
+              {t('common.refresh')}
+            </button>
+          </div>
         </div>
       )}
 
       <div className="space-y-2 md:hidden">
         {loading && [0, 1, 2].map(row => (
           <div key={row} className="data-surface animate-pulse p-4">
-            <div className="h-4 w-2/3 rounded bg-gray-100" />
+            <div className="h-4 w-2/3 rounded bg-surface-hover" />
             <div className="mt-3 grid grid-cols-2 gap-3">
-              <div className="h-3 rounded bg-gray-100" />
-              <div className="h-3 rounded bg-gray-100" />
-              <div className="h-3 rounded bg-gray-100" />
-              <div className="h-3 rounded bg-gray-100" />
+              <div className="h-3 rounded bg-surface-hover" />
+              <div className="h-3 rounded bg-surface-hover" />
+              <div className="h-3 rounded bg-surface-hover" />
+              <div className="h-3 rounded bg-surface-hover" />
             </div>
           </div>
         ))}
         {pendingDocs.length > 0 && (
-          <div className="px-1 text-xs font-medium text-blue-600">
+          <div className="px-1 text-xs font-medium text-brand">
             {t('page.materialsTooling.assignedApprovalQueue')}
           </div>
         )}
-        {pendingDocs.map((doc: any) => (
+        {paged.map((doc: any) => (
           <article key={doc.id} className="data-surface space-y-3 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-xs tabular-nums text-gray-500">{doc.document_number}</p>
-                <h3 className="font-medium text-gray-900">{shortDocType(doc.document_type)}</h3>
+                <p className="truncate text-xs tabular-nums text-ink-muted">{doc.document_number}</p>
+                <h3 className="font-medium text-ink">{shortDocType(doc.document_type)}</h3>
               </div>
-              <span className="shrink-0 rounded bg-amber-50 px-2 py-0.5 text-2xs font-450 text-amber-600">
+              <span className="shrink-0 rounded bg-warning-soft px-2 py-0.5 text-2xs font-450 text-warning">
                 {t(STATUS_LABELS.pending_approval)}
               </span>
             </div>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               <div className="min-w-0">
                 <dt className="section-label">{t('page.materialsTooling.department')}</dt>
-                <dd className="truncate text-gray-700">{doc.department || '—'}</dd>
+                <dd className="truncate text-ink">{doc.department || '—'}</dd>
               </div>
               <div>
                 <dt className="section-label">{t('page.materialsTooling.requestDate')}</dt>
-                <dd className="text-gray-700">{doc.request_date || '—'}</dd>
+                <dd className="text-ink">{doc.request_date || '—'}</dd>
               </div>
             </dl>
-            <div className="border-t border-gray-100 pt-3">{renderActions(doc, true)}</div>
+            <div className="border-t border-border pt-3">{renderActions(doc, true)}</div>
           </article>
         ))}
-        {!loading && pendingDocs.length === 0 && <div className="empty-state">{t('page.materialsTooling.noData')}</div>}
+        {!loading && !loadError && pendingDocs.length === 0 && <div className="empty-state">{t('page.materialsTooling.noData')}</div>}
+        <Pagination
+          page={currentPage}
+          pageSize={APPROVALS_PAGE_SIZE}
+          total={pendingDocs.length}
+          onPageChange={setPage}
+        />
       </div>
 
       <div className="hidden data-surface overflow-x-auto md:block">
         <table className="w-full">
           <thead className="sticky top-0 z-10">
-            <tr className="border-b border-gray-200 bg-gray-50">
+            <tr className="border-b border-border bg-canvas">
               <th className="table-header">{t('page.materialsTooling.documentNumber')}</th>
               <th className="table-header">{t('page.materialsTooling.documentTypeLabel')}</th>
               <th className="table-header">{t('page.materialsTooling.statusLabel')}</th>
@@ -213,37 +268,43 @@ export function ApprovalsTab({ permissions }: { permissions: MaterialsPermission
           </thead>
           <tbody>
             {loading && [0, 1, 2].map(row => (
-              <tr key={row} className="animate-pulse border-b border-gray-100">
-                <td colSpan={6} className="px-4 py-3"><div className="h-4 rounded bg-gray-100" /></td>
+              <tr key={row} className="animate-pulse border-b border-border">
+                <td colSpan={6} className="px-4 py-3"><div className="h-4 rounded bg-surface-hover" /></td>
               </tr>
             ))}
             {/* Pending approvals queue */}
             {pendingDocs.length > 0 && (
-              <tr className="bg-blue-50/50">
-                <td colSpan={6} className="px-4 py-2 text-xs font-medium text-blue-600">
+              <tr className="bg-brand-soft/50">
+                <td colSpan={6} className="px-4 py-2 text-xs font-medium text-brand">
                   {t('page.materialsTooling.assignedApprovalQueue')}
                 </td>
               </tr>
             )}
-            {pendingDocs.map((doc: any) => (
-              <tr key={doc.id} className="border-b border-gray-100">
-                <td className="table-cell tabular-nums text-xs text-gray-500">{doc.document_number}</td>
-                <td className="table-cell text-xs text-gray-500">{shortDocType(doc.document_type)}</td>
+            {paged.map((doc: any) => (
+              <tr key={doc.id} className="border-b border-border">
+                <td className="table-cell tabular-nums text-xs text-ink-muted">{doc.document_number}</td>
+                <td className="table-cell text-xs text-ink-muted">{shortDocType(doc.document_type)}</td>
                 <td className="table-cell">
-                  <span className="inline-flex px-2 py-0.5 rounded text-2xs font-450 bg-amber-50 text-amber-600">
+                  <span className="inline-flex px-2 py-0.5 rounded text-2xs font-450 bg-warning-soft text-warning">
                     {t(STATUS_LABELS.pending_approval)}
                   </span>
                 </td>
-                <td className="table-cell text-xs text-gray-500">{doc.department || '—'}</td>
-                <td className="table-cell text-xs text-gray-400">{doc.request_date || '—'}</td>
+                <td className="table-cell text-xs text-ink-muted">{doc.department || '—'}</td>
+                <td className="table-cell text-xs text-ink-subtle">{doc.request_date || '—'}</td>
                     <td className="table-cell text-right">{renderActions(doc)}</td>
               </tr>
             ))}
-            {!loading && pendingDocs.length === 0 && (
+            {!loading && !loadError && pendingDocs.length === 0 && (
               <tr><td colSpan={6}><div className="empty-state">{t('page.materialsTooling.noData')}</div></td></tr>
             )}
           </tbody>
         </table>
+        <Pagination
+          page={currentPage}
+          pageSize={APPROVALS_PAGE_SIZE}
+          total={pendingDocs.length}
+          onPageChange={setPage}
+        />
       </div>
       <SidePanel
         open={!!selected}

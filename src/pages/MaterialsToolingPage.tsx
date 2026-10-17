@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Icon from '../components/shared/Icon';
 import type { MaterialsPermission, Overview, LowStockItem, CurrentMonthSummary } from '../lib/materials-tooling-api';
@@ -6,10 +6,8 @@ import { MaterialsTab } from '../components/materials-tooling/MaterialsTab';
 import { DocumentsTab } from '../components/materials-tooling/DocumentsTab';
 import { LedgerTab } from '../components/materials-tooling/LedgerTab';
 import { ToolingTab } from '../components/materials-tooling/ToolingTab';
-import { ApprovalsTab } from '../components/materials-tooling/ApprovalsTab';
-import { MaterialsSettings } from '../components/materials-tooling/MaterialsSettings';
 
-type Tab = 'overview' | 'materials' | 'documents' | 'ledger' | 'tooling' | 'approvals' | 'settings';
+type Tab = 'overview' | 'materials' | 'documents' | 'ledger' | 'tooling';
 
 const TABS: { key: Tab; labelKey: string }[] = [
   { key: 'overview', labelKey: 'page.materialsTooling.overviewTab' },
@@ -17,8 +15,6 @@ const TABS: { key: Tab; labelKey: string }[] = [
   { key: 'documents', labelKey: 'page.materialsTooling.documentsTab' },
   { key: 'ledger', labelKey: 'page.materialsTooling.ledgerTab' },
   { key: 'tooling', labelKey: 'page.materialsTooling.toolingTab' },
-  { key: 'approvals', labelKey: 'page.materialsTooling.approvalsTab' },
-  { key: 'settings', labelKey: 'page.materialsTooling.settingsTab' },
 ];
 
 export default function MaterialsToolingPage() {
@@ -28,20 +24,39 @@ export default function MaterialsToolingPage() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toolingStats, setToolingStats] = useState<{ filtered: number; total: number } | null>(null);
 
   const activeTab = TABS.find(item => item.key === tab);
+
+  const handleToolingStats = useCallback((next: { filtered: number; total: number } | null): void => {
+    setToolingStats(prev => (
+      prev?.filtered === next?.filtered && prev?.total === next?.total ? prev : next
+    ));
+  }, []);
+
+  const summaryText = tab === 'tooling' && toolingStats
+    ? `${toolingStats.filtered !== toolingStats.total ? `${toolingStats.filtered} / ` : ''}${t('page.materialsTooling.toolingCount', { count: toolingStats.total })}`
+    : activeTab ? t(activeTab.labelKey) : '';
 
   const load = () => {
     setLoading(true);
     setError(null);
     Promise.all([
-      fetch('/api/materials-tooling/me').then(r => r.json()),
-      fetch('/api/materials-tooling/overview').then(r => r.json()),
+      fetch('/api/materials-tooling/me').then(async res => {
+        if (!res.ok) throw new Error(`Materials permissions request failed: ${res.status}`);
+        return res.json();
+      }),
+      fetch('/api/materials-tooling/overview').then(async res => {
+        if (!res.ok) throw new Error(`Materials overview request failed: ${res.status}`);
+        return res.json();
+      }),
     ]).then(([meData, overviewData]) => {
       setPermissions(meData.permissions);
       setOverview(overviewData.overview);
     }).catch(err => {
-      setError(err instanceof Error ? err.message : 'Load failed');
+      setPermissions(null);
+      setOverview(null);
+      setError(err instanceof Error ? err.message : t('page.error.loadFailed'));
     }).finally(() => setLoading(false));
   };
 
@@ -50,14 +65,14 @@ export default function MaterialsToolingPage() {
   return (
     <div className="page-shell">
       <div className="page-header">
-        <div>
+        <div className="px-3">
           <h1 className="page-heading">{t('nav.materialsTooling')}</h1>
-          <p className="page-summary">{activeTab ? t(activeTab.labelKey) : ''}</p>
+          <p className="page-summary tabular-nums">{summaryText}</p>
         </div>
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 overflow-x-auto border-b border-gray-200" role="tablist" aria-label={t('nav.materialsTooling')}>
+      <div className="flex gap-1 overflow-x-auto border-b border-border" role="tablist" aria-label={t('nav.materialsTooling')}>
         {TABS.map(item => (
           <button
             key={item.key}
@@ -66,8 +81,8 @@ export default function MaterialsToolingPage() {
             aria-selected={tab === item.key}
             className={`shrink-0 border-b-2 px-3 py-2.5 text-xs font-medium transition-colors ${
               tab === item.key
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-brand text-brand'
+                : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
             {t(item.labelKey)}
@@ -87,9 +102,7 @@ export default function MaterialsToolingPage() {
       {tab === 'materials' && <MaterialsTab permissions={permissions} />}
       {tab === 'documents' && <DocumentsTab />}
       {tab === 'ledger' && <LedgerTab permissions={permissions} />}
-      {tab === 'tooling' && <ToolingTab permissions={permissions} />}
-      {tab === 'approvals' && <ApprovalsTab permissions={permissions} />}
-      {tab === 'settings' && <MaterialsSettings permissions={permissions} />}
+      {tab === 'tooling' && <ToolingTab permissions={permissions} onStatsChange={handleToolingStats} />}
     </div>
   );
 }
@@ -117,8 +130,8 @@ function OverviewTab({
         <div className="metric-strip grid-cols-2 sm:grid-cols-4">
           {[1, 2, 3, 4].map(i => (
             <div key={i} className="metric-cell animate-pulse">
-              <div className="h-3 w-16 rounded bg-gray-100" />
-              <div className="mt-2 h-6 w-12 rounded bg-gray-100" />
+              <div className="h-3 w-16 rounded bg-surface-hover" />
+              <div className="mt-2 h-6 w-12 rounded bg-surface-hover" />
             </div>
           ))}
         </div>
@@ -129,10 +142,10 @@ function OverviewTab({
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <Icon name="warning" size={24} className="text-red-500" />
-        <p className="text-sm text-gray-600">{error}</p>
+        <Icon name="warning" size={24} className="text-danger" />
+        <p className="text-sm text-ink-muted">{error}</p>
         <button onClick={onRetry} className="btn-secondary btn-sm">
-          {t('common.retry') || 'Retry'}
+          {t('common.refresh')}
         </button>
       </div>
     );
@@ -141,8 +154,8 @@ function OverviewTab({
   if (!overview) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <Icon name="package" size={24} className="text-gray-300" />
-        <p className="text-sm text-gray-500">{t('page.materialsTooling.noData')}</p>
+        <Icon name="package" size={24} className="text-ink-subtle" />
+        <p className="text-sm text-ink-muted">{t('page.materialsTooling.noData')}</p>
       </div>
     );
   }
@@ -156,7 +169,7 @@ function OverviewTab({
         <div className="metric-cell">
           <div className="section-label">{t('page.materialsTooling.pendingApprovals')}</div>
           <div className={`mt-1 text-2xl font-semibold tabular-nums ${
-            overview.pendingApprovals > 0 ? 'text-amber-600' : 'text-gray-900'
+            overview.pendingApprovals > 0 ? 'text-warning' : 'text-ink'
           }`}>
             {overview.pendingApprovals}
           </div>
@@ -164,29 +177,29 @@ function OverviewTab({
         <div className="metric-cell">
           <div className="section-label">{t('page.materialsTooling.lowStockItems')}</div>
           <div className={`mt-1 text-2xl font-semibold tabular-nums ${
-            overview.lowStockItems.length > 0 ? 'text-red-600' : 'text-green-600'
+            overview.lowStockItems.length > 0 ? 'text-danger' : 'text-success'
           }`}>
             {overview.lowStockItems.length}
           </div>
         </div>
         <div className="metric-cell">
           <div className="section-label">{t('page.materialsTooling.monthlyReceipts')}</div>
-          <div className="mt-1 text-2xl font-semibold text-gray-900 tabular-nums">
+          <div className="mt-1 text-2xl font-semibold text-ink tabular-nums">
             {overview.currentMonth.receiptQuantity.toLocaleString()}
           </div>
           {viewPrices && overview.currentMonth.receiptAmount != null && (
-            <div className="text-xs text-gray-400 mt-0.5 tabular-nums">
+            <div className="text-xs text-ink-subtle mt-0.5 tabular-nums">
               ¥{Number(overview.currentMonth.receiptAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           )}
         </div>
         <div className="metric-cell">
           <div className="section-label">{t('page.materialsTooling.monthlyIssues')}</div>
-          <div className="mt-1 text-2xl font-semibold text-gray-900 tabular-nums">
+          <div className="mt-1 text-2xl font-semibold text-ink tabular-nums">
             {overview.currentMonth.issueQuantity.toLocaleString()}
           </div>
           {viewPrices && overview.currentMonth.issueReferenceAmount != null && (
-            <div className="text-xs text-gray-400 mt-0.5 tabular-nums">
+            <div className="text-xs text-ink-subtle mt-0.5 tabular-nums">
               ¥{Number(overview.currentMonth.issueReferenceAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           )}
@@ -195,9 +208,9 @@ function OverviewTab({
 
       {/* Overdue tooling count */}
       {overview.overdueToolingCount > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm flex items-center gap-2">
-          <Icon name="warning" size={16} className="text-amber-600" />
-          <span className="text-amber-800 font-medium">
+        <div className="bg-warning-soft border border-warning rounded-lg px-4 py-3 text-sm flex items-center gap-2">
+          <Icon name="warning" size={16} className="text-warning" />
+          <span className="text-warning font-medium">
             {t('page.materialsTooling.overdueToolingCount', { count: overview.overdueToolingCount })}
           </span>
         </div>
@@ -206,29 +219,29 @@ function OverviewTab({
       {/* Low stock items */}
       {overview.lowStockItems.length > 0 && (
         <div className="data-surface overflow-x-auto">
-          <div className="px-4 py-3 border-b border-gray-200">
-            <h3 className="section-label text-red-700">{t('page.materialsTooling.lowStockAlerts')}</h3>
+          <div className="px-4 py-3 border-b border-border">
+            <h3 className="section-label text-danger">{t('page.materialsTooling.lowStockAlerts')}</h3>
           </div>
           <div className="space-y-2 p-3 md:hidden">
             {overview.lowStockItems.map((item: LowStockItem) => (
-              <article key={item.id} className="rounded-md border border-red-100 bg-red-50/40 p-3">
+              <article key={item.id} className="rounded-md border border-danger bg-danger-soft/40 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-2xs tabular-nums text-gray-500">{item.code}</p>
-                    <h4 className="mt-1 break-words text-sm font-medium text-gray-900">{item.name}</h4>
+                    <p className="truncate text-2xs tabular-nums text-ink-muted">{item.code}</p>
+                    <h4 className="mt-1 break-words text-sm font-medium text-ink">{item.name}</h4>
                   </div>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums text-red-600">
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-danger">
                     {item.current_quantity} {item.unit}
                   </span>
                 </div>
-                <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-red-100 pt-3 text-sm">
+                <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-danger pt-3 text-sm">
                   <div>
                     <dt className="section-label">{t('page.materialsTooling.currentQty')}</dt>
-                    <dd className="mt-1 tabular-nums text-red-600">{item.current_quantity}</dd>
+                    <dd className="mt-1 tabular-nums text-danger">{item.current_quantity}</dd>
                   </div>
                   <div>
                     <dt className="section-label">{t('page.materialsTooling.safetyQty')}</dt>
-                    <dd className="mt-1 tabular-nums text-gray-700">{item.safety_quantity}</dd>
+                    <dd className="mt-1 tabular-nums text-ink">{item.safety_quantity}</dd>
                   </div>
                 </dl>
               </article>
@@ -237,7 +250,7 @@ function OverviewTab({
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full">
               <thead className="sticky top-0 z-10">
-                <tr className="border-b border-gray-200 bg-gray-50">
+                <tr className="border-b border-border bg-canvas">
                   <th className="table-header">{t('page.materialsTooling.code')}</th>
                   <th className="table-header">{t('page.materialsTooling.name')}</th>
                   <th className="table-header text-right">{t('page.materialsTooling.currentQty')}</th>
@@ -247,16 +260,16 @@ function OverviewTab({
               </thead>
               <tbody>
                 {overview.lowStockItems.map((item: LowStockItem) => (
-                  <tr key={item.id} className="border-b border-gray-100">
-                    <td className="table-cell tabular-nums text-xs text-gray-500">{item.code}</td>
-                    <td className="table-cell font-medium text-gray-900">{item.name}</td>
-                    <td className="table-cell text-right tabular-nums text-sm text-red-600 font-semibold">
+                  <tr key={item.id} className="border-b border-border">
+                    <td className="table-cell tabular-nums text-xs text-ink-muted">{item.code}</td>
+                    <td className="table-cell font-medium text-ink">{item.name}</td>
+                    <td className="table-cell text-right tabular-nums text-sm text-danger font-semibold">
                       {item.current_quantity}
                     </td>
-                    <td className="table-cell text-right tabular-nums text-xs text-gray-500">
+                    <td className="table-cell text-right tabular-nums text-xs text-ink-muted">
                       {item.safety_quantity}
                     </td>
-                    <td className="table-cell text-xs text-gray-500">{item.unit}</td>
+                    <td className="table-cell text-xs text-ink-muted">{item.unit}</td>
                   </tr>
                 ))}
               </tbody>

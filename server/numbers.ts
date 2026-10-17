@@ -44,9 +44,11 @@ export function nextOrderNumber(customerCode: string, date?: string): string {
   const prefix = getCompanyPrefix();
   const yy = yymm(date);
   const customerPattern = `${prefix}-${customerCode}-`;
+  // Include soft-deleted orders: their rows still occupy the UNIQUE index on
+  // order_number, so ignoring them can regenerate a number that already exists.
   const rows = db.prepare(`
     SELECT order_number FROM orders
-    WHERE deleted_at IS NULL AND order_number LIKE ? ESCAPE '\\'
+    WHERE order_number LIKE ? ESCAPE '\\'
   `).all(`${escapeLike(customerPattern)}%`) as Array<{ order_number: string }>;
   const orderNumberPattern = new RegExp(`^${escapeRegExp(customerPattern)}\\d{4}-(\\d+)$`);
   const maxSequence = rows.reduce((max, row) => {

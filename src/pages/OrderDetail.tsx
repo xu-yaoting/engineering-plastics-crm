@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import SidePanel from '../components/shared/SidePanel';
@@ -21,71 +21,81 @@ const statusFlow = [
   { key: 'delivered', labelKey: 'status.delivered' },
 ];
 
+const ORDER_STAGE_TONES: Record<string, { text: string; hover: string; dot: string; line: string }> = {
+  draft: { text: 'text-ink-muted', hover: 'hover:bg-surface-hover', dot: 'bg-ink-subtle', line: 'bg-ink-subtle' },
+  confirmed: { text: 'text-stage-order', hover: 'hover:bg-stage-order-soft', dot: 'bg-stage-order', line: 'bg-stage-order' },
+  in_production: { text: 'text-stage-order', hover: 'hover:bg-stage-order-soft', dot: 'bg-stage-order', line: 'bg-stage-order' },
+  quality_check: { text: 'text-stage-order', hover: 'hover:bg-stage-order-soft', dot: 'bg-stage-order', line: 'bg-stage-order' },
+  ready_to_ship: { text: 'text-stage-shipment', hover: 'hover:bg-stage-shipment-soft', dot: 'bg-stage-shipment', line: 'bg-stage-shipment' },
+  shipped: { text: 'text-stage-shipment', hover: 'hover:bg-stage-shipment-soft', dot: 'bg-stage-shipment', line: 'bg-stage-shipment' },
+  delivered: { text: 'text-success', hover: 'hover:bg-success-soft', dot: 'bg-success', line: 'bg-success' },
+};
+
 function OrderDetailSkeleton({ label }: { label: string }) {
   return (
     <div role="status" aria-label={label} className="flex h-full flex-col">
       <div aria-hidden="true" className="flex h-full flex-col animate-pulse motion-reduce:animate-none">
-        <header className="flex-shrink-0 border-b border-gray-200 bg-white px-5 py-3">
+        <header className="flex-shrink-0 border-b border-border bg-surface px-5 py-3">
           <div className="flex min-h-8 items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="h-8 w-8 rounded-md bg-gray-200" />
-              <div className="h-5 w-36 rounded bg-gray-200" />
-              <div className="h-5 w-20 rounded bg-gray-100" />
-              <div className="h-5 w-16 rounded bg-gray-100" />
+              <div className="h-8 w-8 rounded-md bg-border-strong" />
+              <div className="h-5 w-36 rounded bg-border-strong" />
+              <div className="h-5 w-20 rounded bg-surface-hover" />
+              <div className="h-5 w-16 rounded bg-surface-hover" />
             </div>
-            <div className="h-8 w-44 rounded-md bg-gray-200" />
+            <div className="h-8 w-44 rounded-md bg-border-strong" />
           </div>
-          <div className="mt-2 h-3 w-72 max-w-full rounded bg-gray-100" />
+          <div className="mt-2 h-3 w-72 max-w-full rounded bg-surface-hover" />
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto bg-gray-50">
+        <main className="min-h-0 flex-1 overflow-y-auto bg-canvas">
           <div className="mx-auto max-w-5xl space-y-6 p-6">
-            <section className="commercial-summary rounded-md border border-gray-200 bg-white p-5">
+            <section className="commercial-summary rounded-md border border-border bg-surface p-5">
               <div className="flex flex-wrap items-start justify-between gap-5">
                 <div className="space-y-3">
-                  <div className="h-3 w-20 rounded bg-gray-100" />
-                  <div className="h-8 w-44 rounded bg-gray-200" />
+                  <div className="h-3 w-20 rounded bg-surface-hover" />
+                  <div className="h-8 w-44 rounded bg-border-strong" />
                 </div>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                  <div className="h-3 w-24 rounded bg-gray-100" />
-                  <div className="h-3 w-20 rounded bg-gray-100" />
-                  <div className="h-4 w-28 rounded bg-gray-200" />
-                  <div className="h-4 w-24 rounded bg-gray-200" />
+                  <div className="h-3 w-24 rounded bg-surface-hover" />
+                  <div className="h-3 w-20 rounded bg-surface-hover" />
+                  <div className="h-4 w-28 rounded bg-border-strong" />
+                  <div className="h-4 w-24 rounded bg-border-strong" />
                 </div>
               </div>
             </section>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <section className="space-y-5 lg:col-span-2">
-                <div className="rounded-md border border-gray-200 bg-white">
-                  <div className="border-b border-gray-200 px-4 py-3">
-                    <div className="h-3 w-24 rounded bg-gray-200" />
+                <div className="rounded-md border border-border bg-surface">
+                  <div className="border-b border-border px-4 py-3">
+                    <div className="h-3 w-24 rounded bg-border-strong" />
                   </div>
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-border">
                     {Array.from({ length: 4 }, (_, index) => (
                       <div key={index} className="grid grid-cols-[minmax(0,2fr)_repeat(3,minmax(56px,1fr))] gap-3 px-4 py-4">
-                        <div className="h-4 w-4/5 rounded bg-gray-200" />
-                        <div className="h-4 rounded bg-gray-100" />
-                        <div className="h-4 rounded bg-gray-100" />
-                        <div className="h-4 rounded bg-gray-200" />
+                        <div className="h-4 w-4/5 rounded bg-border-strong" />
+                        <div className="h-4 rounded bg-surface-hover" />
+                        <div className="h-4 rounded bg-surface-hover" />
+                        <div className="h-4 rounded bg-border-strong" />
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="h-28 rounded-md border border-gray-200 bg-white p-4">
-                  <div className="h-3 w-20 rounded bg-gray-200" />
-                  <div className="mt-4 h-4 w-3/4 rounded bg-gray-100" />
+                <div className="h-28 rounded-md border border-border bg-surface p-4">
+                  <div className="h-3 w-20 rounded bg-border-strong" />
+                  <div className="mt-4 h-4 w-3/4 rounded bg-surface-hover" />
                 </div>
               </section>
 
               <aside className="space-y-4">
                 {[144, 176, 112].map((height, index) => (
-                  <div key={index} className="rounded-md border border-gray-200 bg-white p-4" style={{ height }}>
-                    <div className="h-3 w-24 rounded bg-gray-200" />
+                  <div key={index} className="rounded-md border border-border bg-surface p-4" style={{ height }}>
+                    <div className="h-3 w-24 rounded bg-border-strong" />
                     <div className="mt-4 space-y-3">
-                      <div className="h-3 w-full rounded bg-gray-100" />
-                      <div className="h-3 w-4/5 rounded bg-gray-100" />
-                      <div className="h-3 w-2/3 rounded bg-gray-100" />
+                      <div className="h-3 w-full rounded bg-surface-hover" />
+                      <div className="h-3 w-4/5 rounded bg-surface-hover" />
+                      <div className="h-3 w-2/3 rounded bg-surface-hover" />
                     </div>
                   </div>
                 ))}
@@ -108,50 +118,113 @@ export default function OrderDetail() {
   const [shipments, setShipments] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [quotation, setQuotation] = useState<any>(null);
+  const [loadError, setLoadError] = useState(false);
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [creatingInvoice, setCreatingInvoice] = useState(false);
+  const invoiceInFlight = useRef(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const duplicateInFlight = useRef(false);
+  const [savingShippedQty, setSavingShippedQty] = useState(false);
+  const shippedQtyInFlight = useRef(false);
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [membersLoadError, setMembersLoadError] = useState(false);
   const [editingShipQty, setEditingShipQty] = useState<Record<string, number>>({});
   const [editForm, setEditForm] = useState({
     customer_po_number: '', incoterm: '', payment_term: '', confirmed_delivery_date: '', shipping_address: '',
-    order_date: '', order_number: '', owner_user_id: '',
+    order_date: '', order_number: '', owner_user_id: '', currency: 'USD',
   });
+
+  const loadMembers = () => {
+    setMembersLoadError(false);
+    team.list()
+      .then(setMembers)
+      .catch(() => {
+        setMembers([]);
+        setMembersLoadError(true);
+      });
+  };
 
   useEffect(() => {
     if (user?.role === 'admin') {
-      team.list().then(setMembers).catch(() => setMembers([]));
+      loadMembers();
+    } else {
+      setMembers([]);
+      setMembersLoadError(false);
     }
   }, [user?.role]);
 
   const load = () => {
-    if (!id) return;
-    fetch(`/api/orders/${id}`).then(r => r.json()).then(data => {
-      setOrder(data);
-      setLineItems(data.line_items || []);
-      // Load source quotation if exists
-      if (data.quotation_id) {
-        fetch(`/api/quotations/${data.quotation_id}`)
-          .then(r => r.json())
-          .then(setQuotation)
-          .catch(() => {});
-      }
-    });
-    fetch(`/api/shipments`).then(r => r.json()).then(all => setShipments(all.filter((s: any) => s.order_id === id)));
-    fetch(`/api/payments`).then(r => r.json()).then(all => setInvoices(all.filter((i: any) => i.order_id === id)));
+    if (!id) {
+      setLoadError(true);
+      return;
+    }
+    setLoadError(false);
+    Promise.all([
+      fetch(`/api/orders/${id}`).then(async res => {
+        if (!res.ok) throw new Error(`Order request failed: ${res.status}`);
+        return res.json();
+      }),
+      fetch('/api/shipments').then(async res => {
+        if (!res.ok) throw new Error(`Shipments request failed: ${res.status}`);
+        return res.json();
+      }),
+      fetch('/api/payments').then(async res => {
+        if (!res.ok) throw new Error(`Payments request failed: ${res.status}`);
+        return res.json();
+      }),
+    ])
+      .then(async ([data, allShipments, allInvoices]) => {
+        let sourceQuotation = null;
+        if (data.quotation_id) {
+          try {
+            const quotationRes = await fetch(`/api/quotations/${data.quotation_id}`);
+            if (quotationRes.ok) sourceQuotation = await quotationRes.json();
+          } catch {
+            // Source quotation deleted or unreachable; show the order without it.
+          }
+        }
+        setOrder(data);
+        setLineItems(data.line_items || []);
+        setQuotation(sourceQuotation);
+        setShipments(allShipments.filter((s: any) => s.order_id === id));
+        setInvoices(allInvoices.filter((i: any) => i.order_id === id));
+      })
+      .catch(() => {
+        setOrder(null);
+        setLineItems([]);
+        setShipments([]);
+        setInvoices([]);
+        setQuotation(null);
+        setLoadError(true);
+      });
   };
 
   useEffect(() => { load(); }, [id]);
 
   const updateStatus = async (status: string) => {
-    await fetch(`/api/orders/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    load();
+    if (!id || savingStatus || savingEdit) return;
+    setSavingStatus(true);
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        toast.error(await readError(res, t('page.orderDetail.orderSaveFailed')));
+        return;
+      }
+      load();
+    } catch {
+      toast.error(t('page.orderDetail.orderSaveFailed'));
+    } finally {
+      setSavingStatus(false);
+    }
   };
 
   const readError = async (res: Response, fallback: string) => {
@@ -182,8 +255,44 @@ export default function OrderDetail() {
     }
   };
 
+  const createInvoice = async () => {
+    if (!order || creatingInvoice || savingEdit || savingStatus) return;
+    if (invoiceInFlight.current) return;
+    invoiceInFlight.current = true;
+    setCreatingInvoice(true);
+    try {
+      const res = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: id,
+          total: order.total || 0,
+          due_date: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+        }),
+      });
+      if (!res.ok) {
+        toast.error(await readError(res, t('page.orderDetail.invoiceCreateFailed')));
+        return;
+      }
+      const inv = await res.json();
+      if (!inv?.invoice_number) {
+        toast.error(t('page.orderDetail.invoiceCreateFailed'));
+        return;
+      }
+      toast.success(t('page.orderDetail.invoiceCreated', { number: inv.invoice_number }));
+      window.location.href = '/payments';
+    } catch {
+      toast.error(t('page.orderDetail.invoiceCreateFailed'));
+    } finally {
+      invoiceInFlight.current = false;
+      setCreatingInvoice(false);
+    }
+  };
+
   const duplicate = async () => {
-    if (!order) return;
+    if (!order || duplicateInFlight.current) return;
+    duplicateInFlight.current = true;
+    setDuplicating(true);
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -194,19 +303,48 @@ export default function OrderDetail() {
           quotation_id: order.quotation_id,
           currency: order.currency,
           subtotal: order.subtotal || 0,
+          discount_percent: order.discount_percent || 0,
+          discount_amount: order.discount_amount || 0,
+          incoterm: order.incoterm || '',
+          payment_term: order.payment_term || '',
+          tax_type: order.tax_type || '',
+          domestic_vat_rate: order.domestic_vat_rate || 0,
+          export_tax_rebate_rate: order.export_tax_rebate_rate || 0,
+          tax_amount: order.tax_amount || 0,
+          shipping_handling: order.shipping_handling || 0,
           total: order.total || 0,
+          line_items: lineItems.map((item: any) => ({
+            line_number: item.line_number,
+            product_grade_snapshot: item.product_grade_snapshot,
+            unit_of_measure: item.unit_of_measure,
+            quantity: item.quantity_ordered,
+            unit_price: item.unit_price,
+            discount_percent: item.discount_percent || 0,
+            line_total: item.line_total,
+            description: item.description,
+          })),
         }),
       });
-      const dup = await res.json();
+      const dup = await res.json().catch(() => null);
+      if (!res.ok || !dup?.id) throw new Error(dup?.error || dup?.message || t('page.orderDetail.duplicateFailed'));
       navigate(`/orders/${dup.id}`);
-    } catch (e) { toast.error(t('page.orderDetail.duplicateFailed')); }
+    } catch (e) {
+      toast.error(e instanceof Error && e.message ? e.message : t('page.orderDetail.duplicateFailed'));
+    } finally {
+      duplicateInFlight.current = false;
+      setDuplicating(false);
+    }
   };
 
   const remove = async () => {
     if (!id) return;
     setDeleting(true);
     try {
-      await fetch(`/api/orders/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/orders/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        toast.error(await readError(res, t('page.orderDetail.deleteFailed')));
+        return;
+      }
       navigate('/orders');
     } catch (e) {
       toast.error(t('page.orderDetail.deleteFailed'));
@@ -230,6 +368,60 @@ export default function OrderDetail() {
     }
   };
 
+  const saveShippedQuantities = async () => {
+    if (!id || savingShippedQty || shippedQtyInFlight.current || Object.keys(editingShipQty).length === 0) return;
+    const submittedQuantities = Object.entries(editingShipQty);
+    shippedQtyInFlight.current = true;
+    setSavingShippedQty(true);
+    try {
+      const results = await Promise.allSettled(submittedQuantities.map(([lineItemId, qty]) => (
+        fetch(`/api/orders/line-items/${lineItemId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity_shipped: qty }),
+        })
+      )));
+      setEditingShipQty(previous => {
+        const remaining = { ...previous };
+        submittedQuantities.forEach(([lineItemId, qty], index) => {
+          const result = results[index];
+          if (result.status === 'fulfilled' && result.value.ok && remaining[lineItemId] === qty) {
+            delete remaining[lineItemId];
+          }
+        });
+        return remaining;
+      });
+      load();
+      const failedResponse = results.find((result): result is PromiseFulfilledResult<Response> => (
+        result.status === 'fulfilled' && !result.value.ok
+      ))?.value;
+      if (failedResponse) {
+        toast.error(await readError(failedResponse, t('page.orderDetail.orderSaveFailed')));
+      } else if (results.some(result => result.status === 'rejected')) {
+        toast.error(t('page.orderDetail.orderSaveFailed'));
+      }
+    } catch {
+      toast.error(t('page.orderDetail.orderSaveFailed'));
+    } finally {
+      shippedQtyInFlight.current = false;
+      setSavingShippedQty(false);
+    }
+  };
+
+  if (loadError) {
+    return (
+      <div className="flex h-full items-center justify-center bg-canvas p-6">
+        <div className="empty-state data-surface w-full max-w-md p-6" role="alert">
+          <p>{t('page.error.loadFailed')}</p>
+          <button type="button" onClick={load} className="btn-secondary btn-sm mt-3">
+            <Icon name="refresh" size={14} className="mr-1.5" />
+            {t('common.refresh')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!order) return <OrderDetailSkeleton label={t('common.loading')} />;
 
   const currentIdx = statusFlow.findIndex(s => s.key === order.status);
@@ -237,7 +429,7 @@ export default function OrderDetail() {
   return (
     <div className="h-full flex flex-col overflow-x-hidden">
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-gray-200 bg-white px-5 py-3">
+      <div className="flex-shrink-0 border-b border-border bg-surface px-5 py-3">
         <div className="page-header mb-0 min-h-0 items-stretch sm:items-center">
           <div className="flex min-w-0 items-start gap-2 sm:items-center sm:gap-3">
             <button onClick={() => navigate(-1)} className="icon-btn" aria-label={t('common.back')} title={t('common.back')}><Icon name="back" size={16} /></button>
@@ -256,47 +448,32 @@ export default function OrderDetail() {
                 payment_term: order.payment_term || '',
                 confirmed_delivery_date: order.confirmed_delivery_date || '',
                 shipping_address: order.shipping_address || '',
+                currency: order.currency || 'USD',
               });
               setSavingEdit(false);
               setShowEditPanel(true);
             }} className="btn-primary btn-sm"><Icon name="square-pen" size={14} className="mr-1.5" />{t('common.edit')}</button>
             <Link to={`/shipments?order=${id}`} className="btn-secondary btn-sm"><Icon name="truck" size={14} className="mr-1.5" />{t('page.orderDetail.ship')}</Link>
-            <button onClick={async () => {
-              if (!order) return;
-              try {
-                const res = await fetch('/api/payments', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    order_id: id,
-                    total: order.total || 0,
-                    due_date: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-                  }),
-                });
-                const inv = await res.json();
-                toast.success(t('page.orderDetail.invoiceCreated', { number: inv.invoice_number }));
-                window.location.href = '/payments';
-              } catch (e) { toast.error(t('page.orderDetail.invoiceCreateFailed')); }
-            }} className="btn-secondary btn-sm"><Icon name="file-down" size={14} className="mr-1.5" />{t('page.orderDetail.invoice')}</button>
+            <button onClick={createInvoice} aria-busy={creatingInvoice} disabled={creatingInvoice || savingEdit || savingStatus} className="btn-secondary btn-sm"><Icon name="file-down" size={14} className="mr-1.5" />{t('page.orderDetail.invoice')}</button>
             <div className="relative">
               <button onClick={() => setShowActions(!showActions)} className="icon-btn" aria-label={t('common.moreActions')} title={t('common.moreActions')}><Icon name="more" size={16} /></button>
               {showActions && (
                 <div className="menu-surface absolute right-0 top-full mt-1 w-40">
-                  <button onClick={() => { setShowActions(false); duplicate(); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"><Icon name="copy" size={13} />{t('common.duplicate')}</button>
-                  <button onClick={() => { setShowActions(false); setConfirmDelete(true); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"><Icon name="delete" size={13} />{t('common.delete')}</button>
+                  <button onClick={duplicate} disabled={duplicating} aria-busy={duplicating} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-ink-muted hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"><Icon name="copy" size={13} />{t('common.duplicate')}</button>
+                  <button onClick={() => { setShowActions(false); setConfirmDelete(true); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"><Icon name="delete" size={13} />{t('common.delete')}</button>
                 </div>
               )}
             </div>
           </div>
         </div>
-        <div className="text-xs text-gray-500">
-          <Link to={`/companies/${order.company_id}`} className="text-blue-600 hover:underline">{order.company_name}</Link>
+        <div className="text-xs text-ink-muted">
+          <Link to={`/companies/${order.company_id}`} className="text-brand hover:underline">{order.company_name}</Link>
           {order.customer_po_number && ` · PO: ${order.customer_po_number}`}
           {` · ${order.currency || 'USD'}`}
           {order.order_date && ` · ${t('page.orderDetail.ordered')}: ${order.order_date}`}
           {order.requested_delivery_date && ` · ${t('page.orderDetail.requested')}: ${order.requested_delivery_date}`}
           {order.quotation_id && (
-            <span> · {t('page.orderDetail.source')}: <Link to={`/quotations/${order.quotation_id}`} className="text-blue-600 hover:underline">{t('page.orderDetail.quotationPrefix')} #{order.quotation_id?.slice(0, 8)}</Link></span>
+            <span> · {t('page.orderDetail.source')}: <Link to={`/quotations/${order.quotation_id}`} className="text-brand hover:underline">{t('page.orderDetail.quotationPrefix')} #{order.quotation_id?.slice(0, 8)}</Link></span>
           )}
         </div>
       </div>
@@ -323,6 +500,15 @@ export default function OrderDetail() {
                 <option value="">{t('accountability.unassigned')}</option>
                 {members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
               </select>
+              {membersLoadError && (
+                <div className="mt-1 flex items-center justify-between gap-2" role="alert">
+                  <span className="text-2xs text-danger">{t('page.error.loadFailed')}</span>
+                  <button type="button" onClick={loadMembers} className="inline-flex items-center gap-1 text-2xs text-brand hover:underline">
+                    <Icon name="refresh" size={12} />
+                    {t('common.refresh')}
+                  </button>
+                </div>
+              )}
             </div>
           )}
           <div className="grid grid-cols-2 gap-3">
@@ -337,6 +523,14 @@ export default function OrderDetail() {
             <div>
               <label className="label" htmlFor="order-edit-incoterm">{t('page.orderDetail.incoterm')}</label>
               <input id="order-edit-incoterm" className="input" value={editForm.incoterm} onChange={e => setEditForm({...editForm, incoterm: e.target.value})} />
+            </div>
+            <div>
+              <label className="label" htmlFor="order-edit-currency">{t('page.quotationDetail.currency')}</label>
+              <select id="order-edit-currency" className="input" value={editForm.currency} onChange={e => setEditForm({ ...editForm, currency: e.target.value })}>
+                <option value="USD">USD</option>
+                <option value="CNY">CNY</option>
+                <option value="EUR">EUR</option>
+              </select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -375,21 +569,29 @@ export default function OrderDetail() {
       />
 
       {/* Progress Bar */}
-      <div className="bg-white border-b border-gray-200 px-5 py-4">
+      <div className="border-b border-border bg-surface px-5 py-4">
         <div className="flex items-center max-w-3xl overflow-x-auto">
           {statusFlow.map((s, idx) => (
+            (() => {
+              const tone = ORDER_STAGE_TONES[s.key] || ORDER_STAGE_TONES.draft;
+              const isComplete = idx <= currentIdx;
+              return (
             <div key={s.key} className="flex items-center flex-shrink-0">
               <button
                 onClick={() => updateStatus(s.key)}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg transition-colors ${
-                  idx <= currentIdx ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-300 hover:bg-gray-50'
+                disabled={savingStatus || savingEdit}
+                aria-current={idx === currentIdx ? 'step' : undefined}
+                className={`flex items-center gap-1.5 rounded-md px-2 py-1 transition-colors ${
+                  isComplete ? `${tone.text} ${tone.hover}` : 'text-ink-subtle hover:bg-surface-hover'
                 }`}
               >
-                <div className={`w-3 h-3 rounded-full ${idx <= currentIdx ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                <div className={`h-3 w-3 rounded-full ${isComplete ? tone.dot : 'bg-border-strong'}`} />
                 <span className={`text-2xs font-450 whitespace-nowrap ${idx === currentIdx ? 'font-semibold' : ''}`}>{t(s.labelKey)}</span>
               </button>
-              {idx < statusFlow.length - 1 && <div className={`w-6 h-0.5 mx-1 ${idx < currentIdx ? 'bg-blue-600' : 'bg-gray-200'}`} />}
+              {idx < statusFlow.length - 1 && <div className={`mx-1 h-0.5 w-6 ${idx < currentIdx ? tone.line : 'bg-border-strong'}`} />}
             </div>
+              );
+            })()
           ))}
         </div>
       </div>
@@ -401,17 +603,17 @@ export default function OrderDetail() {
           <div className="section-band commercial-summary p-5">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>
-                <p className="section-label text-gray-400">{t('page.orderDetail.totalAmount')}</p>
-                <p className="mt-1 text-2xl font-semibold text-gray-900 tabular-nums">{formatCurrency(order.total || subtotal, order.currency)}</p>
+                <p className="section-label text-ink-subtle">{t('page.orderDetail.totalAmount')}</p>
+                <p className="mt-1 text-2xl font-semibold text-ink tabular-nums">{formatCurrency(order.total ?? subtotal, order.currency)}</p>
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge status={order.status} />
                 <StatusBadge status={order.payment_status} />
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-gray-200 pt-4 md:grid-cols-4">
+            <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border pt-4 md:grid-cols-4">
               <SummaryField label={t('page.inquiryDetail.customer')} value={
-                <Link to={`/companies/${order.company_id}`} className="text-blue-600 hover:underline">{order.company_name}</Link>
+                <Link to={`/companies/${order.company_id}`} className="text-brand hover:underline">{order.company_name}</Link>
               } />
               <SummaryField label={t('page.orderDetail.orderNumber')} value={order.order_number} mono />
               <SummaryField label={t('page.orderDetail.status')} value={<StatusBadge status={order.status} />} />
@@ -424,7 +626,7 @@ export default function OrderDetail() {
               <SummaryField label={t('page.orderDetail.deliveryDate')} value={order.confirmed_delivery_date || '—'} />
               <SummaryField label={t('page.orderDetail.source')} value={
                 order.quotation_id
-                  ? <Link to={`/quotations/${order.quotation_id}`} className="text-blue-600 hover:underline">{t('page.orderDetail.viewOriginalQuotation')}</Link>
+                  ? <Link to={`/quotations/${order.quotation_id}`} className="text-brand hover:underline">{t('page.orderDetail.viewOriginalQuotation')}</Link>
                   : '—'
               } />
             </div>
@@ -436,7 +638,7 @@ export default function OrderDetail() {
 
           {/* ── Line Items ── */}
           <div className="data-surface overflow-x-auto">
-            <div className="px-4 py-3 border-b border-gray-200">
+            <div className="border-b border-border px-4 py-3">
               <h3 className="section-label">{t('page.orderDetail.lineItems')}</h3>
             </div>
             <div className="space-y-2 p-3 md:hidden">
@@ -444,18 +646,18 @@ export default function OrderDetail() {
                 const sq = editingShipQty[item.id] ?? item.quantity_shipped ?? 0;
                 const shippedTotal = (item.unit_price || 0) * sq;
                 return (
-                  <div key={item.id} className="rounded-md border border-gray-200 bg-white p-3">
+                  <div key={item.id} className="rounded-md border border-border bg-surface p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-2xs font-medium uppercase tracking-wide text-gray-400">#{item.line_number}</p>
-                        <p className="mt-1 truncate text-sm font-medium text-gray-900">{item.product_grade_snapshot || '—'}</p>
+                        <p className="text-2xs font-medium text-ink-subtle">#{item.line_number}</p>
+                        <p className="mt-1 truncate text-sm font-medium text-ink">{item.product_grade_snapshot || '—'}</p>
                       </div>
-                      <p className="shrink-0 text-sm font-semibold tabular-nums text-gray-900">{formatCurrency(item.line_total || 0, order.currency)}</p>
+                      <p className="shrink-0 text-sm font-semibold tabular-nums text-ink">{formatCurrency(item.line_total || 0, order.currency)}</p>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-gray-100 pt-3">
+                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3">
                       <div>
                         <p className="section-label">{t('page.orderDetail.ordered')}</p>
-                        <p className="mt-1 text-sm tabular-nums text-gray-700">{item.quantity_ordered}</p>
+                        <p className="mt-1 text-sm tabular-nums text-ink-muted">{item.quantity_ordered}</p>
                       </div>
                       <div>
                         <label className="section-label" htmlFor={`order-line-mobile-${item.id}-shipped-quantity`}>
@@ -488,12 +690,12 @@ export default function OrderDetail() {
                       </div>
                       <div>
                         <p className="section-label">{t('page.orderDetail.price')}</p>
-                        <p className="mt-1 text-sm tabular-nums text-gray-700">{formatCurrency(item.unit_price || 0, order.currency)}</p>
+                        <p className="mt-1 text-sm tabular-nums text-ink-muted">{formatCurrency(item.unit_price || 0, order.currency)}</p>
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 text-xs">
-                      <span className="text-gray-500">{t('page.orderDetail.shippedTotal')}</span>
-                      <span className="font-medium tabular-nums text-blue-600">{formatCurrency(shippedTotal, order.currency)}</span>
+                    <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs">
+                      <span className="text-ink-muted">{t('page.orderDetail.shippedTotal')}</span>
+                      <span className="font-medium tabular-nums text-stage-shipment">{formatCurrency(shippedTotal, order.currency)}</span>
                     </div>
                   </div>
                 );
@@ -503,7 +705,7 @@ export default function OrderDetail() {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[920px]">
                 <thead className="sticky top-0 z-10">
-                  <tr className="border-b border-gray-200 bg-gray-50">
+                  <tr className="border-b border-border bg-surface-subtle">
                     <th className="table-header">#</th>
                     <th className="table-header">{t('page.orderDetail.product')}</th>
                     <th className="table-header text-right">{t('page.orderDetail.ordered')}</th>
@@ -519,9 +721,9 @@ export default function OrderDetail() {
                     const sq = editingShipQty[item.id] ?? item.quantity_shipped ?? 0;
                     const shippedTotal = (item.unit_price || 0) * sq;
                     return (
-                      <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="table-cell text-xs text-gray-400">{item.line_number}</td>
-                        <td className="table-cell text-sm text-gray-900">{item.product_grade_snapshot || '—'}</td>
+                      <tr key={item.id} className="border-b border-border hover:bg-surface-hover">
+                        <td className="table-cell text-xs text-ink-subtle">{item.line_number}</td>
+                        <td className="table-cell text-sm text-ink">{item.product_grade_snapshot || '—'}</td>
                         <td className="table-cell text-right tabular-nums text-sm">{item.quantity_ordered}</td>
                         <td className="table-cell text-right relative">
                           <label className="sr-only" htmlFor={`order-line-${item.id}-shipped-quantity`}>
@@ -554,7 +756,7 @@ export default function OrderDetail() {
                         </td>
                         <td className="table-cell text-right tabular-nums text-sm">{formatCurrency(item.unit_price || 0, order.currency)}</td>
                         <td className="table-cell text-right tabular-nums text-sm font-medium">{formatCurrency(item.line_total || 0, order.currency)}</td>
-                        <td className="table-cell text-right tabular-nums text-sm font-medium text-blue-600">{formatCurrency(shippedTotal, order.currency)}</td>
+                        <td className="table-cell text-right tabular-nums text-sm font-medium text-stage-shipment">{formatCurrency(shippedTotal, order.currency)}</td>
                       </tr>
                     );
                   })}
@@ -564,39 +766,27 @@ export default function OrderDetail() {
                 </tbody>
               </table>
             </div>
-            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+            <div className="flex items-center justify-between border-t border-border bg-surface-subtle px-4 py-3">
               <div className="flex items-center gap-3">
-                <button onClick={async () => {
-                  if (!id) return;
-                  const updates = Object.entries(editingShipQty).map(([lineItemId, qty]) => (
-                    fetch(`/api/orders/line-items/${lineItemId}`, {
-                      method: 'PUT',
-                      headers: {'Content-Type': 'application/json'},
-                      body: JSON.stringify({ quantity_shipped: qty }),
-                    })
-                  ));
-                  await Promise.all(updates);
-                  setEditingShipQty({});
-                  load();
-                }} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors"
-                  disabled={Object.keys(editingShipQty).length === 0}>
+                <button onClick={saveShippedQuantities} aria-busy={savingShippedQty} className="inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium text-brand transition-colors hover:bg-brand-soft"
+                  disabled={savingShippedQty || Object.keys(editingShipQty).length === 0}>
                   <Icon name="save" size={14} />{t('page.orderDetail.shippedQty')}
                 </button>
               </div>
               <div className="w-48 space-y-1">
-                <div className="flex justify-between text-sm text-gray-500">
+                <div className="flex justify-between text-sm text-ink-muted">
                   <span>{t('page.orderDetail.subtotal')}</span>
-                  <span className="tabular-nums">{formatCurrency(order.subtotal || subtotal, order.currency)}</span>
+                  <span className="tabular-nums">{formatCurrency(order.subtotal ?? subtotal, order.currency)}</span>
                 </div>
                 {order.discount_percent > 0 && (
-                  <div className="flex justify-between text-sm text-gray-500">
+                  <div className="flex justify-between text-sm text-ink-muted">
                     <span>{t('page.quotationDetail.discount')} ({order.discount_percent}%)</span>
                     <span className="tabular-nums">-{formatCurrency(order.discount_amount || 0, order.currency)}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-semibold text-gray-900 pt-1 border-t border-gray-200">
+                <div className="flex justify-between font-semibold text-ink pt-1 border-t border-border">
                   <span>{t('page.orderDetail.total')}</span>
-                  <span className="tabular-nums text-base">{formatCurrency(order.total || subtotal, order.currency)}</span>
+                  <span className="tabular-nums text-base">{formatCurrency(order.total ?? subtotal, order.currency)}</span>
                 </div>
               </div>
             </div>
@@ -605,20 +795,20 @@ export default function OrderDetail() {
           <div className="card p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="section-label">{t('page.orderDetail.shipment')} ({shipments.length})</h3>
-              <Link to="/shipments" className="text-xs text-blue-600 hover:underline font-medium">{t('common.edit')}</Link>
+              <Link to="/shipments" className="text-xs font-medium text-brand hover:underline">{t('common.edit')}</Link>
             </div>
             {shipments.length === 0 ? (
-              <p className="text-xs text-gray-400">{t('page.orderDetail.noShipmentLinked')} <Link to="/shipments" className="text-blue-600 hover:underline">{t('page.orderDetail.createFromShipments')}</Link></p>
+              <p className="text-xs text-ink-subtle">{t('page.orderDetail.noShipmentLinked')} <Link to="/shipments" className="text-brand hover:underline">{t('page.orderDetail.createFromShipments')}</Link></p>
             ) : (
               <div className="space-y-3">
                 {shipments.map((s: any) => (
-                  <div key={s.id} className="rounded border border-gray-200 bg-white p-3">
+                  <div key={s.id} className="rounded border border-border bg-surface p-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-gray-900">{s.shipment_number}</span>
+                        <span className="text-xs font-semibold text-ink">{s.shipment_number}</span>
                         <StatusBadge status={s.status} />
                       </div>
-                      <Link to={`/shipments/${s.id}`} className="text-2xs text-blue-600 hover:underline">{t('page.orderDetail.viewDetails')} </Link>
+                      <Link to={`/shipments/${s.id}`} className="text-2xs text-brand hover:underline">{t('page.orderDetail.viewDetails')} </Link>
                     </div>
                     <ShipmentFieldsDisplay shipment={s} />
                   </div>
@@ -631,17 +821,17 @@ export default function OrderDetail() {
           <div className="card p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="section-label">{t('page.payments.invoices')} ({invoices.length})</h3>
-              <button onClick={() => navigate('/payments')} className="text-xs text-blue-600 hover:underline">{t('page.orderDetail.viewAll')}</button>
+              <button onClick={() => navigate('/payments')} className="text-xs text-brand hover:underline">{t('page.orderDetail.viewAll')}</button>
             </div>
             {invoices.length === 0 ? (
-              <p className="text-xs text-gray-400">{t('page.orderDetail.noInvoicesCreated')}</p>
+              <p className="text-xs text-ink-subtle">{t('page.orderDetail.noInvoicesCreated')}</p>
             ) : (
               <div className="space-y-2">
                 {invoices.slice(0, 3).map((inv: any) => (
-                  <div key={inv.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
-                    <div><span className="text-xs font-medium text-gray-900">{inv.invoice_number}</span><span className="text-2xs text-gray-400 ml-2">{t('page.payments.due')}: {inv.due_date?.slice(0, 10)}</span></div>
+                  <div key={inv.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-canvas">
+                    <div><span className="text-xs font-medium text-ink whitespace-nowrap">{inv.invoice_number}</span>{' '}<span className="text-2xs text-ink-subtle ml-2 whitespace-nowrap">{t('page.payments.due')}: {inv.due_date?.slice(0, 10)}</span></div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs tabular-nums ${(inv.amount_due || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>{formatCurrency(inv.amount_due || 0, inv.currency || order.currency)}</span>
+                      <span className={`text-xs tabular-nums ${(inv.amount_due || 0) > 0 ? 'text-danger' : 'text-success'}`}>{formatCurrency(inv.amount_due || 0, inv.currency || order.currency)}</span>
                       <StatusBadge status={inv.status} />
                     </div>
                   </div>
@@ -658,8 +848,8 @@ export default function OrderDetail() {
 function SummaryField({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
     <div>
-      <div className="text-2xs text-gray-400 mb-0.5">{label}</div>
-      <div className={`text-sm text-gray-900 ${mono ? 'tabular-nums' : ''}`}>{value}</div>
+      <div className="text-2xs text-ink-subtle mb-0.5">{label}</div>
+      <div className={`text-sm text-ink ${mono ? 'tabular-nums' : ''}`}>{value}</div>
     </div>
   );
 }
@@ -690,7 +880,7 @@ function ShipmentFieldsDisplay({ shipment }: { shipment: any }) {
   const f = (k: string) => shipment[k] || '—';
 
   const Field = ({ k, mono }: { k: string; mono?: boolean }) => (
-    <div><span className="text-gray-400">{label[k] || k}</span><br /><span className={mono ? 'tabular-nums' : ''}>{f(k)}</span></div>
+    <div><span className="text-ink-subtle">{label[k] || k}</span><br /><span className={mono ? 'tabular-nums' : ''}>{f(k)}</span></div>
   );
 
   const commonFields = (
@@ -702,13 +892,13 @@ function ShipmentFieldsDisplay({ shipment }: { shipment: any }) {
 
   return (
     <div className="grid grid-cols-3 gap-x-4 gap-y-1.5 text-xs">
-      <div><span className="text-gray-400">{t('page.shipments.type')}</span><br /><span className="font-medium text-gray-900">{typeLabel[shipType] || shipType}</span></div>
+      <div><span className="text-ink-subtle">{t('page.shipments.type')}</span><br /><span className="font-medium text-ink">{typeLabel[shipType] || shipType}</span></div>
       {shipType === 'sea_freight' && <><Field k="container_no" mono /><Field k="vessel" /><Field k="voyage" />{commonFields}</>}
       {shipType === 'air_freight' && <><Field k="awb" mono /><Field k="airline" />{commonFields}</>}
       {shipType === 'express' && <><Field k="express_provider" /><Field k="tracking_number" mono /></>}
       {shipType === 'truck' && <><Field k="carrier" />{commonFields}</>}
       {shipType === 'pickup' && <div className="col-span-2"><Field k="shipping_address" /></div>}
-      {shipment.notes && <div className="col-span-3"><span className="text-gray-400">{t('page.shipments.notes')}</span><br /><span>{shipment.notes}</span></div>}
+      {shipment.notes && <div className="col-span-3"><span className="text-ink-subtle">{t('page.shipments.notes')}</span><br /><span>{shipment.notes}</span></div>}
     </div>
   );
 }

@@ -37,6 +37,17 @@ function toContactSqlValue(field: ContactUpdateField, value: any) {
   return value;
 }
 
+function clearOtherPrimaryContacts(req: Request, companyId: unknown, contactId: string, now: string): void {
+  if (typeof companyId !== 'string' || !companyId) return;
+  const previous = db.prepare('SELECT * FROM contacts WHERE company_id = ? AND id != ? AND is_primary_contact = 1 AND deleted_at IS NULL')
+    .all(companyId, contactId) as Record<string, unknown>[];
+  for (const contact of previous) {
+    db.prepare('UPDATE contacts SET is_primary_contact = 0, updated_by = ?, updated_at = ? WHERE id = ?')
+      .run(req.user!.id, now, contact.id);
+    writeAudit(req, 'contact', contact.id as string, 'update', computeChanges(contact, { ...contact, is_primary_contact: 0 }));
+  }
+}
+
 router.get('/', (req: Request, res: Response) => {
   const { company_id } = req.query;
   const q = req.query.q as string | undefined;
@@ -70,27 +81,26 @@ router.post('/', (req: Request, res: Response) => {
   const { company_id, salutation, first_name, last_name, job_title, department,
     role_in_process, email, phone_direct, phone_mobile, is_primary_contact,
     is_decision_maker, notes, wechat_id } = req.body;
+  const companyId = company_id || null;
 
   // Verify FK: company must exist
-  if (company_id) {
-    const co = db.prepare("SELECT id FROM companies WHERE id = ? AND deleted_at IS NULL").get(company_id);
+  if (companyId) {
+    if (typeof companyId !== 'string') return res.status(400).json({ success: false, message: 'Selected company does not exist' });
+    const co = db.prepare("SELECT id FROM companies WHERE id = ? AND deleted_at IS NULL").get(companyId);
     if (!co) return res.status(400).json({ success: false, message: 'Selected company does not exist' });
   }
 
   const id = uuidv4();
   const now = new Date().toISOString();
 
-  if (is_primary_contact) {
-    db.prepare("UPDATE contacts SET is_primary_contact = 0 WHERE company_id = ?").run(company_id);
-  }
-
   db.transaction(() => {
+    if (is_primary_contact) clearOtherPrimaryContacts(req, companyId, id, now);
     db.prepare(`
     INSERT INTO contacts (id, company_id, salutation, first_name, last_name, job_title,
       department, role_in_process, email, phone_direct, phone_mobile,
       wechat_id, is_primary_contact, is_decision_maker, notes, created_by, updated_by, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, company_id, salutation, first_name, last_name, job_title,
+  `).run(id, companyId, salutation, first_name, last_name, job_title,
     department, role_in_process || 'procurement', email || '', phone_direct, phone_mobile,
       wechat_id, is_primary_contact ? 1 : 0, is_decision_maker ? 1 : 0, notes,
       req.user!.id, req.user!.id, now, now);
@@ -112,9 +122,13 @@ router.put('/:id', (req: Request, res: Response) => {
   const now = new Date().toISOString();
   const before = db.prepare("SELECT * FROM contacts WHERE id = ? AND deleted_at IS NULL").get(req.params.id) as Record<string, unknown> | undefined;
   if (!before) return res.status(404).json({ success: false, message: 'Record not found' });
-  if (req.body.is_primary_contact) {
-    const contact = db.prepare("SELECT company_id FROM contacts WHERE id = ?").get(req.params.id) as any;
-    if (contact) db.prepare("UPDATE contacts SET is_primary_contact = 0 WHERE company_id = ?").run(contact.company_id);
+  const companySubmitted = Object.prototype.hasOwnProperty.call(req.body, 'company_id');
+  const companyId = companySubmitted ? req.body.company_id || null : before.company_id;
+  if (companySubmitted) req.body.company_id = companyId;
+  if (companyId !== before.company_id && companyId !== null) {
+    const company = typeof companyId === 'string'
+      ? db.prepare('SELECT id FROM companies WHERE id = ? AND deleted_at IS NULL').get(companyId) : undefined;
+    if (!company) return res.status(400).json({ success: false, message: 'Selected company does not exist' });
   }
   const updateFields = CONTACT_UPDATE_FIELDS.filter((field) =>
     Object.prototype.hasOwnProperty.call(req.body, field)
@@ -125,6 +139,10 @@ router.put('/:id', (req: Request, res: Response) => {
   const fields = updateFields.map((field) => `${field} = ?`).join(', ');
   const values = updateFields.map((field) => toContactSqlValue(field, req.body[field]));
   db.transaction(() => {
+    const primary = Object.prototype.hasOwnProperty.call(req.body, 'is_primary_contact') ? req.body.is_primary_contact : before.is_primary_contact;
+    if (primary && (companyId !== before.company_id || req.body.is_primary_contact)) {
+      clearOtherPrimaryContacts(req, companyId, req.params.id, now);
+    }
     db.prepare(`UPDATE contacts SET ${fields}, updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL`)
       .run(...values, req.user!.id, now, req.params.id);
     const after = db.prepare("SELECT * FROM contacts WHERE id = ?").get(req.params.id) as Record<string, unknown>;

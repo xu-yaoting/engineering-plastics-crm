@@ -138,7 +138,7 @@ function drawDocumentHeader(doc: PDFKit.PDFDocument, input: MaterialDocumentPdfI
   const header = input.header;
   const type = String(header.document_type);
   doc.font(BOLD_FONT).fontSize(16).fillColor('#17202A')
-    .text('JEKIN HPM (Jiangsu) Co., Ltd.', PAGE_MARGIN, 38, { width: CONTENT_WIDTH, align: 'center' });
+    .text('JEKIN HPM (Jiangsu) Co., Ltd', PAGE_MARGIN, 38, { width: CONTENT_WIDTH, align: 'center' });
   doc.font(BOLD_FONT).fontSize(20)
     .text(DOCUMENT_TYPE_NAMES[type] ?? '物料与工装单据', PAGE_MARGIN, 66, { width: CONTENT_WIDTH, align: 'center' });
   doc.font(REGULAR_FONT).fontSize(8.5).fillColor('#4B5563')
@@ -443,7 +443,7 @@ export function generateMaterialDocumentPdf(
     bufferPages: true, compress: false, autoFirstPage: true,
     info: {
       Title: textValue(input.header.document_number) + ' ' + (variant === 'approved' ? '审批版' : '申请版'),
-      Author: 'JEKIN HPM (Jiangsu) Co., Ltd.',
+      Author: 'JEKIN HPM (Jiangsu) Co., Ltd',
       CreationDate: stableDate,
       ModDate: stableDate,
     },

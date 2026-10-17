@@ -23,7 +23,7 @@ sleep 1
 
 echo ""
 echo "  ╔═══════════════════════════════════════════╗"
-echo "  ║   Engineering Plastics CRM — LAN Mode     ║"
+echo "  ║   JEKIN CRM — LAN Mode                    ║"
 echo "  ║   Starting servers for internal testing   ║"
 echo "  ╚═══════════════════════════════════════════╝"
 echo ""
@@ -44,7 +44,13 @@ echo "  同事访问: http://$LAN_IP:5173"
 echo ""
 
 if [ "$API" = 200 ]; then
-  open http://127.0.0.1:5173 2>/dev/null || true
+  if pgrep -fl "Google Chrome" 2>/dev/null | grep -q -- "--headless"; then
+    # A headless Chrome instance is holding the default-browser handler (it opens
+    # with no visible window); use Safari so the CRM actually shows up.
+    open -a Safari http://127.0.0.1:5173 2>/dev/null || true
+  else
+    open http://127.0.0.1:5173 2>/dev/null || true
+  fi
   echo "  ✅ CRM LAN Ready"
 fi
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import SidePanel from './SidePanel';
-import { activities as activitiesApi, tasks as tasksApi } from '../../lib/api';
+import { activities as activitiesApi, followUps } from '../../lib/api';
 import Icon from './Icon';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -61,29 +61,23 @@ export default function MeetingNotes({
         form.nextFollowUp ? `**${t('page.meetingNotes.descriptionNextFollowUp')}:** ${form.nextFollowUp} (${form.nextFollowUpDate || t('page.meetingNotes.tbd')})` : '',
       ].filter(Boolean).join('\n');
 
-      // Save as activity
-      await activitiesApi.create({
-        entity_type: entityType,
-        entity_id: entityId,
+      // Company meetings use the transactional follow-up workflow so the
+      // activity and optional next task cannot leave a partial write behind.
+      await followUps.record({
+        company_id: entityId,
         activity_type: 'meeting',
         subject: t('page.meetingNotes.meetingSubject', { purpose: form.purpose }),
         description,
         direction: 'internal',
         channel: 'in_person',
+        next_task: form.nextFollowUp && form.nextFollowUpDate
+          ? {
+              subject: t('page.meetingNotes.followUpSubject', { subject: form.nextFollowUp }),
+              due_date: form.nextFollowUpDate,
+              priority: 'medium',
+            }
+          : undefined,
       });
-
-      // Create follow-up task if date set
-      if (form.nextFollowUp && form.nextFollowUpDate) {
-        await tasksApi.create({
-          subject: t('page.meetingNotes.followUpSubject', { subject: form.nextFollowUp }),
-          task_type: 'follow_up',
-          priority: 'medium',
-          status: 'pending',
-          due_date: form.nextFollowUpDate,
-          entity_type: entityType,
-          entity_id: entityId,
-        });
-      }
 
       setForm(emptyNote);
       onSaved?.();
@@ -111,8 +105,8 @@ export default function MeetingNotes({
       <SidePanel open={open} onClose={onClose} title={t('page.meetingNotes.meetingNotes')} subtitle={companyName}>
         <div className="space-y-5 pb-20 sm:pb-0">
           {/* Quick toggle to history */}
-          <button onClick={loadHistory} className="text-xs text-blue-600 hover:underline mb-2 inline-block">
-            <Icon name="calendar" size={14} className="text-gray-400 mr-1.5" />{t('page.meetingNotes.viewPastMeetings')}
+          <button onClick={loadHistory} className="text-xs text-brand hover:underline mb-2 inline-block">
+            <Icon name="calendar" size={14} className="text-ink-subtle mr-1.5" />{t('page.meetingNotes.viewPastMeetings')}
           </button>
 
           <fieldset className="space-y-4">
@@ -151,7 +145,7 @@ export default function MeetingNotes({
           </div>
           </fieldset>
 
-          <fieldset className="border-t border-gray-100 pt-4">
+          <fieldset className="border-t border-border pt-4">
             <legend className="section-label mb-3">{t('page.meetingNotes.scheduleFollowUp')}</legend>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
@@ -161,14 +155,14 @@ export default function MeetingNotes({
                   placeholder={t('page.meetingNotes.followUpPlaceholder')} />
               </div>
               <div>
-                <label className="text-2xs text-gray-400" htmlFor="meeting-notes-follow-up-date">{t('page.meetingNotes.followUpDate')}</label>
+                <label className="text-2xs text-ink-subtle" htmlFor="meeting-notes-follow-up-date">{t('page.meetingNotes.followUpDate')}</label>
                 <input id="meeting-notes-follow-up-date" className="input mt-0.5" type="date" value={form.nextFollowUpDate}
                   onChange={e => set('nextFollowUpDate', e.target.value)} />
               </div>
             </div>
           </fieldset>
 
-          <div className="sticky bottom-0 z-10 -mx-5 flex flex-col gap-2 border-t border-gray-200 bg-white px-5 py-4 sm:flex-row">
+          <div className="sticky bottom-0 z-10 -mx-5 flex flex-col gap-2 border-t border-border bg-surface px-5 py-4 sm:flex-row">
             <button onClick={save} disabled={saving || !form.purpose} className="btn-primary w-full sm:flex-1">
               {saving ? t('page.meetingNotes.saving') : t('page.meetingNotes.saveMeetingNotes')}
             </button>
@@ -182,19 +176,19 @@ export default function MeetingNotes({
   // Past meetings view
   return (
     <SidePanel open={open} onClose={onClose} title={t('page.meetingNotes.pastMeetings')} subtitle={companyName}>
-      <button onClick={() => setShowHistory(false)} className="text-xs text-blue-600 hover:underline mb-4 inline-block">
+      <button onClick={() => setShowHistory(false)} className="text-xs text-brand hover:underline mb-4 inline-block">
         {t('page.meetingNotes.newMeetingNotes')}
       </button>
-      <div className="data-surface divide-y divide-gray-100">
+      <div className="data-surface divide-y divide-border">
         {viewingNotes.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-6">{t('page.meetingNotes.noPastMeetings')}</p>
+          <p className="text-sm text-ink-subtle text-center py-6">{t('page.meetingNotes.noPastMeetings')}</p>
         ) : (
           viewingNotes.map((note: any) => (
-            <div key={note.id} className="p-3 hover:bg-gray-50">
-              <div className="break-words text-xs font-medium text-gray-900">{note.subject}</div>
-              <div className="text-2xs text-gray-400 mt-1">{new Date(note.created_at).toLocaleDateString()}</div>
+            <div key={note.id} className="p-3 hover:bg-canvas">
+              <div className="break-words text-xs font-medium text-ink">{note.subject}</div>
+              <div className="text-2xs text-ink-subtle mt-1">{new Date(note.created_at).toLocaleDateString()}</div>
               {note.description && (
-                <div className="text-xs text-gray-600 mt-2 whitespace-pre-line line-clamp-4">{note.description}</div>
+                <div className="text-xs text-ink-muted mt-2 whitespace-pre-line line-clamp-4">{note.description}</div>
               )}
             </div>
           ))

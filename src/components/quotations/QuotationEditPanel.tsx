@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import SidePanel from '../shared/SidePanel';
 import { quotations, companies, contacts, team, type TeamMember } from '../../lib/api';
@@ -19,6 +19,15 @@ interface LineItem {
   description?: string;
 }
 
+interface QuotationContact {
+  id: string;
+  company_id: string;
+  first_name: string;
+  last_name: string;
+  is_primary_contact?: boolean | number;
+  is_active?: boolean | number;
+}
+
 export default function QuotationEditPanel({
   quotation,
   onClose,
@@ -34,9 +43,6 @@ export default function QuotationEditPanel({
   const [form, setForm] = useState({
     company_id: quotation.company_id || '',
     contact_id: quotation.contact_id || '',
-    application_description: '',
-    urgency: 'within_1_month',
-    source: 'email',
     currency: 'USD',
     incoterm: '',
     payment_term: '',
@@ -56,24 +62,81 @@ export default function QuotationEditPanel({
   const [saving, setSaving] = useState(false);
   const [showFeeSection, setShowFeeSection] = useState(false);
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [membersLoadError, setMembersLoadError] = useState(false);
   const [companyList, setCompanyList] = useState<any[]>([]);
-  const [contactList, setContactList] = useState<any[]>([]);
-  const [errors, setErrors] = useState<{ lineItems?: string; company_id?: string; application_description?: string }>({});
+  const [contactList, setContactList] = useState<QuotationContact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const contactRequest = useRef(0);
+  const [companyLoadError, setCompanyLoadError] = useState(false);
+  const [contactLoadError, setContactLoadError] = useState(false);
+  const [errors, setErrors] = useState<{ lineItems?: string; company_id?: string }>({});
+
+  const loadCompanies = () => {
+    setCompanyLoadError(false);
+    companies.list()
+      .then(setCompanyList)
+      .catch(() => {
+        setCompanyList([]);
+        setCompanyLoadError(true);
+      });
+  };
+
+  const loadMembers = () => {
+    setMembersLoadError(false);
+    team.list()
+      .then(setMembers)
+      .catch(() => {
+        setMembers([]);
+        setMembersLoadError(true);
+      });
+  };
 
   useEffect(() => {
-    companies.list().then(setCompanyList);
+    loadCompanies();
     if (user?.role === 'admin') {
-      team.list().then(setMembers).catch(() => setMembers([]));
+      loadMembers();
+    } else {
+      setMembers([]);
+      setMembersLoadError(false);
     }
   }, [user?.role]);
 
-  useEffect(() => {
-    if (form.company_id) {
-      contacts.list(form.company_id).then(setContactList);
-    } else {
-      setContactList([]);
+  const loadContacts = (companyId: string) => {
+    const requestId = ++contactRequest.current;
+    setContactLoadError(false);
+    setContactList([]);
+    setContactsLoading(Boolean(companyId));
+    if (!companyId) {
+      return;
     }
-  }, [form.company_id]);
+    contacts.list(companyId)
+      .then((rows: QuotationContact[]) => {
+        if (requestId !== contactRequest.current) return;
+        const available = rows.filter(contact =>
+          contact.company_id === companyId && contact.is_active !== 0 && contact.is_active !== false,
+        );
+        setContactList(available);
+        setForm(prev => {
+          if (prev.company_id !== companyId || available.some(contact => contact.id === prev.contact_id)) return prev;
+          const primary = available.filter(contact => contact.is_primary_contact);
+          const defaultContact = primary.length === 1 ? primary[0] : available.length === 1 ? available[0] : undefined;
+          return { ...prev, contact_id: defaultContact?.id || '' };
+        });
+      })
+      .catch(() => {
+        if (requestId !== contactRequest.current) return;
+        setContactLoadError(true);
+      })
+      .finally(() => {
+        if (requestId === contactRequest.current) setContactsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    if (!isNew) return;
+    loadContacts(form.company_id);
+    return () => { contactRequest.current += 1; };
+  }, [form.company_id, isNew]);
 
   useEffect(() => {
     if (!quotation) return;
@@ -82,9 +145,6 @@ export default function QuotationEditPanel({
       ...prev,
       company_id: quotation.company_id || '',
       contact_id: quotation.contact_id || '',
-      application_description: quotation.application_description || '',
-      urgency: quotation.urgency || 'within_1_month',
-      source: quotation.source || 'email',
       currency: quotation.currency || 'USD',
       incoterm: quotation.incoterm || '',
       payment_term: quotation.payment_term || '',
@@ -123,6 +183,7 @@ export default function QuotationEditPanel({
       if (item.id !== id) return item;
       const updated = { ...item, [field]: value };
       if (['quantity', 'unit_price'].includes(field)) {
+        updated.discount_percent = 0;
         updated.line_total = updated.quantity * updated.unit_price;
       }
       return updated;
@@ -133,16 +194,28 @@ export default function QuotationEditPanel({
     setLineItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const subtotal = lineItems.reduce((sum, item) => sum + (item.line_total || 0), 0);
-  const taxAmount = form.tax_type === 'domestic_vat' ? subtotal * (form.domestic_vat_rate / 100) : 0;
-  const total = subtotal + taxAmount + (form.shipping_handling || 0);
+  const lineSubtotal = lineItems.reduce((sum, item) => sum + (item.line_total || 0), 0);
+  const pricingUnchanged = !isNew
+    && lineItems.length === (quotation.line_items?.length ?? 0)
+    && lineItems.every((item, index) => {
+      const original = quotation.line_items[index];
+      return item.quantity === original.quantity && item.unit_price === original.unit_price
+        && item.line_total === original.line_total;
+    })
+    && form.tax_type === (quotation.tax_type || 'none')
+    && form.domestic_vat_rate === (quotation.domestic_vat_rate || 0)
+    && form.export_tax_rebate_rate === (quotation.export_tax_rebate_rate || 0)
+    && form.shipping_handling === (quotation.shipping_handling || 0);
+  const subtotal = pricingUnchanged ? quotation.subtotal ?? lineSubtotal : lineSubtotal;
+  const calculatedTaxAmount = form.tax_type === 'domestic_vat' ? subtotal * (form.domestic_vat_rate / 100) : 0;
+  const taxAmount = pricingUnchanged ? quotation.tax_amount ?? calculatedTaxAmount : calculatedTaxAmount;
+  const total = pricingUnchanged ? quotation.total ?? (subtotal + taxAmount + (form.shipping_handling || 0))
+    : subtotal + taxAmount + (form.shipping_handling || 0);
 
   const save = async () => {
-    const nextErrors: { lineItems?: string; company_id?: string; application_description?: string } = {};
+    if (saving || contactsLoading) return;
+    const nextErrors: { lineItems?: string; company_id?: string } = {};
     if (isNew && !form.company_id) nextErrors.company_id = t('page.inquiryNew.companyRequired');
-    if (isNew && !form.application_description.trim()) {
-      nextErrors.application_description = t('page.inquiryNew.descriptionRequired');
-    }
     if (lineItems.length === 0) {
       nextErrors.lineItems = t('page.quotationDetail.editPanel.noLineItems');
     }
@@ -159,6 +232,8 @@ export default function QuotationEditPanel({
         subtotal,
         tax_amount: taxAmount,
         total,
+        discount_percent: pricingUnchanged ? quotation.discount_percent ?? 0 : 0,
+        discount_amount: pricingUnchanged ? quotation.discount_amount ?? 0 : 0,
         status: isNew ? 'draft' : (quotation.status || 'draft'),
         version: (quotation?.version || 0) + 1,
         line_items: lineItems.map((item, idx) => ({
@@ -167,7 +242,7 @@ export default function QuotationEditPanel({
           unit_of_measure: item.unit_of_measure,
           quantity: item.quantity,
           unit_price: item.unit_price,
-          discount_percent: item.discount_percent,
+          discount_percent: pricingUnchanged ? item.discount_percent ?? 0 : 0,
           line_total: item.line_total,
           description: item.description,
         })),
@@ -205,9 +280,9 @@ export default function QuotationEditPanel({
       <div className="space-y-5 h-full flex flex-col">
         {/* Line Items — scrollable */}
         <div className="flex-1 overflow-y-auto space-y-5 -mx-5 px-5">
-          {/* Customer & Requirements — editable for new, read-only context for edit */}
+          {/* Customer — editable for new, read-only context for edit */}
           {isNew ? (
-            <fieldset className="border-t border-gray-100 pt-4">
+            <fieldset className="border-t border-border pt-4">
               <legend className="section-label mb-3">{t('page.inquiryDetail.customer')}</legend>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
@@ -219,6 +294,10 @@ export default function QuotationEditPanel({
                     required
                     aria-invalid={!!errors.company_id}
                     onChange={e => {
+                      contactRequest.current += 1;
+                      setContactList([]);
+                      setContactsLoading(Boolean(e.target.value));
+                      setContactLoadError(false);
                       set('company_id', e.target.value);
                       set('contact_id', '');
                       if (e.target.value) setErrors(prev => ({ ...prev, company_id: undefined }));
@@ -230,77 +309,48 @@ export default function QuotationEditPanel({
                     ))}
                   </select>
                   {errors.company_id && <p className="field-error" role="alert">{errors.company_id}</p>}
+                  {companyLoadError && (
+                    <div className="mt-1 flex items-center justify-between gap-2" role="alert">
+                      <span className="text-2xs text-danger">{t('page.error.loadFailed')}</span>
+                      <button type="button" onClick={loadCompanies} className="text-2xs text-brand hover:underline">
+                        {t('common.refresh')}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="label" htmlFor="quotation-contact">{t('page.inquiryNew.contact')}</label>
-                  <select id="quotation-contact" className="input" value={form.contact_id} onChange={e => set('contact_id', e.target.value)}>
+                  <select id="quotation-contact" className="input" value={form.contact_id} disabled={!form.company_id || contactsLoading} aria-busy={contactsLoading} onChange={e => set('contact_id', e.target.value)}>
                     <option value="">{t('page.inquiryNew.selectContact')}</option>
-                    {contactList.map((c: any) => (
+                    {contactList.map(c => (
                       <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
                     ))}
                   </select>
+                  {contactLoadError && (
+                    <div className="mt-1 flex items-center justify-between gap-2" role="alert">
+                      <span className="text-2xs text-danger">{t('page.error.loadFailed')}</span>
+                      <button type="button" onClick={() => loadContacts(form.company_id)} className="text-2xs text-brand hover:underline">
+                        {t('common.refresh')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </fieldset>
           ) : (
-            <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2.5 text-xs text-gray-700">
+            <div className="rounded-lg border border-brand bg-brand-soft/60 px-3 py-2.5 text-xs text-ink">
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-2xs text-gray-500">{t('page.inquiryDetail.customer')}</span>
-                <span className="min-w-0 truncate font-medium text-gray-900">{quotation.company_name || '—'}</span>
+                <span className="text-2xs text-ink-muted">{t('page.inquiryDetail.customer')}</span>
+                <span className="min-w-0 truncate font-medium text-ink">{quotation.company_name || '—'}</span>
               </div>
               {quotation.contact_name && (
                 <div className="mt-1 flex items-baseline justify-between gap-3">
-                  <span className="text-2xs text-gray-500">{t('page.inquiryDetail.contact')}</span>
-                  <span className="min-w-0 truncate text-gray-700">{quotation.contact_name}</span>
+                  <span className="text-2xs text-ink-muted">{t('page.inquiryDetail.contact')}</span>
+                  <span className="min-w-0 truncate text-ink">{quotation.contact_name}</span>
                 </div>
               )}
             </div>
           )}
-
-          {/* Requirements */}
-          <fieldset className="border-t border-gray-100 pt-4">
-            <legend className="sr-only">{t('page.inquiryNew.applicationDescription')}</legend>
-            <div>
-              <label className="label" htmlFor="quotation-description">{t('page.inquiryNew.applicationDescription')}</label>
-              <textarea
-                id="quotation-description"
-                className={errors.application_description ? 'input-error' : 'input'}
-                rows={3}
-                value={form.application_description}
-                required={isNew}
-                aria-invalid={!!errors.application_description}
-                onChange={e => {
-                  set('application_description', e.target.value);
-                  if (e.target.value.trim()) setErrors(prev => ({ ...prev, application_description: undefined }));
-                }}
-                placeholder={t('page.inquiryNew.placeholderDescription')}
-              />
-              {errors.application_description && <p className="field-error" role="alert">{errors.application_description}</p>}
-            </div>
-            <div className="grid grid-cols-1 gap-3 mt-3 sm:grid-cols-2">
-              <div>
-                <label className="label" htmlFor="quotation-urgency">{t('page.inquiryNew.urgency')}</label>
-                <select id="quotation-urgency" className="input" value={form.urgency} onChange={e => set('urgency', e.target.value)}>
-                  <option value="immediate">{t('page.inquiryNew.immediate')}</option>
-                  <option value="within_2_weeks">{t('page.inquiryNew.within2Weeks')}</option>
-                  <option value="within_1_month">{t('page.inquiryNew.within1Month')}</option>
-                  <option value="no_rush">{t('page.inquiryNew.noRush')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="label" htmlFor="quotation-source">{t('page.inquiryNew.source')}</label>
-                <select id="quotation-source" className="input" value={form.source} onChange={e => set('source', e.target.value)}>
-                  <option value="email">{t('page.inquiryNew.email')}</option>
-                  <option value="phone_wechat">{t('page.inquiryNew.phoneWechat')}</option>
-                  <option value="website">{t('page.inquiryNew.website')}</option>
-                  <option value="social_media">{t('page.inquiryNew.socialMedia')}</option>
-                  <option value="alibaba_platform">{t('page.inquiryNew.alibabaPlatform')}</option>
-                  <option value="trade_show">{t('page.inquiryNew.tradeShow')}</option>
-                  <option value="referral">{t('page.inquiryNew.referral')}</option>
-                </select>
-              </div>
-            </div>
-          </fieldset>
 
           {user?.role === 'admin' && (
             <div>
@@ -309,6 +359,15 @@ export default function QuotationEditPanel({
                 <option value="">{t('accountability.unassigned')}</option>
                 {members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
               </select>
+              {membersLoadError && (
+                <div className="mt-1 flex items-center justify-between gap-2" role="alert">
+                  <span className="text-2xs text-danger">{t('page.error.loadFailed')}</span>
+                  <button type="button" onClick={loadMembers} className="inline-flex items-center gap-1 text-2xs text-brand hover:underline">
+                    <Icon name="refresh" size={12} />
+                    {t('common.refresh')}
+                  </button>
+                </div>
+              )}
             </div>
           )}
           {/* Line Items Section */}
@@ -325,20 +384,20 @@ export default function QuotationEditPanel({
               {lineItems.map((item, idx) => (
                 <div key={item.id} className="card p-3 space-y-2 relative">
                   <div className="flex items-center justify-between">
-                    <span className="text-2xs text-gray-400">#{idx + 1}</span>
+                    <span className="text-2xs text-ink-subtle">#{idx + 1}</span>
                     {lineItems.length > 1 && (
-                      <button onClick={() => removeLine(item.id)} className="icon-btn text-red-400 hover:text-red-600" aria-label={t('common.delete')} title={t('common.delete')}><Icon name="delete" size={13} /></button>
+                      <button onClick={() => removeLine(item.id)} className="icon-btn text-danger hover:text-danger" aria-label={t('common.delete')} title={t('common.delete')}><Icon name="delete" size={13} /></button>
                     )}
                   </div>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <div className="sm:col-span-2">
-                      <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-grade-${idx}`}>{t('page.quotationDetail.editPanel.productGrade')}</label>
+                      <label className="text-2xs text-ink-subtle block" htmlFor={`quotation-edit-grade-${idx}`}>{t('page.quotationDetail.editPanel.productGrade')}</label>
                       <input id={`quotation-edit-grade-${idx}`} className="input text-sm mt-0.5" value={item.product_grade_snapshot}
                         onChange={e => updateLine(item.id, 'product_grade_snapshot', e.target.value)}
                         placeholder={t('page.quotationDetail.editPanel.placeholderProduct')} />
                     </div>
                     <div>
-                      <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-unit-${idx}`}>{t('page.quotationDetail.editPanel.unit')}</label>
+                      <label className="text-2xs text-ink-subtle block" htmlFor={`quotation-edit-unit-${idx}`}>{t('page.quotationDetail.editPanel.unit')}</label>
                       <select id={`quotation-edit-unit-${idx}`} className="input text-sm mt-0.5" value={item.unit_of_measure}
                         onChange={e => updateLine(item.id, 'unit_of_measure', e.target.value)}>
                         <option value="kg">kg</option>
@@ -349,18 +408,18 @@ export default function QuotationEditPanel({
                       </select>
                     </div>
                     <div>
-                      <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-quantity-${idx}`}>{t('page.quotationDetail.editPanel.qty')}</label>
+                      <label className="text-2xs text-ink-subtle block" htmlFor={`quotation-edit-quantity-${idx}`}>{t('page.quotationDetail.editPanel.qty')}</label>
                       <input id={`quotation-edit-quantity-${idx}`} className="input text-sm mt-0.5" type="number" min="0" step="0.001" value={item.quantity}
                         onChange={e => updateLine(item.id, 'quantity', parseFloat(e.target.value) || 0)} />
                     </div>
                     <div>
-                      <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-unit-price-${idx}`}>{t('page.quotationDetail.editPanel.unitPrice')}</label>
+                      <label className="text-2xs text-ink-subtle block" htmlFor={`quotation-edit-unit-price-${idx}`}>{t('page.quotationDetail.editPanel.unitPrice')}</label>
                       <input id={`quotation-edit-unit-price-${idx}`} className="input text-sm mt-0.5 tabular-nums" type="number" min="0" step="0.01" value={item.unit_price}
                         onChange={e => updateLine(item.id, 'unit_price', parseFloat(e.target.value) || 0)} />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="text-2xs text-gray-400 block" htmlFor={`quotation-edit-line-total-${idx}`}>{t('page.quotationDetail.editPanel.lineTotal')}</label>
-                      <output id={`quotation-edit-line-total-${idx}`} className="block text-sm tabular-nums text-gray-900 mt-0.5 px-3 py-2 bg-gray-50 rounded-lg">
+                      <label className="text-2xs text-ink-subtle block" htmlFor={`quotation-edit-line-total-${idx}`}>{t('page.quotationDetail.editPanel.lineTotal')}</label>
+                      <output id={`quotation-edit-line-total-${idx}`} className="block text-sm tabular-nums text-ink mt-0.5 px-3 py-2 bg-canvas rounded-lg">
                         {formatCurrency(item.line_total || 0, form.currency)}
                       </output>
                     </div>
@@ -372,7 +431,7 @@ export default function QuotationEditPanel({
                 errors.lineItems ? (
                   <p id="quotation-line-items-error" className="field-error" role="alert">{errors.lineItems}</p>
                 ) : (
-                  <div className="text-center py-6 text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg">
+                  <div className="text-center py-6 text-xs text-ink-subtle border border-dashed border-border rounded-lg">
                     {t('page.quotationDetail.editPanel.noLineItems')}
                   </div>
                 )
@@ -381,7 +440,7 @@ export default function QuotationEditPanel({
           </div>
 
           {/* Terms */}
-          <fieldset className="border-t border-gray-100 pt-4">
+          <fieldset className="border-t border-border pt-4">
             <legend className="section-label mb-3">{t('page.quotationDetail.editPanel.terms')}</legend>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
@@ -415,15 +474,15 @@ export default function QuotationEditPanel({
           </fieldset>
 
           {/* Fees (collapsible) */}
-          <fieldset className="border-t border-gray-100 pt-4">
+          <fieldset className="border-t border-border pt-4">
             <legend className="flex w-full items-center justify-between">
               <span className="section-label">{t('page.quotationDetail.editPanel.fees')}</span>
-              <button type="button" onClick={() => setShowFeeSection(v => !v)} className="text-xs text-blue-600 hover:underline">
+              <button type="button" onClick={() => setShowFeeSection(v => !v)} className="text-xs text-brand hover:underline">
                 {showFeeSection ? t('common.collapse') : t('common.expand')}
               </button>
             </legend>
             {!showFeeSection ? (
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-ink-muted">
                 {[
                   form.shipping_handling > 0 ? `${t('page.quotationDetail.editPanel.shippingHandling')}: ${formatCurrency(form.shipping_handling, form.currency)}` : '',
                   form.tax_type !== 'none' ? `${t('page.quotationDetail.editPanel.taxation')}: ${form.tax_type === 'domestic_vat' ? `${form.domestic_vat_rate}% VAT` : `${form.export_tax_rebate_rate}% ${t('page.quotationDetail.editPanel.exportTax')}`}` : '',
@@ -482,30 +541,30 @@ export default function QuotationEditPanel({
         </div>
 
         {/* Price Summary — sticky footer */}
-        <div className="sticky bottom-0 z-10 -mx-5 flex-shrink-0 border-t border-gray-200 bg-white px-5 pt-4">
-          <div className="bg-gray-50 rounded-lg p-4 space-y-1.5 text-sm">
-            <div className="flex justify-between text-gray-500">
+        <div className="sticky bottom-0 z-10 -mx-5 flex-shrink-0 border-t border-border bg-surface px-5 pt-4">
+          <div className="bg-canvas rounded-lg p-4 space-y-1.5 text-sm">
+            <div className="flex justify-between text-ink-muted">
               <span>{t('page.quotationDetail.editPanel.subtotal')}</span>
               <span className="tabular-nums">{formatCurrency(subtotal, form.currency)}</span>
             </div>
-            <div className="flex justify-between text-gray-500">
+            <div className="flex justify-between text-ink-muted">
               <span>{t('page.quotationDetail.editPanel.shipping')}</span>
               <span className="tabular-nums">{formatCurrency(form.shipping_handling || 0, form.currency)}</span>
             </div>
             {form.tax_type === 'domestic_vat' && form.domestic_vat_rate > 0 && (
-              <div className="flex justify-between text-gray-500">
+              <div className="flex justify-between text-ink-muted">
                 <span>{t('page.quotationDetail.editPanel.vat')} ({form.domestic_vat_rate}%)</span>
                 <span className="tabular-nums">{formatCurrency(taxAmount, form.currency)}</span>
               </div>
             )}
-            <div className="flex justify-between font-semibold text-gray-900 pt-2 border-t border-gray-200">
+            <div className="flex justify-between font-semibold text-ink pt-2 border-t border-border">
               <span>{t('page.quotationDetail.editPanel.total')}</span>
               <span className="tabular-nums text-base">{formatCurrency(total, form.currency)}</span>
             </div>
           </div>
 
           <div className="flex gap-2 mt-4">
-            <button onClick={save} disabled={saving} className="btn-primary flex-1">
+            <button onClick={save} disabled={saving || contactsLoading} className="btn-primary flex-1">
               {saving ? t('page.quotationDetail.editPanel.saving') : isNew ? t('page.quotationDetail.editPanel.createQuotation') : t('page.quotationDetail.editPanel.saveChanges')}
             </button>
             <button onClick={onClose} disabled={saving} className="btn-secondary">{t('common.cancel')}</button>

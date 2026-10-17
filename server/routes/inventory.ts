@@ -6,9 +6,28 @@ import db from '../db.js';
 import { validate } from '../validate.js';
 import { updateProductWeight, getMaterialDensity } from '../weight.js';
 import { computeChanges, writeAudit } from '../audit.js';
+import { createInventoryV2Service, InventoryMovementType } from '../inventory/service.js';
+import { exportInventoryWorkbook } from '../inventory/export.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 const router = Router();
+const inventoryV2 = createInventoryV2Service(db);
+
+function parseInventoryUpload(file: Express.Multer.File): Record<string, unknown>[] {
+  if (file.originalname.toLowerCase().endsWith('.csv')) {
+    const text = file.buffer.toString('utf-8').replace(/^\uFEFF/, '');
+    const lines = text.split(/\r?\n/).filter((line) => line.trim());
+    if (lines.length === 0) return [];
+    const headers = lines[0].split(',').map((header) => header.trim());
+    return lines.slice(1).map((line) => {
+      const values = line.split(',').map((value) => value.trim());
+      return Object.fromEntries(headers.map((header, index) => [header, values[index] || '']));
+    });
+  }
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[];
+}
 
 const MATERIAL_UPDATE_FIELDS = [
   'name',
@@ -331,90 +350,199 @@ router.post('/adjustment', (req: Request, res: Response) => {
   res.status(201).json(db.prepare("SELECT * FROM inventory_transactions WHERE id = ?").get(id));
 });
 
-// ─── Import (CSV / XLSX) ───
+// ─── Inventory V2 (fully isolated from CRM sales records) ───
 
-router.post('/import', upload.single('file'), (req: Request, res: Response) => {
+router.get('/v2/stock', (req: Request, res: Response) => {
+  res.json(inventoryV2.listStock(String(req.query.shape || ''), String(req.query.q || '')));
+});
+
+router.get('/v2/weight-review', (_req: Request, res: Response) => {
+  res.json(inventoryV2.listWeightReview());
+});
+
+router.get('/v2/ledger', (req: Request, res: Response) => {
+  res.json(inventoryV2.listMovements(
+    req.query.item_id ? String(req.query.item_id) : undefined,
+    Number(req.query.limit || 200),
+  ));
+});
+
+router.get('/v2/export.xlsx', (req: Request, res: Response) => {
+  const shape = req.query.shape === 'sheet' || req.query.shape === 'rod' ? req.query.shape : null;
+  const q = String(req.query.q || '');
+  const exported = exportInventoryWorkbook(
+    shape === 'rod' ? [] : inventoryV2.listStock('sheet', q),
+    shape === 'sheet' ? [] : inventoryV2.listStock('rod', q),
+    new Date(),
+    shape ? [shape] : undefined,
+  );
+  res.set({
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'Content-Disposition': `attachment; filename="${exported.filename}"`,
+    'Content-Length': String(exported.buffer.length),
+  });
+  res.send(exported.buffer);
+});
+
+router.post('/v2/items', (req: Request, res: Response) => {
+  const nullableNumber = (value: unknown): number | null => (
+    value === undefined || value === null || value === '' ? null : Number(value)
+  );
+  try {
+    const result = inventoryV2.createItem({
+      inventorySkuId: req.body.inventory_sku_id || null,
+      sku: req.body.sku,
+      name: req.body.name,
+      materialName: req.body.material_name,
+      densityKgM3: nullableNumber(req.body.density_kg_m3),
+      shape: req.body.shape,
+      standardLengthMm: nullableNumber(req.body.standard_length_mm),
+      standardWidthMm: nullableNumber(req.body.standard_width_mm),
+      standardThicknessMm: nullableNumber(req.body.standard_thickness_mm),
+      standardDiameterMm: nullableNumber(req.body.standard_diameter_mm),
+      standardOuterDiameterMm: nullableNumber(req.body.standard_outer_diameter_mm),
+      standardInnerDiameterMm: nullableNumber(req.body.standard_inner_diameter_mm),
+      inventoryType: req.body.inventory_type,
+      lengthMm: nullableNumber(req.body.length_mm),
+      widthMm: nullableNumber(req.body.width_mm),
+      thicknessMm: nullableNumber(req.body.thickness_mm),
+      diameterMm: nullableNumber(req.body.diameter_mm),
+      outerDiameterMm: nullableNumber(req.body.outer_diameter_mm),
+      innerDiameterMm: nullableNumber(req.body.inner_diameter_mm),
+      quantity: Number(req.body.quantity),
+      actualWeightKg: nullableNumber(req.body.actual_weight_kg),
+      notes: req.body.notes,
+      occurredAt: req.body.occurred_at,
+      userId: req.user!.id,
+      userName: req.user!.name,
+    });
+    res.status(201).json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Inventory specification creation failed';
+    res.status(message.includes('not found') ? 404 : 400).json({ error: message });
+  }
+});
+
+router.post('/v2/items/:id/measurements', (req: Request, res: Response) => {
+  const nullableNumber = (value: unknown): number | null => (
+    value === undefined || value === null || value === '' ? null : Number(value)
+  );
+  try {
+    const measurement = inventoryV2.recordMeasurement({
+      inventoryItemId: req.params.id,
+      measuredThicknessMm: nullableNumber(req.body.measured_thickness_mm),
+      actualUnitWeightMinKg: nullableNumber(req.body.actual_unit_weight_min_kg),
+      actualUnitWeightMaxKg: nullableNumber(req.body.actual_unit_weight_max_kg),
+      actualUnitWeightAvgKg: nullableNumber(req.body.actual_unit_weight_avg_kg),
+      sampleCount: req.body.sample_count === undefined ? 1 : Number(req.body.sample_count),
+      measuredAt: req.body.measured_at,
+      notes: req.body.notes,
+      userId: req.user!.id,
+    });
+    res.status(201).json(measurement);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Inventory measurement failed';
+    res.status(message.includes('not found') ? 404 : 400).json({ error: message });
+  }
+});
+
+router.post('/v2/movements', (req: Request, res: Response) => {
+  const movementType = String(req.body.movement_type || '').toUpperCase() as InventoryMovementType;
+  if (!['INBOUND', 'OUTBOUND', 'ADJUSTMENT'].includes(movementType)) {
+    return res.status(400).json({ error: 'Unsupported inventory movement type' });
+  }
+  try {
+    const movement = inventoryV2.recordMovement({
+      inventoryItemId: req.body.inventory_item_id,
+      movementType,
+      quantity: Number(req.body.quantity),
+      notes: req.body.notes,
+      occurredAt: req.body.occurred_at,
+      userId: req.user!.id,
+      userName: req.user!.name,
+    });
+    res.status(201).json(movement);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Inventory movement failed';
+    res.status(message.includes('not found') ? 404 : 400).json({ error: message });
+  }
+});
+
+router.post('/v2/cuts', (req: Request, res: Response) => {
+  try {
+    const result = inventoryV2.cut({
+      sourceItemId: req.body.source_item_id,
+      quantity: Number(req.body.quantity || 1),
+      lengthMm: req.body.length_mm === undefined ? undefined : Number(req.body.length_mm),
+      widthMm: req.body.width_mm === undefined ? undefined : Number(req.body.width_mm),
+      thicknessMm: req.body.thickness_mm === undefined ? undefined : Number(req.body.thickness_mm),
+      diameterMm: req.body.diameter_mm === undefined ? undefined : Number(req.body.diameter_mm),
+      outerDiameterMm: req.body.outer_diameter_mm === undefined ? undefined : Number(req.body.outer_diameter_mm),
+      innerDiameterMm: req.body.inner_diameter_mm === undefined ? undefined : Number(req.body.inner_diameter_mm),
+      actualWeightKg: req.body.actual_weight_kg === undefined ? undefined : Number(req.body.actual_weight_kg),
+      notes: req.body.notes,
+      occurredAt: req.body.occurred_at,
+      userId: req.user!.id,
+      userName: req.user!.name,
+    });
+    res.status(201).json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Cutting failed';
+    res.status(message.includes('not found') ? 404 : 400).json({ error: message });
+  }
+});
+
+router.get('/v2/rules', (_req: Request, res: Response) => {
+  res.json(inventoryV2.listRules());
+});
+
+router.put('/v2/rules/:id', (req: Request, res: Response) => {
+  try {
+    res.json(inventoryV2.updateRule(req.params.id, req.body));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Rule update failed';
+    res.status(message.includes('not found') ? 404 : 400).json({ error: message });
+  }
+});
+
+router.post('/v2/import/preview', upload.single('file'), (req: Request, res: Response) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    const importType = (req.body.type || 'stock-initial').trim();
-    const operator = req.body.operator || 'Import';
-    let rows: Record<string, any>[] = [];
-    const ext = req.file.originalname.toLowerCase();
-    if (ext.endsWith('.csv')) {
-      const text = req.file.buffer.toString('utf-8');
-      const lines = text.split('\n').filter(Boolean);
-      const headers = lines[0].split(',').map(h => h.trim());
-      for (let i = 1; i < lines.length; i++) {
-        const vals = lines[i].split(',').map(v => v.trim());
-        const row: Record<string, any> = {};
-        headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
-        rows.push(row);
-      }
-    } else {
-      const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      rows = XLSX.utils.sheet_to_json(ws);
-    }
+    const rows = parseInventoryUpload(req.file);
     if (rows.length === 0) return res.status(400).json({ error: 'File is empty' });
-    const now = new Date().toISOString();
-    const results: any[] = []; let created = 0, skipped = 0, errors: string[] = [];
-
-    if (importType === 'products') {
-      for (const row of rows) {
-        const sku = (row.SKU || row.sku || '').toString().trim();
-        const name = (row.Name || row.name || row.Product || '').toString().trim();
-        if (!sku || !name) { errors.push('Row skipped: missing SKU or Name'); skipped++; continue; }
-        if (db.prepare("SELECT id FROM products WHERE sku = ? AND deleted_at IS NULL").get(sku)) { skipped++; continue; }
-        const id = uuidv4();
-        const productType = (row.Type || row.product_type || 'part').toString().trim().toLowerCase();
-        db.prepare(`INSERT INTO products (id, sku, name, category, product_type, unit, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-          .run(id, sku, name, (row.Category || row.category || '').toString() || null,
-            productType, (row.Unit || row.unit || 'pc').toString(), now, now);
-        if (row.material_id || row.MaterialID) {
-          db.prepare("UPDATE products SET material_id = ? WHERE id = ?").run(row.material_id || row.MaterialID, id);
-        }
-        updateProductWeight(id);
-        created++; results.push({ sku, name, action: 'created' });
-      }
-    } else {
-      for (const row of rows) {
-        const sku = (row.SKU || row.sku || '').toString().trim();
-        if (!sku) { errors.push('Row skipped: missing SKU'); skipped++; continue; }
-        const product = db.prepare("SELECT id, name FROM products WHERE sku = ? AND deleted_at IS NULL").get(sku) as any;
-        if (!product) { errors.push(`SKU "${sku}" not found`); skipped++; continue; }
-        const remark = (row.Remark || row.remark || row.Notes || row.notes || '').toString().trim();
-
-        if (importType === 'stock-count') {
-          const stockRow = db.prepare("SELECT COALESCE(SUM(quantity), 0) as current FROM inventory_transactions WHERE product_id = ?").get(product.id) as any;
-          const systemQty = stockRow?.current || 0;
-          const actualQty = parseFloat(row.ActualQty || row.actualQty || row.Actual || row.actual || row.Quantity || row.quantity || 0) || 0;
-          const diff = actualQty - systemQty;
-          if (diff === 0) { skipped++; continue; }
-          const id = uuidv4(); const c = (db.prepare("SELECT COUNT(*) as c FROM inventory_transactions").get() as any).c + 1;
-          const weight = txnWeight(product.id, diff);
-          db.prepare(`INSERT INTO inventory_transactions (id, transaction_number, transaction_type,
-            product_id, quantity, unit, total_weight_kg, notes, operator, transaction_date, created_at, updated_at)
-            VALUES (?, ?, 'adjustment', ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-            .run(id, `ADJ-${now.slice(2,4)}-${String(c).padStart(5, '0')}`, product.id, diff, row.Unit || 'pc', weight,
-              `Stock count: sys=${systemQty} act=${actualQty}${remark ? ' — ' + remark : ''}`, operator, now.slice(0, 10), now, now);
-          created++; results.push({ sku, name: product.name, action: 'adjustment', diff: `${systemQty}→${actualQty}` });
-        } else {
-          const qty = parseFloat(row.Quantity || row.quantity || row.Qty || row.qty || 0) || 0;
-          if (qty <= 0) { skipped++; continue; }
-          const id = uuidv4(); const c = (db.prepare("SELECT COUNT(*) as c FROM inventory_transactions").get() as any).c + 1;
-          const weight = txnWeight(product.id, qty);
-          db.prepare(`INSERT INTO inventory_transactions (id, transaction_number, transaction_type,
-            product_id, quantity, unit, total_weight_kg, notes, operator, transaction_date, created_at, updated_at)
-            VALUES (?, ?, 'stock_in', ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-            .run(id, `SI-${now.slice(2,4)}-${String(c).padStart(5, '0')}`, product.id, qty, row.Unit || 'pc', weight,
-              remark || (importType === 'stock-initial' ? 'Opening balance' : 'Bulk import'), operator, now.slice(0, 10), now, now);
-          created++; results.push({ sku, name: product.name, qty, action: 'stock_in' });
-        }
-      }
-    }
-    res.json({ success: true, importType, total: rows.length, created, skipped, errors: errors.slice(0, 20), results });
-  } catch (e: any) { console.error('Import failed', e); res.status(500).json({ error: 'Import failed', detail: e.message }); }
+    res.json(inventoryV2.buildImportPreview(
+      rows,
+      req.body.mode || 'incremental',
+      req.body.scope || 'all',
+    ));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Import preview failed';
+    res.status(400).json({ error: message });
+  }
 });
+
+router.post('/v2/import/confirm', upload.single('file'), (req: Request, res: Response) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const result = inventoryV2.confirmImport(
+      parseInventoryUpload(req.file),
+      req.body.mode || 'incremental',
+      req.body.scope || 'all',
+      String(req.body.preview_hash || ''),
+      { userId: req.user!.id, userName: req.user!.name },
+    );
+    res.status(201).json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Import confirmation failed';
+    res.status(message.includes('changed after preview') ? 409 : 400).json({ error: message });
+  }
+});
+
+router.post('/import', upload.single('file'), (_req: Request, res: Response) => {
+  res.status(409).json({
+    error: 'Direct inventory import is disabled. Preview with /v2/import/preview, then confirm with /v2/import/confirm.',
+  });
+});
+
 
 export default router;

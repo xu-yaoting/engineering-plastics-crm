@@ -369,7 +369,8 @@ export function createMaterialsReportingService(
       SELECT movement.id, movement.document_id, movement.movement_date AS purchase_date,
         movement.quantity_delta AS quantity, movement.reference_unit_price AS unit_price,
         movement.quantity_delta * movement.reference_unit_price AS amount,
-        supplier.id AS supplier_id, supplier.name AS supplier_name,
+        movement.supplier_id AS supplier_id,
+        COALESCE(movement.supplier_name, document.supplier_name, supplier.name) AS supplier_name,
         document.document_number, document.invoice_number, document.contract_number,
         movement.created_at
       FROM mt_movements movement

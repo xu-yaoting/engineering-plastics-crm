@@ -4,8 +4,11 @@ import StatusBadge from '../components/shared/StatusBadge';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import SidePanel from '../components/shared/SidePanel';
 import Icon from '../components/shared/Icon';
+import Pagination from '../components/shared/Pagination';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+
+const SHIPMENTS_PAGE_SIZE = 9;
 
 const SHIPPING_TYPES = [
   { value: 'sea_freight', labelKey: 'seaFreight' },
@@ -55,6 +58,7 @@ export default function Shipments() {
   const [list, setList] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -63,26 +67,54 @@ export default function Shipments() {
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const [presetOrder, setPresetOrder] = useState<any>(null);
+  const [presetOrderError, setPresetOrderError] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
   const [searchParams] = useSearchParams();
   const presetOrderId = searchParams.get('order');
 
-  useEffect(() => {
-    fetch('/api/shipments').then(r => r.json()).then(setList).finally(() => setLoading(false));
-    fetch('/api/orders').then(r => r.json()).then(setOrders);
-  }, []);
+  const loadLists = () => {
+    setLoading(true);
+    setLoadError(false);
+    Promise.all([
+      fetch('/api/shipments').then(async res => {
+        if (!res.ok) throw new Error(`Shipments request failed: ${res.status}`);
+        return res.json();
+      }),
+      fetch('/api/orders').then(async res => {
+        if (!res.ok) throw new Error(`Orders request failed: ${res.status}`);
+        return res.json();
+      }),
+    ])
+      .then(([shipmentData, orderData]) => { setList(shipmentData); setOrders(orderData); setLoadError(false); })
+      .catch(() => { setList([]); setOrders([]); setLoadError(true); })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadLists(); }, []);
 
   // Auto-fill from ?order=xxx query param
-  useEffect(() => {
-    if (presetOrderId) {
-      fetch(`/api/orders/${presetOrderId}`).then(r => r.json()).then(order => {
-        if (!order || order.error) return;
+  const loadPresetOrder = () => {
+    if (!presetOrderId) return;
+    setPresetOrderError(false);
+    fetch(`/api/orders/${presetOrderId}`)
+      .then(async res => {
+        if (!res.ok) throw new Error(`Preset order request failed: ${res.status}`);
+        return res.json();
+      })
+      .then(order => {
+        if (!order || order.error) throw new Error('Preset order is unavailable');
         setPresetOrder(order);
         setForm(defaultForm(presetOrderId));
         setShowForm(true);
-      }).catch(() => {});
-    }
-  }, [presetOrderId]);
+      })
+      .catch(() => {
+        setPresetOrder(null);
+        setPresetOrderError(true);
+      });
+  };
+
+  useEffect(() => { loadPresetOrder(); }, [presetOrderId]);
 
   const set = (k: string, v: any) => setForm(prev => ({ ...prev, [k]: v }));
 
@@ -103,7 +135,7 @@ export default function Shipments() {
       }
       setDeleteTarget(null);
       toast.success(t('page.shipments.shipmentDeleted'));
-      fetch('/api/shipments').then(r => r.json()).then(setList);
+      loadLists();
     } catch (e) {
       toast.error(t('page.shipments.deleteFailed'));
     } finally {
@@ -137,7 +169,7 @@ export default function Shipments() {
       setEditId(null);
       toast.success(t('page.shipments.shipmentSaved'));
       setForm(defaultForm());
-      fetch('/api/shipments').then(r => r.json()).then(setList);
+      loadLists();
     } catch (e) {
       toast.error(t('page.shipments.shipmentSaveFailed'));
     } finally {
@@ -160,40 +192,54 @@ export default function Shipments() {
     shipmentCarrier(s).toLowerCase().includes(search.toLowerCase()) ||
     shipmentReference(s).toLowerCase().includes(search.toLowerCase())
   );
+  const pageCount = Math.max(1, Math.ceil(filtered.length / SHIPMENTS_PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paged = filtered.slice(
+    (currentPage - 1) * SHIPMENTS_PAGE_SIZE,
+    currentPage * SHIPMENTS_PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(current => Math.min(current, pageCount));
+  }, [pageCount]);
 
   const renderMobileShipment = (s: any) => (
     <Link
       key={s.id}
       to={`/shipments/${s.id}`}
-      className="block rounded-md border border-gray-200 bg-white p-3 transition-colors hover:border-blue-200 hover:bg-blue-50/30"
+      className="block rounded-md border border-border bg-surface p-3 transition-colors hover:border-stage-shipment hover:bg-stage-shipment-soft"
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
-          <span className="block truncate text-sm font-medium tabular-nums text-blue-600">{s.shipment_number}</span>
-          <span className="mt-0.5 block truncate text-xs text-gray-500">{s.company_name || '—'}</span>
+          <span className="block truncate text-sm font-medium tabular-nums text-stage-shipment">{s.shipment_number}</span>
+          <span className="mt-0.5 block truncate text-xs text-ink-muted">{s.company_name || '—'}</span>
         </div>
         <StatusBadge status={s.status} />
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-gray-100 pt-3 text-xs">
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border pt-3 text-xs">
         <div className="min-w-0">
-          <dt className="text-2xs text-gray-400">{t('page.shipments.order')}</dt>
-          <dd className="mt-0.5 truncate tabular-nums text-gray-700">{s.order_number || '—'}</dd>
+          <dt className="text-2xs text-ink-subtle">{t('page.shipments.order')}</dt>
+          <dd className="mt-0.5 truncate tabular-nums text-ink-muted">{s.order_number || '—'}</dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-2xs text-gray-400">{t('page.shipments.type')}</dt>
-          <dd className="mt-0.5 truncate text-gray-700">{shipmentTypeLabel(s.shipping_type) || '—'}</dd>
+          <dt className="text-2xs text-ink-subtle">{t('page.shipments.type')}</dt>
+          <dd className="mt-0.5 truncate text-ink-muted">{shipmentTypeLabel(s.shipping_type) || '—'}</dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-2xs text-gray-400">{t('page.shipments.carrierParty')}</dt>
-          <dd className="mt-0.5 truncate text-gray-700">{shipmentCarrier(s) || '—'}</dd>
+          <dt className="text-2xs text-ink-subtle">{t('page.shipments.carrierParty')}</dt>
+          <dd className="mt-0.5 truncate text-ink-muted">{shipmentCarrier(s) || '—'}</dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-2xs text-gray-400">{t('page.shipments.referenceNumber')}</dt>
-          <dd className="mt-0.5 truncate tabular-nums text-gray-700">{shipmentReference(s) || '—'}</dd>
+          <dt className="text-2xs text-ink-subtle">{t('page.shipments.referenceNumber')}</dt>
+          <dd className="mt-0.5 truncate tabular-nums text-ink-muted">{shipmentReference(s) || '—'}</dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-2xs text-gray-400">{t('page.shipments.shipDate')}</dt>
-          <dd className="mt-0.5 truncate tabular-nums text-gray-500">{s.shipped_at?.slice(0, 10) || '—'}</dd>
+          <dt className="text-2xs text-ink-subtle">{t('page.shipments.shipDate')}</dt>
+          <dd className="mt-0.5 truncate tabular-nums text-ink-muted">{s.shipped_at?.slice(0, 10) || '—'}</dd>
         </div>
       </dl>
     </Link>
@@ -202,22 +248,34 @@ export default function Shipments() {
   return (
     <div className="page-shell">
       <div className="page-header">
-        <div>
+        <div className="px-3">
           <h1 className="page-heading">{t('page.title.shipments')}</h1>
           <p className="page-summary tabular-nums">{list.length} {t('page.title.shipments')}</p>
         </div>
-        <div className="page-actions">
+        <div className="page-actions px-3">
           <button onClick={() => { setEditId(null); setForm(defaultForm()); setShowForm(true); }} className="btn-primary btn-sm"><Icon name="plus" size={16} className="mr-1.5" />{t('page.shipments.new')}</button>
         </div>
       </div>
 
       <div className="toolbar">
         <div className="relative w-full max-w-sm">
-          <Icon name="search" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Icon name="search" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
           <label className="sr-only" htmlFor="shipments-search">{t('common.searchShipments')}</label>
           <input id="shipments-search" className="input w-full pl-9" placeholder={t('common.searchShipments')} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
+
+      {presetOrderError && (
+        <div className="data-surface mb-3 p-4" role="alert">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-ink-muted">{t('page.error.loadFailed')}</p>
+            <button type="button" onClick={loadPresetOrder} className="btn-secondary btn-sm">
+              <Icon name="refresh" size={14} className="mr-1.5" />
+              {t('common.refresh')}
+            </button>
+          </div>
+        </div>
+      )}
 
       <SidePanel
         open={showForm}
@@ -237,13 +295,13 @@ export default function Shipments() {
           </h3>
           {/* Show pre-selected order info when coming from Order Detail */}
           {presetOrder && (
-            <div className="mb-4 space-y-1 rounded border border-gray-200 bg-gray-50 p-3 text-sm">
+            <div className="mb-4 space-y-1 rounded border border-border bg-canvas p-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-900">{presetOrder.order_number}</span>
-                <span className="text-xs text-gray-500">{presetOrder.company_name}</span>
+                <span className="font-medium text-ink">{presetOrder.order_number}</span>
+                <span className="text-xs text-ink-muted">{presetOrder.company_name}</span>
               </div>
               {presetOrder.line_items && presetOrder.line_items.length > 0 && (
-                <div className="text-xs text-gray-600 mt-1">
+                <div className="text-xs text-ink-muted mt-1">
                   {t('page.shipments.items')}: {presetOrder.line_items.map((li: any) => `${li.quantity_ordered}x ${li.product_grade_snapshot}`).join(', ')}
                 </div>
               )}
@@ -346,46 +404,61 @@ export default function Shipments() {
       {loading ? (
         <div className="data-surface p-3" aria-label={t('common.loading')}>
           <div className="animate-pulse space-y-2">
-            {[0, 1, 2, 3, 4].map(row => <div key={row} className="h-10 rounded bg-gray-100" />)}
+            {[0, 1, 2, 3, 4].map(row => <div key={row} className="h-10 rounded bg-surface-hover" />)}
+          </div>
+        </div>
+      ) : loadError ? (
+        <div className="data-surface p-6" role="alert">
+          <div className="empty-state">
+            <p>{t('page.error.loadFailed')}</p>
+            <button onClick={loadLists} className="btn-secondary btn-sm mt-3"><Icon name="refresh" size={14} className="mr-1.5" />{t('common.refresh')}</button>
           </div>
         </div>
       ) : (
         <>
           <div className="space-y-2 md:hidden">
-            {filtered.map(renderMobileShipment)}
+            {paged.map(renderMobileShipment)}
             {filtered.length === 0 && (
-              <div className="empty-state rounded-md border border-gray-200 bg-white">
+              <div className="empty-state rounded-md border border-border bg-surface">
                 {search ? t('page.shipments.noShipmentsMatchSearch') : t('noData.shipments')}
               </div>
             )}
           </div>
+          <div className="md:hidden">
+            <Pagination
+              page={currentPage}
+              pageSize={SHIPMENTS_PAGE_SIZE}
+              total={filtered.length}
+              onPageChange={setPage}
+            />
+          </div>
           <div className="hidden data-surface overflow-x-auto md:block">
           <table className="w-full">
             <thead className="sticky top-0 z-10">
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="table-header text-center">{t('page.shipments.shipmentNumber')}</th>
-                <th className="table-header text-center">{t('page.shipments.order')}</th>
-                <th className="table-header text-center">{t('page.shipments.company')}</th>
-                <th className="table-header text-center">{t('page.shipments.type')}</th>
-                <th className="table-header text-center">{t('page.shipments.carrierParty')}</th>
-                <th className="table-header text-center">{t('page.shipments.referenceNumber')}</th>
-                <th className="table-header text-center">{t('page.shipments.shipDate')}</th>
-                <th className="table-header text-center">{t('page.shipments.status')}</th>
+              <tr className="border-b border-border bg-surface-subtle">
+                <th className="table-header">{t('page.shipments.shipmentNumber')}</th>
+                <th className="table-header">{t('page.shipments.order')}</th>
+                <th className="table-header">{t('page.shipments.company')}</th>
+                <th className="table-header">{t('page.shipments.type')}</th>
+                <th className="table-header">{t('page.shipments.carrierParty')}</th>
+                <th className="table-header">{t('page.shipments.referenceNumber')}</th>
+                <th className="table-header">{t('page.shipments.shipDate')}</th>
+                <th className="table-header">{t('page.shipments.status')}</th>
                 <th className="table-header"></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((s: any) => (
+              {paged.map((s: any) => (
                 <tr key={s.id} className="table-row">
-                  <td className="table-cell text-center font-medium text-blue-600">
+                  <td className="table-cell font-medium text-stage-shipment">
                     <Link to={`/shipments/${s.id}`} className="hover:underline">{s.shipment_number}</Link>
                   </td>
-                  <td className="table-cell text-center text-xs">{s.order_number || '—'}</td>
-                  <td className="table-cell text-center text-xs">{s.company_name || '—'}</td>
-                  <td className="table-cell text-center text-xs">{shipmentTypeLabel(s.shipping_type) || '—'}</td>
-                  <td className="table-cell text-center text-xs">{shipmentCarrier(s) || '—'}</td>
-                  <td className="table-cell text-center tabular-nums text-xs">{shipmentReference(s) || '—'}</td>
-                  <td className="table-cell text-2xs text-gray-500">{s.shipped_at?.slice(0, 10) || '—'}</td>
+                  <td className="table-cell text-xs text-ink-muted">{s.order_number || '—'}</td>
+                  <td className="table-cell text-xs text-ink">{s.company_name || '—'}</td>
+                  <td className="table-cell text-xs text-ink-muted">{shipmentTypeLabel(s.shipping_type) || '—'}</td>
+                  <td className="table-cell text-xs text-ink-muted">{shipmentCarrier(s) || '—'}</td>
+                  <td className="table-cell tabular-nums text-xs text-ink-muted">{shipmentReference(s) || '—'}</td>
+                  <td className="table-cell text-2xs text-ink-muted">{s.shipped_at?.slice(0, 10) || '—'}</td>
                   <td className="table-cell"><StatusBadge status={s.status} /></td>
                   <td className="table-cell" onClick={e => e.stopPropagation()}>
                     <div className="relative">
@@ -407,13 +480,13 @@ export default function Shipments() {
                               notes: s.notes || '', estimated_delivery_date: s.estimated_delivery_date || '',
                             });
                             setShowForm(true);
-                          }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
+                          }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-ink-muted hover:bg-surface-hover">
                             <Icon name="square-pen" size={13} />{t('common.edit')}
                           </button>
                           <button onClick={() => {
                             setDeleteTarget(s);
                             setOpenMenu(null);
-                          }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">
+                          }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-danger hover:bg-danger-soft">
                             <Icon name="delete" size={13} />{t('common.delete')}
                           </button>
                         </div>
@@ -425,6 +498,12 @@ export default function Shipments() {
               {filtered.length === 0 && <tr><td colSpan={9}><div className="empty-state">{search ? t('page.shipments.noShipmentsMatchSearch') : t('noData.shipments')}</div></td></tr>}
             </tbody>
           </table>
+          <Pagination
+            page={currentPage}
+            pageSize={SHIPMENTS_PAGE_SIZE}
+            total={filtered.length}
+            onPageChange={setPage}
+          />
           </div>
         </>
       )}

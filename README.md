@@ -1,4 +1,4 @@
-# Engineering Plastics CRM
+# JEKIN CRM
 
 Local CRM for engineering plastics sales work: companies, contacts, inquiries, quotations, orders, shipments, payments, pipeline, tasks, and inventory.
 
@@ -83,9 +83,9 @@ Keep the terminal window open while colleagues are using the CRM. Do not use thi
 
 ## Local Auth Notes
 
-By default, local API-key auth is disabled so the frontend can call the API directly.
+Sign in with an account name and a six-digit PIN. First-run administrator setup is available only from the server computer; administrators can create colleague accounts in the user menu.
 
-If `API_KEY` is set in the environment, the API requires an `x-api-key` header. The browser frontend does not automatically send this header, so leave `API_KEY` unset for normal local use.
+The frontend sends the signed-in account's Bearer token to protected API routes. An `x-api-key` header does not replace account login. Forgotten PINs cannot be recovered in plain text; credential resets require an authorized recovery step.
 
 ## Data And Secrets
 

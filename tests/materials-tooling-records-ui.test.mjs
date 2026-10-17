@@ -4,12 +4,14 @@ import test from 'node:test';
 
 const materialsTabFile = new URL('../src/components/materials-tooling/MaterialsTab.tsx', import.meta.url);
 const documentsTabFile = new URL('../src/components/materials-tooling/DocumentsTab.tsx', import.meta.url);
+const approvalsTabFile = new URL('../src/components/materials-tooling/ApprovalsTab.tsx', import.meta.url);
 const toolingTabFile = new URL('../src/components/materials-tooling/ToolingTab.tsx', import.meta.url);
 const tasksPageFile = new URL('../src/pages/Tasks.tsx', import.meta.url);
 const dictionarySource = readFileSync(new URL('../src/lib/i18n.tsx', import.meta.url), 'utf8');
 
 const materialsSource = readFileSync(materialsTabFile, 'utf8');
 const documentsSource = readFileSync(documentsTabFile, 'utf8');
+const approvalsSource = readFileSync(approvalsTabFile, 'utf8');
 const toolingSource = readFileSync(toolingTabFile, 'utf8');
 const tasksSource = readFileSync(tasksPageFile, 'utf8');
 
@@ -23,11 +25,12 @@ test('MaterialsTab uses data-surface with sticky headers', () => {
   assert.match(materialsSource, /table-header/);
 });
 
-test('material and tooling master lists provide readable mobile cards before desktop tables', () => {
+test('material and tooling master lists provide a readable mobile layout before desktop tables', () => {
   assert.match(materialsSource, /className="space-y-2 md:hidden"/);
-  assert.match(materialsSource, /className="hidden data-surface overflow-x-auto md:block"/);
-  assert.match(toolingSource, /className="space-y-2 md:hidden"/);
-  assert.match(toolingSource, /className="hidden data-surface overflow-x-auto md:block"/);
+  assert.match(materialsSource, /className="hidden data-surface overflow-x-auto border-t-0 rounded-t-none md:block"/);
+  assert.match(toolingSource, /className="md:hidden"/);
+  assert.match(toolingSource, /className="data-surface divide-y divide-border border-t-0 rounded-t-none"/);
+  assert.match(toolingSource, /className="hidden data-surface overflow-x-auto border-t-0 rounded-t-none md:block"/);
 });
 
 test('MaterialsTab has searchable table', () => {
@@ -72,6 +75,11 @@ test('material and tooling master-data controls have persistent labels', () => {
   }
 });
 
+test('new material and tooling forms show the automatic code examples', () => {
+  assert.match(materialsSource, /placeholder=\{editId \? t\('page\.materialsTooling\.code'\) : 'MAT-0001'\}/);
+  assert.match(toolingSource, /placeholder=\{editId \? t\('page\.materialsTooling\.code'\) : 'TLG-0001'\}/);
+});
+
 test('material and tooling record workflows use side panels instead of expanding in list content', () => {
   for (const recordSource of [materialsSource, toolingSource]) {
     assert.match(recordSource, /import SidePanel from '\.\.\/shared\/SidePanel'/);
@@ -101,6 +109,28 @@ test('MaterialsTab handles price column permission (viewPrices)', () => {
 
 test('MaterialsTab uses typed API client', () => {
   assert.match(materialsSource, /materialsToolingApi/);
+});
+
+test('MaterialsTab exposes guarded delete confirmation for managed materials', () => {
+  assert.match(materialsSource, /ConfirmDialog/);
+  assert.match(materialsSource, /deleteItem/);
+  assert.match(materialsSource, /deleteTarget/);
+  assert.match(materialsSource, /common\.confirmDelete/);
+  assert.match(materialsSource, /common\.delete/);
+  assert.match(materialsSource, /text-danger/);
+});
+
+test('MaterialsTab starts ledger-based count adjustments from the current quantity', () => {
+  assert.match(materialsSource, /openAdjustment/);
+  assert.match(materialsSource, /current_quantity/);
+  assert.match(materialsSource, /document_type: 'count_adjustment'/);
+  assert.match(materialsSource, /submitDocument\(created\.document\.id\)/);
+  assert.match(materialsSource, /executeDocument\(created\.document\.id\)/);
+  assert.match(materialsSource, /page\.materialsTooling\.execute/);
+  assert.match(materialsSource, /system_quantity: systemQuantity/);
+  assert.match(materialsSource, /counted_quantity: countedQuantity/);
+  assert.match(materialsSource, /adjustment_delta: adjustmentDelta/);
+  assert.match(materialsSource, /materials-tooling-adjustment-counted-quantity/);
 });
 
 test('MaterialsTab reports successful saves as success', () => {
@@ -144,6 +174,14 @@ test('DocumentsTab has submit/withdraw/execute action buttons', () => {
   assert.match(documentsSource, /submit/);
   assert.match(documentsSource, /withdraw/);
   assert.match(documentsSource, /execute/);
+});
+
+test('DocumentsTab uses direct execution for new operational documents', () => {
+  assert.match(documentsSource, /const confirmExecution/);
+  assert.match(documentsSource, /submitDocument\(doc\.id\)/);
+  assert.match(documentsSource, /executeDocument\(doc\.id\)/);
+  assert.match(documentsSource, /doc\.document_type === 'purchase_request'/);
+  assert.doesNotMatch(documentsSource, /submitDocument\(doc\.id\).*pendingApproval/);
 });
 
 test('DocumentsTab supports the complete document record workflow', () => {
@@ -193,4 +231,34 @@ test('DocumentsTab shows document status from dictionary keys', () => {
   assert.match(dictionarySource, /'Draft'/);
   assert.match(dictionarySource, /'Approved'/);
   assert.match(dictionarySource, /'Executed'/);
+});
+
+test('purchase documents use optional handwritten supplier and optional unit price', () => {
+  assert.match(documentsSource, /supplierName/);
+  assert.match(documentsSource, /supplier_name/);
+  assert.match(documentsSource, /page\.materialsTooling\.supplierOptional/);
+  assert.match(documentsSource, /page\.materialsTooling\.optional/);
+  assert.doesNotMatch(documentsSource, /supplierRequired/);
+  assert.doesNotMatch(documentsSource, /required=\{form\.documentType === 'purchase_receipt'\}/);
+  assert.match(dictionarySource, /supplierOptional: 'Optional/);
+  assert.match(dictionarySource, /supplierOptional: '可选/);
+});
+
+test('materials tooling record queues paginate their filtered result sets', () => {
+  assert.match(materialsSource, /Pagination/);
+  assert.match(materialsSource, /MATERIALS_PAGE_SIZE = 10/);
+  assert.match(materialsSource, /paged\.map/);
+  assert.match(materialsSource, /setPage\(1\)/);
+  assert.match(materialsSource, /total=\{filtered\.length\}/);
+
+  assert.match(documentsSource, /Pagination/);
+  assert.match(documentsSource, /DOCUMENTS_PAGE_SIZE = 10/);
+  assert.match(documentsSource, /paged\.map/);
+  assert.match(documentsSource, /setPage\(1\)/);
+  assert.match(documentsSource, /total=\{filtered\.length\}/);
+
+  assert.match(approvalsSource, /Pagination/);
+  assert.match(approvalsSource, /APPROVALS_PAGE_SIZE = 10/);
+  assert.match(approvalsSource, /paged\.map/);
+  assert.match(approvalsSource, /total=\{pendingDocs\.length\}/);
 });
